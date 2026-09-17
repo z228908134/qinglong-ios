@@ -8,6 +8,9 @@ DerivedData/
 *.ipa
 Payload/
 
+# 从 Actions 拉下来的产物（ipa 的 zip 包等）
+out/
+
 # 本机
 .DS_Store
 

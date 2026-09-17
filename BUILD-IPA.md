@@ -5,7 +5,48 @@
 > Apple 的 Mach-O 链接器和 `codesign`。Windows 上没有、也装不上这套工具链。
 > 任何「不用 Mac 编 iOS 应用」的说法都不成立。
 >
-> **可行的路**：借 GitHub 免费的 macOS 构建机跑一遍。整个过程你只需要 Windows + 一部 iPhone。
+> **可行的路**：借 GitHub 免费的 macOS 构建机跑一遍。
+
+---
+
+## 现状：已经出包了
+
+| 项 | 值 |
+|---|---|
+| 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
+| 分支 | `main` |
+| 最近一次构建 | ✅ 成功（全部 11 步通过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.9-trollstore.ipa`（113 KB） |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.9-trollstore`（保留 30 天） |
+
+**你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
+不用再跑构建。
+
+想自己重跑：Actions → Build TrollStore IPA → **Run workflow**。
+
+### 出包过程中真实踩到的两个坑（已修）
+
+留在这里是因为**换了 Xcode 或 XcodeGen 版本还会再撞上**：
+
+**1. `future Xcode project file format (77)`**
+
+```
+xcodebuild: error: Unable to read project 'QingLongClient.xcodeproj'.
+Reason: ... it is in a future Xcode project file format (77).
+```
+
+XcodeGen **2.45 起把默认工程格式改成了 `xcode16_0`**（pbxproj 里 `objectVersion = 77`），
+而 `macos-14` runner 上只有 Xcode 15.4，读不了 77。
+
+→ 修法：`project.yml` 里显式写 `projectFormat: xcode15_3`（实测生成 `objectVersion = 63`，
+Xcode 15.x / 16.x 都能打开）；runner 同时升到 `macos-15`。
+流水线里加了 **Check project format** 步骤，会把 `objectVersion` 和 Xcode 版本打出来。
+
+**2. `incorrect argument label in call (have 'forResource:ofType:', expected 'forResource:withExtension:')`**
+
+Swift 里取 bundle 资源是 `Bundle.main.url(forResource:withExtension:)`；
+`ofType:` 是 `path(forResource:ofType:)` 的标签，**两者不能混用**。
+`WebViewController.swift` 里取 `index.html` 和 `QLBootstrap.js` 两处都写错过。
 
 ---
 
@@ -65,7 +106,14 @@ cors: {
 
 ---
 
-## 第 1 步：把代码传到 GitHub
+## 第 1 步：把代码传到 GitHub —— 已完成，此节留作备查
+
+仓库 `z228908134/qinglong-ios` 已经建好并推上去了。下面这些命令是当初用的，
+以后要**另建一个仓库**或者**换台机器**时照着来。
+
+> 本机的 git 是 WorkBuddy 自带的 PortableGit，系统里没装 Git。
+> 好消息是它**带了 Git Credential Manager**，第一次 `git push` 会弹浏览器让你
+> 登录 GitHub 授权 —— **不需要手搓 Personal Access Token**。
 
 ### 关于仓库可见性（重要）
 
@@ -88,9 +136,12 @@ git remote add origin https://github.com/你的用户名/仓库名.git
 git push -u origin main
 ```
 
-`git push` 要输的**密码位置填 Personal Access Token**，不是登录密码：
+第一次 `git push` 时凭据管理器会**弹出浏览器窗口**让你登录 GitHub 并授权，
+点一下就行，不用去生成 token。
+
+（万一没弹出来、而是提示要账号密码：密码位置填 **Personal Access Token**，不是登录密码。
 GitHub → Settings → Developer settings → Personal access tokens → **Tokens (classic)**
-→ Generate new token (classic) → 勾选 `repo` → 生成后立刻复制。
+→ Generate new token (classic) → 勾选 `repo` → 生成后立刻复制。）
 
 ### 网页上传
 
@@ -120,8 +171,30 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 
 ## 第 3 步：下载 ipa
 
-点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-1.0.9-trollstore`
+**这次已经帮你下好了**，就在：
+
+```
+qinglong-ios/out/QingLongClient-1.0.9-trollstore.ipa
+```
+
+以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-1.0.9-trollstore`
 → 下载得到 zip，解压出 `QingLongClient-1.0.9-trollstore.ipa`。
+
+### 这个包验过什么
+
+| 检查项 | 结果 |
+|---|---|
+| `Payload/QingLongClient.app/` 结构 | ✅ |
+| `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
+| `index.html` | ✅ 191159 字节 |
+| 页面 `APP_VER` | ✅ 1.0.9（与 `MARKETING_VERSION` 一致） |
+| `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
+| 页面里有无硬编码真实公网 IP | ✅ 无 |
+| `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 6438 字节 |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.9 (9) |
+| `MinimumOSVersion` | ✅ 15.0 |
+| ATS（允许明文 http 到自建面板） | ✅ `NSAllowsArbitraryLoads: true` |
+| 可执行文件 | ✅ arm64 Mach-O，158032 字节 |
 
 ---
 
@@ -161,19 +234,23 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 
 ## 构建失败了怎么办
 
-我这边**没有 Mac，无法本地预跑这条流水线**，第一次有可能报错。如果红了：
+流水线本身是通的（已经跑绿过），但**换了 Xcode / XcodeGen 大版本后仍可能再红**。
+点进失败的那次 → 展开红色 ❌ 那一步 → 看 `error:` 开头那段。
 
-1. 点进失败的那次 → 展开红色 ❌ 那一步
-2. 把 `error:` 开头的那段发我，我直接改
-
-最常见的几类：
+实际遇到过的：
 
 | 报错 | 原因 / 处理 |
 |---|---|
+| `future Xcode project file format (77)` | XcodeGen 换了默认工程格式。`project.yml` 里 `projectFormat` 改成 `xcode15_3`（或把 runner 升到更新的 macOS） |
+| `incorrect argument label in call (have 'forResource:ofType:', expected 'forResource:withExtension:')` | Swift 取 bundle 资源要用 `withExtension:`，不是 `ofType:` |
 | `scheme QingLongClient not found` | `project.yml` 不在仓库根目录，或 `schemes:` 段丢了 |
 | `No such module` / brew 失败 | 重跑一次，runner 偶发网络抖动 |
 | AppIcon 相关 error | `Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png` 没传上去（网页上传常漏二进制） |
 | `index.html 不存在` | 跑一下 `python tools/prepare_web.py` 再提交 |
+
+> **经验**：这轮一共红了三次，前两次都是「改完就提交、没确认改动真的进了 commit」。
+> 现在改完 Swift 文件会先 `grep` 一遍磁盘内容再提交 —— 第 53 行的改动就曾经
+> 被漏掉过一次，导致第三次 CI 报的还是同一个错。
 
 ---
 

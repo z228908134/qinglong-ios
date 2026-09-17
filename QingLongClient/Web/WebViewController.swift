@@ -70,7 +70,7 @@ final class WebViewController: UIViewController {
     /// 把 QLBootstrap.js 读出来，并把本地存储的值填进 __QL_STATE_JSON__ 占位符。
     /// 必须放在 atDocumentStart：页面一上来就同步调 QLNative.loadState()。
     private static func bootstrapScript() -> String {
-        guard let url = Bundle.main.url(forResource: "QLBootstrap", ofType: "js"),
+        guard let url = Bundle.main.url(forResource: "QLBootstrap", withExtension: "js"),
               let raw = try? String(contentsOf: url, encoding: .utf8) else {
             return "window.__QL_NATIVE__='ios';"
         }

@@ -59,9 +59,11 @@ jobs:
           OV=$(grep -m1 -o 'objectVersion = [0-9]*' QingLongClient.xcodeproj/project.pbxproj | grep -o '[0-9]*')
           echo "objectVersion = $OV"
           echo "Xcode: $(xcodebuild -version | head -1)"
+          # 实测 projectFormat: xcode15_3 生成的是 63。
+          # 60 及以下归为 Xcode 14/15 格式，70/77 是 Xcode 16 格式（Xcode 15.x 打不开）。
           case "$OV" in
-            56|60) echo "格式为 Xcode 14/15，Xcode 15 与 16 均可打开" ;;
-            70|77) echo "::warning::格式为 Xcode 16（objectVersion $OV），Xcode 15.x 打不开" ;;
+            5[0-9]|6[0-3]) echo "格式为 Xcode 15.x，Xcode 15 与 16 均可打开" ;;
+            7[0-9]) echo "::warning::格式为 Xcode 16（objectVersion $OV），Xcode 15.x 打不开" ;;
             *) echo "::warning::未知 objectVersion $OV" ;;
           esac
 

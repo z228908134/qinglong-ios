@@ -102,6 +102,35 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   font-size:calc(10px*var(--fs));font-weight:700;color:#fff;background:linear-gradient(135deg,#4ED8A8,#12A16F);
   transition:box-shadow .18s}
 #tabbar button.on .ti.av{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+/* ---- 任务页工具条（编辑 + 状态筛选），排布照青龙网页版 ---- */
+.cronbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+/* 筛选条横向可滚：四个按钮加「编辑」在 320 宽的屏上正好卡边，留一手免得挤成两行 */
+.cfwrap{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.cfwrap::-webkit-scrollbar{display:none}
+.cfbtn{flex:0 0 auto;background:var(--fill);border:0;border-radius:999px;padding:6px 11px;
+  color:var(--text2);font-family:inherit;font-size:calc(12px*var(--fs));font-weight:600;
+  cursor:pointer;white-space:nowrap}
+.cfbtn.on{background:var(--accent);color:#fff}
+/* 批量编辑：卡片左侧的圆圈勾选，选中后填主色 */
+.item .ckb{flex:0 0 20px;height:20px;border-radius:50%;border:1.5px solid var(--text3);
+  display:flex;align-items:center;justify-content:center;color:transparent;
+  font-size:calc(11px*var(--fs));line-height:1;margin-right:2px}
+.item.on .ckb{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 底部批量操作栏。fixed 贴底并自己吃掉安全区 —— 编辑模式下底栏（#tabbar）整体让位，
+   所以不用去猜它有多高，两者也不会互相压住。 */
+#cronEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:8px;
+  align-items:center;padding:10px 16px calc(10px + var(--bot));
+  background:var(--card);border-top:1px solid var(--sep)}
+/* ---- 账号切换列表（系统设置 → 账号） ---- */
+/* 一行分两段：左边整块是「切到这个账号」，右边单独一个删除。
+   按钮不能套按钮（HTML 不允许），所以外面是 div，里面并排两个 button。 */
+.acctsw{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left;
+  background:none;border:0;padding:13px 4px;color:var(--text);font-family:inherit;
+  font-size:calc(15px*var(--fs));cursor:pointer}
+.acctsw .anm{font-weight:500}
+.acctdel{flex:0 0 46px;background:none;border:0;color:var(--text3);cursor:pointer;
+  padding:13px 0;font-family:inherit;font-size:calc(15px*var(--fs))}
+.ck2{flex:0 0 46px;text-align:center;color:var(--accent);font-size:calc(15px*var(--fs))}
 
 /* ---------- 分段控件（当单选组用） ---------- */
 .seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
@@ -384,6 +413,13 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 
     <section class="view" id="v-crons">
       <div class="searchbar"><input id="cronSearch" type="search" placeholder="搜索任务名 / 命令 / 标签" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 工具条：左边「编辑」（进批量模式），右边四个状态筛选，排布照青龙网页版。
+           四个筛选跟后端 status 字段一一对应 —— 运行中 0 / 未使用 1 / 已禁用 2
+           （排队中 3 归进「运行中」，它也是「在用」）。见 cronBucket()。 -->
+      <div class="cronbar">
+        <button class="cfbtn" id="btnCronEdit">编辑</button>
+        <div class="cfwrap" id="cronFilters"></div>
+      </div>
       <div class="list" id="cronList"></div>
       <div id="cronFoot"></div>
     </section>
@@ -446,6 +482,9 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
     <button data-tab="scripts"><span class="ti">⌘</span>脚本</button>
     <button data-tab="subs"><span class="ti">⇅</span>订阅</button>
   </nav>
+  <!-- 任务页批量编辑时的底部操作栏。fixed 贴底，编辑模式下底栏（#tabbar）整体让位
+       —— 这样就不用去猜底栏有多高，也不会互相压住。见 renderCronEditBar()。 -->
+  <div id="cronEditBar" class="hidden"></div>
 </div>
 
 <div id="sheet"><div class="mask"></div><div class="panel">
@@ -511,7 +550,9 @@ function fallbackCopy(text) {
 var K = {
   server: 'ql.server', user: 'ql.user', pass: 'ql.pass',
   token: 'ql.token', tab: 'ql.tab', remember: 'ql.remember', auto: 'ql.auto',
-  theme: 'ql.theme', fs: 'ql.fs'
+  theme: 'ql.theme', fs: 'ql.fs',
+  /* 登录过的账号列表（多账号切换用），JSON 数组，见 acctRemember() */
+  accts: 'ql.accts'
 };
 /* 登录页「面板地址」的默认值。**留空** —— 不预填任何地址：
    这份页面会被打进安卓 / iOS 安装包，也会推到仓库里，写死一个 IP 等于把自己的
@@ -709,7 +750,10 @@ var S = {
   sys: null,
   need2fa: false,
   detailId: null,
-  crons: { list: [], total: 0, page: 1, size: 20, q: '', loading: false },
+  /* filter: 状态筛选（all / running / unused / disabled），分档规则见 cronBucket()。
+     edit / sel: 批量编辑模式 —— 勾选中的任务 id 记在 sel 里（键是 id，值是 true）。 */
+  crons: { list: [], total: 0, page: 1, size: 20, q: '', loading: false,
+           filter: 'all', edit: false, sel: {} },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
   envs: { list: [], q: '', tag: '', loading: false },
   logs: { tree: [], path: [], loading: false },
@@ -967,10 +1011,13 @@ function maskValue(v) {
   return '•'.repeat(Math.min(Math.max(s.length, 6), 20)) + '  (' + s.length + ' 字符)';
 }
 
-/* ================= 任务状态 ================= */
+/* ================= 任务状态 =================
+   这四个值和青龙后端的 status 字段一一对应，任务页的筛选条就是按它们分的
+   （见 cronBucket）。文案照青龙网页版：「1」那里用「未使用」而不是「空闲」，
+   跟筛选按钮叫法保持一致，否则筛「未使用」出来的卡片写着「空闲」，看着像筛错了。 */
 var ST = {
   0: { t: '运行中', c: 'green' },
-  1: { t: '空闲', c: 'blue' },
+  1: { t: '未使用', c: 'blue' },
   2: { t: '已禁用', c: 'gray' },
   3: { t: '排队中', c: 'orange' }
 };
@@ -1144,12 +1191,69 @@ function saveCreds(pass) {
   else sdel(K.pass);
 }
 
-/* auto=true 表示这是自动重登，失败时不要弹提示和诊断，免得一开屏就糊一脸 */
-async function doLogin(auto) {
-  var server = $('#inServer').value.trim();
-  var user = $('#inUser').value.trim();
-  var pass = $('#inPass').value;
-  var code = $('#inCode').value.trim();
+/* ================= 登录历史（多账号切换） =================
+
+   每登录成功一次就记一笔：用户名 + 面板地址 + 密码 + 时间。
+   同一组（用户名 + 地址）只留最新的一条，按时间倒序，最多 ACCT_MAX 条。
+   密码就存在本机（跟「记住密码」同一套存储），不上传任何地方。 */
+
+var ACCT_MAX = 8;
+
+function acctList() {
+  try {
+    var a = JSON.parse(sget(K.accts) || '[]');
+    return Object.prototype.toString.call(a) === '[object Array]' ? a : [];
+  } catch (e) { return []; }
+}
+function acctPut(list) { sset(K.accts, JSON.stringify(list.slice(0, ACCT_MAX))); }
+
+/* 同一个人在不同面板上算两个账号 —— 用户名很可能都叫 admin，
+   只比用户名会把两个面板的凭据混在一起。 */
+function acctKey(a) { return String(a.u || '') + '@' + String(a.s || ''); }
+
+function acctRemember(user, pass, server) {
+  if (!user) return;
+  var me = { u: user, p: pass || '', s: server || '', t: Date.now() };
+  var list = acctList().filter(function (a) { return acctKey(a) !== acctKey(me); });
+  list.unshift(me);
+  acctPut(list);
+}
+
+function acctForget(i) {
+  var list = acctList();
+  if (i < 0 || i >= list.length) return;
+  list.splice(i, 1);
+  acctPut(list);
+}
+
+function acctIsCurrent(a) {
+  return a.u === S.user && (a.s || '') === (S.server || '');
+}
+
+/* 切到另一个账号：面板地址、用户名、密码一起换，然后重新登录。
+   不走 signOut —— 它会清掉自动登录标记并弹一句「已退出登录」，
+   切账号不该让用户看到那句话。 */
+async function acctSwitch(i) {
+  var a = acctList()[i];
+  if (!a) return;
+  if (acctIsCurrent(a)) { toast('已经是这个账号了'); return; }
+  if (!a.p) { toast('这个账号没存密码，请手动登录一次', true); return; }
+  closeSheet();
+  toast('正在切到 ' + a.u + '…');
+  /* 地址要先交给原生代理，否则请求还发到旧面板上（doLogin 里还会再同步一次） */
+  S.server = a.s || S.server;
+  sset(K.server, S.server);
+  syncTarget();
+  return doLogin(true, { server: a.s || S.server, user: a.u, pass: a.p });
+}
+
+/* auto=true 表示这是自动重登，失败时不要弹提示和诊断，免得一开屏就糊一脸。
+   creds 给了就直接用它 —— 多账号切换走这条，不用先往登录页的输入框里塞值。 */
+async function doLogin(auto, creds) {
+  var server = creds ? String(creds.server || '') : $('#inServer').value.trim();
+  var user = creds ? String(creds.user || '') : $('#inUser').value.trim();
+  var pass = creds ? String(creds.pass || '') : $('#inPass').value;
+  var code = creds ? String(creds.code || '') : $('#inCode').value.trim();
   if (!server) { if (!auto) toast('请填写面板地址', true); return false; }
   if (!user || !pass) { if (!auto) toast('请填写用户名和密码', true); return false; }
   if (S.need2fa && !code) { if (!auto) toast('请填写动态验证码', true); return false; }
@@ -1175,6 +1279,7 @@ async function doLogin(auto) {
     sset(K.token, S.token);
     sset(K.auto, '1');     // 登录成功 → 下次打开可以自动进
     saveCreds(pass);
+    acctRemember(user, pass, server);   // 记进登录历史，之后在系统设置里能一键切回来
     showApp();
     if (!auto) toast('登录成功');
     await bootAfterLogin();
@@ -1257,6 +1362,16 @@ function setTab(tab, force) {
   $('#scrAddMenu').classList.add('hidden');
   var addBtn = $('#btnScrAdd');
   if (addBtn) addBtn.title = tab === 'scripts' ? '新建 / 上传' : '新建';
+  /* 离开任务页就退出批量编辑。不退出的话：底栏还藏着（#tabbar 被 renderCronEditBar
+     藏了）、勾选还留着，回到任务页时会很突兀，而且别的页面底栏没了。 */
+  if (tab !== 'crons' && S.crons.edit) {
+    S.crons.edit = false;
+    S.crons.sel = {};
+    var eb = $('#cronEditBar');
+    if (eb) { eb.classList.add('hidden'); eb.innerHTML = ''; }
+    var tbar = $('#tabbar');
+    if (tbar) tbar.classList.remove('hidden');
+  }
   $('#main').scrollTop = 0;
   syncBack();
   refresh();
@@ -1273,9 +1388,72 @@ async function refresh() {
 }
 
 /* ================= 任务列表 ================= */
+
+/* 四个状态筛选。**和上面 ST 的四个值一一对应**，是青龙自己的分法：
+     运行中 → status 0
+     未使用 → status 1
+     已禁用 → status 2（或 isDisabled 为 1）
+   排队中（status 3）归进「运行中」—— 它也是「在用」，单列一档反而没人找得到。
+   四档互斥、加起来正好是全部；漏掉任何一个值，那类任务就只能在「全部」里看到，
+   用户会以为任务丢了。 */
+var CRON_FILTERS = [
+  ['all', '全部'], ['running', '运行中'], ['unused', '未使用'], ['disabled', '已禁用']
+];
+
+function cronBucket(t) {
+  if (t.isDisabled === 1 || Number(t.status) === 2) return 'disabled';
+  if (Number(t.status) === 1) return 'unused';
+  return 'running';
+}
+
+function cronFiltered() {
+  var f = S.crons.filter || 'all';
+  if (f === 'all') return S.crons.list;
+  return S.crons.list.filter(function (t) { return cronBucket(t) === f; });
+}
+
+function renderCronFilters() {
+  var box = $('#cronFilters');
+  if (!box) return;
+  var f = S.crons.filter || 'all';
+  box.innerHTML = CRON_FILTERS.map(function (x) {
+    return '<button class="cfbtn' + (x[0] === f ? ' on' : '') + '" data-cf="' + x[0] + '">' +
+      esc(x[1]) + '</button>';
+  }).join('');
+}
+
+/* 切筛选。非「全部」时先把列表一次拉全：只筛当前这一页会漏掉后面几页，
+   用户会以为「已禁用」就一个。任务量级是几百个，一次拉得动。 */
+async function setCronFilter(f) {
+  if (f === S.crons.filter) return;
+  if (!CRON_FILTERS.some(function (x) { return x[0] === f; })) return;
+  S.crons.filter = f;
+  renderCronFilters();
+  if (f !== 'all' && S.crons.list.length < S.crons.total) {
+    S.crons.size = Math.max(S.crons.size, 500);
+    await loadCrons(true);
+    return;
+  }
+  renderCrons();
+}
+
 function renderCrons() {
   var c = S.crons;
-  $('#sub').textContent = c.total ? ('共 ' + c.total + ' 个 · 已加载 ' + c.list.length + ' 个') : '';
+  var list = cronFiltered();
+  var fname = (CRON_FILTERS.filter(function (x) { return x[0] === (c.filter || 'all'); })[0] || [])[1];
+  var editing = !!c.edit;
+
+  /* 筛选条和编辑栏放在早退分支**之前**无条件同步：它们显示什么（高亮哪一档、
+     按钮叫「编辑」还是「完成」、已选几个）全看 c.filter / c.edit / c.sel，
+     放在下面的话，列表一空（加载中 / 筛出来是 0 条）它们就停在旧状态上了。 */
+  renderCronFilters();
+  renderCronEditBar();
+
+  $('#sub').textContent = c.total
+    ? ('共 ' + c.total + ' 个' + (c.filter && c.filter !== 'all'
+        ? ' · ' + fname + ' ' + list.length + ' 个'
+        : ' · 已加载 ' + c.list.length + ' 个'))
+    : '';
 
   var box = $('#cronList');
   if (c.loading && !c.list.length) {
@@ -1283,14 +1461,16 @@ function renderCrons() {
     $('#cronFoot').innerHTML = '';
     return;
   }
-  if (!c.list.length) {
+  if (!list.length) {
     box.innerHTML = '<div class="empty"><span class="ei">▤</span>' +
-      (c.q ? '没有匹配「' + esc(c.q) + '」的任务' : '还没有定时任务') + '</div>';
+      (c.q ? '没有匹配「' + esc(c.q) + '」的任务'
+           : (c.filter && c.filter !== 'all' ? '没有「' + esc(fname) + '」的任务' : '还没有定时任务')) +
+      '</div>';
     $('#cronFoot').innerHTML = '';
     return;
   }
 
-  box.innerHTML = c.list.map(function (t) {
+  box.innerHTML = list.map(function (t) {
     var s = statusOf(t);
     var tags = '';
     if (t.schedule) tags += '<span class="tag">' + esc(t.schedule) + '</span>';
@@ -1298,18 +1478,24 @@ function renderCrons() {
     if (t.isSystem === 1) tags += '<span class="tag">系统</span>';
 
     var next = nextRunText(t.schedule);
-    return '<div class="item" data-cron="' + t.id + '">' +
-      '<div class="row"><div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>' +
+    /* 编辑模式下卡片左边多个勾选圈，「运行 / 更多」两个按钮收起来：
+       一是避免批量操作时误触，二是腾出位置。点整张卡片 = 勾选 / 取消勾选。 */
+    var on = editing && !!c.sel[t.id];
+    return '<div class="item' + (on ? ' on' : '') + '" data-cron="' + t.id + '">' +
+      '<div class="row">' +
+        (editing ? '<span class="ckb">✓</span>' : '') +
+        '<div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>' +
       '<div class="tags">' + tags + '</div>' +
       '<div class="row f11 t3" style="margin-top:8px">' +
         '<span>上次 ' + esc(fmtRel(t.last_execution_time)) + '</span>' +
         (next ? '<span class="sp ell" style="text-align:right">下次 ' + esc(next.split('（')[0]) + '</span>' : '') +
       '</div>' +
+      (editing ? '' :
       '<div class="row" style="margin-top:10px;gap:8px">' +
         '<button class="btn" style="flex:1;padding:8px" data-act="' + (isBusy(t) ? 'stop' : 'run') + '" data-id="' + t.id + '">' +
           (isBusy(t) ? '停止' : '运行') + '</button>' +
         '<button class="btn" style="flex:1;padding:8px" data-act="more" data-id="' + t.id + '">更多</button>' +
-      '</div>' +
+      '</div>') +
     '</div>';
   }).join('');
 
@@ -1363,6 +1549,83 @@ async function cronAction(id, act) {
   } catch (e) {
     toast(e.message, true);
   }
+}
+
+/* ---------- 批量编辑（任务页左上角「编辑」） ---------- */
+
+/* 点「编辑」进批量模式，按钮变成「完成」；再点一次退出并清空勾选。 */
+function toggleCronEdit(on) {
+  S.crons.edit = (on == null ? !S.crons.edit : !!on);
+  if (!S.crons.edit) S.crons.sel = {};
+  var b = $('#btnCronEdit');
+  if (b) b.textContent = S.crons.edit ? '完成' : '编辑';
+  renderCrons();
+}
+
+function cronSelCount() {
+  var n = 0;
+  for (var k in S.crons.sel) { if (S.crons.sel[k]) n++; }
+  return n;
+}
+
+function cronSelIds() {
+  var out = [];
+  for (var k in S.crons.sel) { if (S.crons.sel[k]) out.push(Number(k)); }
+  return out;
+}
+
+function toggleCronSel(id) {
+  if (S.crons.sel[id]) delete S.crons.sel[id];
+  else S.crons.sel[id] = true;
+  renderCrons();
+}
+
+/* 全选 / 取消全选。只作用于**当前筛选出来的那些** —— 筛了「已禁用」再点全选，
+   用户想处理的就是这些，不该把运行中的也一起勾上。 */
+function cronSelectAll(on) {
+  if (on) cronFiltered().forEach(function (t) { S.crons.sel[t.id] = true; });
+  else S.crons.sel = {};
+  renderCrons();
+}
+
+/* 批量动作。接口跟单个的一样，只是 body 传一组 id（青龙支持）。 */
+async function cronBatch(act) {
+  var ids = cronSelIds();
+  if (!ids.length) { toast('先选几个任务', true); return; }
+  if (act === 'delete' && !confirm('删除选中的 ' + ids.length + ' 个任务？删除后不可恢复。')) return;
+  var label = '';
+  try {
+    if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: ids }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: ids }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: ids }); }
+    else return;
+    toast(label + ' ' + ids.length + ' 个');
+    toggleCronEdit(false);
+    await loadCrons(true);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 底部批量操作栏。编辑模式下把底栏（#tabbar）藏起来给它让位 —— 两个都是贴底元素，
+   同时显示会叠在一起；藏掉底栏也就不用去猜它有多高。 */
+function renderCronEditBar() {
+  var bar = $('#cronEditBar');
+  var on = !!S.crons.edit;
+  var tb = $('#tabbar');
+  if (tb) tb.classList.toggle('hidden', on);
+  if (!bar) return;
+  bar.classList.toggle('hidden', !on);
+  if (!on) { bar.innerHTML = ''; return; }
+  var n = cronSelCount();
+  var allOn = n > 0 && n === cronFiltered().length;
+  bar.innerHTML =
+    '<button class="btn" id="btnCronAll" style="flex:1;padding:9px 4px">' +
+      (allOn ? '取消全选' : '全选') + '</button>' +
+    '<button class="btn" data-cbatch="enable" style="flex:1;padding:9px 4px">启用</button>' +
+    '<button class="btn" data-cbatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
+    '<button class="btn danger" data-cbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
+    '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>';
 }
 
 /* ---------- 任务详情 ---------- */
@@ -3191,6 +3454,15 @@ function openAccount() {
   h += kv('接口地址', base());
   h += '</div>';
 
+  /* 登录过的账号在同一个列表里（系统设置 → 账号 进的是同一个弹层）。
+     只有一个账号时不显示，免得白占一行。 */
+  var accts = acctList();
+  if (accts.length > 1) {
+    h += '<div style="margin-top:12px">' +
+      '<button class="btn" id="btnAccts" style="width:100%">切换账号（已记 ' + accts.length + ' 个）</button>' +
+      '</div>';
+  }
+
   h += '<div class="secttl">服务器地址</div>';
   h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
     '<input id="meServer" autocapitalize="off" autocorrect="off" spellcheck="false" value="' +
@@ -3210,6 +3482,20 @@ function openSettings() {
   h += kv('版本', (S.sys && S.sys.version) || '未知');
   h += kv('分支', (S.sys && S.sys.branch) || '未知');
   h += '</div>';
+
+  /* 账号：登录过的账号都在这儿，点一下就切过去。
+     跟「我的」页顶部的「切换账号」胶囊进的是同一个弹层。 */
+  var accts = acctList();
+  h += '<div class="secttl">账号</div>';
+  h += '<div class="card" style="padding:0">' +
+    '<button class="kvrow" id="btnAccts">' +
+        '<span class="k">切换账号</span>' +
+        '<span class="v">' + esc(S.user || '未登录') +
+          (accts.length > 1 ? ' · 共 ' + accts.length + ' 个' : '') + ' ›</span>' +
+      '</button>' +
+    '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">' +
+    '登录过的账号会自动记下来，下次点一下就切过去，不用重新输密码。</div>';
 
   /* 外观 / 字体：跟在系统里看到的「显示」类设置一样。点整条打开选项弹层。
      当前值显示在右边（onAction），让人一眼看出现在是什么档。 */
@@ -3240,6 +3526,37 @@ function openSettings() {
   h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">' +
     '面板走明文 http 时，密码与令牌会以明文经过网络，建议配置 HTTPS。</div>';
   openSheet('系统设置', h);
+}
+
+/* 账号切换弹层：列出登录过的账号，点一条直接切过去（不用重新输密码）。
+   系统设置里的「切换账号」和「我的」页顶部那个胶囊都进这里。 */
+function openAccounts() {
+  var list = acctList();
+  var h = '';
+  if (!list.length) {
+    h += '<div class="empty" style="padding:26px 0"><span class="ei">◍</span>还没有登录记录</div>';
+  } else {
+    h += '<div class="secttl" style="margin-top:0">登录过的账号</div><div class="card" style="padding:0">';
+    list.forEach(function (a, i) {
+      var cur = acctIsCurrent(a);
+      h += '<div class="kvrow" style="padding:0;gap:0">' +
+        '<button class="acctsw" data-acct="' + i + '">' +
+          '<span class="anm ell">' + esc(a.u) +
+            (cur ? ' <span class="tag">当前</span>' : '') + '</span>' +
+          /* 第二行：面板地址 + 最后登录时间。时间才是「历史记录」的意义所在 ——
+             光有一串账号，看不出哪个是刚用过的。 */
+          '<span class="f11 t3 ell">' + esc(hostOf(a.s) || a.s || '') +
+            (a.t ? ' · ' + esc(fmtRel(a.t)) : '') + '</span>' +
+        '</button>' +
+        (cur ? '<span class="ck2">✓</span>'
+             : '<button class="acctdel" data-acctdel="' + i + '" title="删除">✕</button>') +
+      '</div>';
+    });
+    h += '</div>';
+  }
+  h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">' +
+    '点一个账号就直接切过去，不用重新输密码。密码只存在这台手机上。</div>';
+  openSheet('切换账号', h);
 }
 
 /* 外观三档的中文文案 */
@@ -3458,8 +3775,11 @@ function onClick(ev) {
      「先判 data-sact，再判 data-scr」，顺序反了会把菜单项当成打开文件。 */
   var el = ev.target.closest ? ev.target.closest(
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
+    '[data-cf],[data-cbatch],' +
+    '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-fs-set],[data-log],[data-preset],[data-path],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
+    '#btnCronEdit,#btnCronAll,#btnAccts,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnDelLog,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
     '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
@@ -3488,13 +3808,36 @@ function onClick(ev) {
   /* 系统设置 → 点「字体大小」整条 */
   if (el.id === 'btnFs') return openFontScale();
 
+  /* 账号切换（系统设置 → 账号，以及「我的」页胶囊里那个入口）。
+     删除要排在切换前面判 —— 两个属性名前缀相同，先判 data-acct 的话
+     data-acctdel 的元素会走进切换分支（dataset.acct 是 undefined，看着像没反应）。 */
+  if (el.id === 'btnAccts') return openAccounts();
+  if (el.dataset.acctdel != null) {
+    acctForget(Number(el.dataset.acctdel));
+    openAccounts();
+    return;
+  }
+  if (el.dataset.acct != null) return acctSwitch(Number(el.dataset.acct));
+
+  /* 任务页工具条：编辑开关 / 状态筛选 / 底部批量操作栏。
+     必须排在下面的「任务列表」分支之前 —— 这些按钮都在任务页里，
+     顺序反了会被 data-cron 之类的分支先截走。 */
+  if (el.id === 'btnCronEdit') return toggleCronEdit();
+  if (el.dataset.cf) return setCronFilter(el.dataset.cf);
+  if (el.id === 'btnCronAll') return cronSelectAll(cronSelCount() !== cronFiltered().length);
+  if (el.dataset.cbatch) return cronBatch(el.dataset.cbatch);
+
   /* 任务列表 */
   if (el.dataset.act) {
     ev.stopPropagation();
     if (el.dataset.act === 'more') return openCronMore(id);
     return cronAction(id, el.dataset.act);
   }
-  if (el.dataset.cron) return openCron(Number(el.dataset.cron));
+  /* 编辑模式下点整张卡片 = 勾选 / 取消勾选，不再是打开详情 */
+  if (el.dataset.cron) {
+    if (S.crons.edit) return toggleCronSel(Number(el.dataset.cron));
+    return openCron(Number(el.dataset.cron));
+  }
 
   /* 任务详情 / 更多菜单里的动作 */
   if (el.dataset.mact) { closeSheet(); return cronAction(id, el.dataset.mact); }

@@ -15,16 +15,16 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35239654954`，commit `4a29c69`，全部 13 步通过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.11-trollstore.ipa`（139366 字节） |
-| SHA256 | `78cebd3b2f6818eb266ef4605ca8c6a1b8ab3b26a02da05e1491b7a834037d49` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.11-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35243788829`，commit `45dda8b`，全部 13 步通过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.12-trollstore.ipa`（141420 字节） |
+| SHA256 | `a724eaefa23cb8675ba0f0053432ebf99071622c3f000823064cec89999a4770` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.12-trollstore`（保留 30 天） |
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.11-trollstore.ipa
-# 应该得到 78cebd3b2f6818eb266ef4605ca8c6a1b8ab3b26a02da05e1491b7a834037d49
+sha256sum QingLongClient-1.0.12-trollstore.ipa
+# 应该得到 a724eaefa23cb8675ba0f0053432ebf99071622c3f000823064cec89999a4770
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -194,7 +194,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.11-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.12-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -206,27 +206,28 @@ qinglong-ios/out/QingLongClient-1.0.11-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.11-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.12-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 267537 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.11（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 273438 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.12（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
 | 其他设置（读 `data.info` / 备份模块表 / 还原字段 `data` / 还原后调 `update/data` / 时区表） | ✅ 5 个锚点全在 |
 | 登录日志（列表加载 / 时间按毫秒） | ✅ 都在 |
 | 字号拖动条（`fsRange` / `btnFsDown` / `fsClamp` / 老档位迁移 / `bindFsRange`） | ✅ 都在 |
+| 定时视图（`cronViewTabs` / `loadViews` / `/api/crons/views` / `queryString` 透传 / `viewsFailed` / `setView`） | ✅ 6 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
 | 任务页四档筛选 / 多账号切换代码在包里 | ✅ `cronBucket()` / `acctSwitch()` 都在 |
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.11 (11) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.12 (12) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
@@ -321,7 +322,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.10（跟安卓对齐） |
+| 版本 | 1.0.12 |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

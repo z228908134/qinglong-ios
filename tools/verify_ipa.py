@@ -51,6 +51,12 @@ FEATURES = [
     ("字号 夹取防 NaN", r"function fsClamp\("),
     ("字号 老档位迁移", r"Object\.prototype\.hasOwnProperty\.call\(FS, v\)"),
     ("字号 滑杆重绑", r"function bindFsRange\("),
+    ("定时视图 挂载点", r'id="cronViewTabs"'),
+    ("定时视图 列表加载", r"function loadViews\("),
+    ("定时视图 接口路径", r"/api/crons/views"),
+    ("定时视图 透传 queryString", r"q\.queryString = JSON\.stringify\("),
+    ("定时视图 降级标志", r"viewsFailed"),
+    ("定时视图 切 tab", r"function setView\("),
 ]
 
 PLIST_KEYS = [

@@ -15,16 +15,29 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（全部 11 步通过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.9-trollstore.ipa`（113 KB） |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.9-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35228440386`，commit `07083a9`，全部 11 步通过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.10-trollstore.ipa`（123662 字节） |
+| SHA256 | `6e35a572284df8dd6ad897a466d44ef22b32e7b815db13a5c4bed93690562090` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.10-trollstore`（保留 30 天） |
+
+核对下载到的包对不对：
+
+```bash
+sha256sum QingLongClient-1.0.10-trollstore.ipa
+# 应该得到 6e35a572284df8dd6ad897a466d44ef22b32e7b815db13a5c4bed93690562090
+```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
 不用再跑构建。
 
 想自己重跑：Actions → Build TrollStore IPA → **Run workflow**。
 
-### 出包过程中真实踩到的两个坑（已修）
+> 文件名里的版本号是**自动**从 `project.yml` 的 `MARKETING_VERSION` 取的。
+> 以前这里是写死的 `1.0.9`：升到 1.0.10 后包内 `Info.plist` 是 1.0.10、文件名却还是
+> 1.0.9，下下来根本分不清新旧 —— 已经改成自动取，并在打包时对账一次
+> （包内 `CFBundleShortVersionString` 必须等于文件名版本，不等就直接报错）。
+
+### 出包过程中真实踩到的三个坑（已修）
 
 留在这里是因为**换了 Xcode 或 XcodeGen 版本还会再撞上**：
 
@@ -48,11 +61,16 @@ Swift 里取 bundle 资源是 `Bundle.main.url(forResource:withExtension:)`；
 `ofType:` 是 `path(forResource:ofType:)` 的标签，**两者不能混用**。
 `WebViewController.swift` 里取 `index.html` 和 `QLBootstrap.js` 两处都写错过。
 
+**3. ipa 文件名里的版本号写死**
+
+见上面那段。修法是从 `project.yml` 取，而不是在流水线里再抄一遍版本号 ——
+**同一个数字写两处，早晚会有一处忘了改**。
+
 ---
 
-## 这个包跟安卓 1.0.9 是什么关系
+## 这个包跟安卓 1.0.10 是什么关系
 
-**同一个页面。** iOS 壳装的就是 `qinglong-pwa/index.html`（安卓 1.0.9 里也是这一份），
+**同一个页面。** iOS 壳装的就是 `qinglong-pwa/index.html`（安卓 1.0.10 里也是这一份），
 所以脚本树、变量标签、面板概览、外观模式、上传下载全都一样，不存在「iOS 版功能少一半」。
 
 壳本身只有五个文件：
@@ -174,27 +192,35 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.9-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.10-trollstore.ipa
 ```
 
-以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-1.0.9-trollstore`
-→ 下载得到 zip，解压出 `QingLongClient-1.0.9-trollstore.ipa`。
+以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
+→ 下载得到 zip，解压出同名的 `.ipa`。
 
 ### 这个包验过什么
+
+在 ipa 上直接解包核对（不是看构建日志，是把包拆开读）：
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 191159 字节 |
-| 页面 `APP_VER` | ✅ 1.0.9（与 `MARKETING_VERSION` 一致） |
+| `index.html` | ✅ 216905 字节 |
+| 页面 `APP_VER` | ✅ 1.0.10（与 `MARKETING_VERSION` 一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
-| 页面里有无硬编码真实公网 IP | ✅ 无 |
-| `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 6438 字节 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.9 (9) |
+| 页面里有无硬编码真实公网 IP | ✅ 无（只有注释里的示例 `1.2.3.4`） |
+| 任务页四档筛选 / 多账号切换代码在包里 | ✅ `cronBucket()` / `acctSwitch()` 都在 |
+| 字号缩放变量 | ✅ `--fs` 在 |
+| `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
+| 桥的 `setBack` / `setTheme` | ✅ 都在 |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.10 (10) |
+| `CFBundleDisplayName` | ✅ 青龙 |
+| `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
 | ATS（允许明文 http 到自建面板） | ✅ `NSAllowsArbitraryLoads: true` |
-| 可执行文件 | ✅ arm64 Mach-O，158032 字节 |
+| `NSLocalNetworkUsageDescription` | ✅ 有（内网 IP 面板需要） |
+| 可执行文件 | ✅ arm64 Mach-O（`cputype 0x100000c`），158288 字节 |
 
 ---
 
@@ -219,6 +245,63 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 
 ---
 
+## 壳跟网页对接的三件事（这三个坑都真机上踩过）
+
+页面是「一份网页塞进壳里」，凡是需要跟 iOS 系统打交道的地方，页面自己办不到，
+得靠 `QLNative` 桥通知原生。已经处理好的三个：
+
+### 1. 左边缘右滑返回
+
+**症状**：从屏幕左边缘往右划，页面不动。
+
+**根因**：这个页面是单视图 SPA、**完全没用 `history` API**（`pushState` / `popstate` 一个都没有），
+所以 `allowsBackForwardNavigationGestures` 背后是一个**空栈** —— 系统手势根本没有「上一页」可回。
+
+**做法**：改成由页面主动声明「现在能不能返回」：
+
+```
+页面  canGoBack() 变化  ──►  QLNative.setBack(true/false)  ──►  原生开关 edgePan
+原生  右滑手势结束       ──►  evaluateJavaScript("window.__qlBack()")  ──►  页面 closeSheet()/goBack()
+```
+
+`edgePan` 是 `UIScreenEdgePanGestureRecognizer`（`edges = .left`），**初始 `isEnabled = false`**，
+等页面说「能返回」才打开 —— 否则在登录页右滑也会触发。
+
+> 返回有三层：① 有弹层开着 → 关弹层；② 日志页在下钻 → 回上一级；
+> ③ 从「我的」进去的非底栏页面 → 回「我的」。
+
+### 2. 状态栏和页面对不上（顶部一条色带）
+
+**症状**：状态栏区域和页面颜色不一样，边界特别明显。
+
+**根因**：壳把 `WKWebView` 顶在 `safeAreaLayoutGuide.topAnchor` 上，
+于是页面里的 `env(safe-area-inset-top)` **恒为 0**，露出来的那一条其实是**壳自己的
+`view.backgroundColor`**（`#151316`），而页面是纯黑 `#040205`。
+
+用录屏抽帧做像素采样量过：`y = 0~89` 是 `#151316`，`y = 90` 起才是 `#040205`，
+边界正好是安全区高度。
+
+**做法**：`WKWebView` 必须铺满**整个** `view`（`view.topAnchor`，不是 `safeAreaLayoutGuide.topAnchor`），
+这样页面自己拿到 `env(safe-area-inset-top)` 去留白。另外壳的背景色跟着深浅走
+（`underPageBackgroundColor` + `UIColor { trait in ... }`）。
+
+**顺带一个**：手机是深色、但用户把页面强制成浅色时，状态栏文字还是白的、压在浅色页面上看不见。
+所以页面还要通过 `QLNative.setTheme('dark'|'light')` 把**页面**的深浅告诉原生，
+原生据此返回 `preferredStatusBarStyle`。
+
+### 3. 字号缩放
+
+**做法**：页面里所有字号写成 `calc(Npx * var(--fs))`，改 `--fs` 即可整体缩放。
+
+**为什么不用 CSS `zoom`**：`zoom` 会把 `env(safe-area-inset-*)` **一起放大**，
+跟上面第 2 点的安全区留白相互作用，而这两者的叠加效果**在没有 Mac / 模拟器的机器上验证不了**。
+`calc` 的行为是确定的。
+
+**一个易漏点**：`font: 15px/1.45 -apple-system` 这种**简写里的字号不受 `--fs` 影响**，
+必须拆成 `font-family` + `font-size: calc(...)` + `line-height`。
+
+---
+
 ## 兼容性
 
 | 项 | 值 |
@@ -226,7 +309,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.9（跟安卓对齐） |
+| 版本 | 1.0.10（跟安卓对齐） |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

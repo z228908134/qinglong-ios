@@ -51,13 +51,22 @@ jobs:
           echo "页面版本 $VER / 工程版本 $PV"
           test "$VER" = "$PV" || { echo "::error::版本对不上（页面 $VER / 工程 $PV）"; exit 1; }
 
-      # plist 先 lint 一遍。XML 注释里出现连续两个减号（比如写 CSS 变量名 `--bg`）
-      # 会让整个 plist 非法，而 xcodebuild 报的错很含糊，不容易定位到注释上。
+      # plist 先 lint 一遍。XML 注释里出现连续两个减号（比如写 CSS 变量名）会让整个
+      # plist 非法，而 xcodebuild 报的错很含糊、定位不到注释上，所以提前查。
+      #
+      # 注意：plutil -lint **不吃 JSON**（颜色集的 Contents.json 会报
+      # "Unexpected character { at line 1"），所以 JSON 单独用 python3 校验。
       - name: Lint Info.plist
         run: |
           set -euo pipefail
           plutil -lint QingLongClient/Resources/Info.plist
-          plutil -lint QingLongClient/Resources/Assets.xcassets/LaunchBackground.colorset/Contents.json
+          C="QingLongClient/Resources/Assets.xcassets/LaunchBackground.colorset/Contents.json"
+          if command -v python3 >/dev/null 2>&1; then
+            python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$C"
+            echo "$C: JSON OK"
+          else
+            echo "没有 python3，跳过 $C 的 JSON 校验（actool 编译时也会报错）"
+          fi
 
       - name: Install XcodeGen
         run: |

@@ -103,6 +103,16 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   transition:box-shadow .18s}
 #tabbar button.on .ti.av{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 /* ---- 任务页工具条（编辑 + 状态筛选），排布照青龙网页版 ---- */
+/* ---------- 定时视图 tab（面板「定时任务」页顶部那排） ----------
+   横向滚动、不换行。做成「方块 + 主色底」而不是圆角胶囊，是为了跟下面那排
+   四档筛选在视觉上区分开 —— 两者是不同层的东西：视图是**服务端**筛选（换的是
+   数据集），四档是**本地**过滤（筛的是已加载的列表）。长得一样会让人以为是同一排。 */
+.viewtabs{display:flex;gap:7px;margin-bottom:11px;overflow-x:auto;scrollbar-width:none}
+.viewtabs::-webkit-scrollbar{display:none}
+.vtab{flex:0 0 auto;background:var(--fill);border:0;border-radius:9px;padding:7px 13px;
+  color:var(--text2);font-family:inherit;font-size:calc(13px*var(--fs));font-weight:600;
+  cursor:pointer;white-space:nowrap}
+.vtab.on{background:var(--accent);color:#fff}
 .cronbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}
 /* 筛选条横向可滚：四个按钮加「编辑」在 320 宽的屏上正好卡边，留一手免得挤成两行 */
 .cfwrap{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
@@ -512,6 +522,10 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
     <div id="ptr">↓ 下拉刷新</div>
 
     <section class="view" id="v-crons">
+      <!-- 定时视图 tab：对应面板「定时任务」页顶部那排。
+           内容是 /api/crons/views 拉回来的**保存好的筛选条件**（不是时间轴）。
+           拉不到（老面板没这个接口）或一个视图都没有时整条藏起来，任务页照常可用。 -->
+      <div class="viewtabs hidden" id="cronViewTabs"></div>
       <div class="searchbar"><input id="cronSearch" type="search" placeholder="搜索任务名 / 命令 / 标签" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <!-- 工具条：左边「编辑」（进批量模式），右边四个状态筛选，排布照青龙网页版。
            四个筛选跟后端 status 字段一一对应 —— 运行中 0 / 未使用 1 / 已禁用 2
@@ -970,9 +984,17 @@ var S = {
   need2fa: false,
   detailId: null,
   /* filter: 状态筛选（all / running / unused / disabled），分档规则见 cronBucket()。
-     edit / sel: 批量编辑模式 —— 勾选中的任务 id 记在 sel 里（键是 id，值是 true）。 */
+     edit / sel: 批量编辑模式 —— 勾选中的任务 id 记在 sel 里（键是 id，值是 true）。
+     views / view / viewsFailed：任务页顶部那排「定时视图」tab。
+     面板的「定时视图」**不是时间轴**，而是保存好的筛选条件（名称 + 若干
+     「字段/操作符/值」+ 且或关系 + 排序）。查任务时把选中的那个整个塞进
+     queryString 参数交给后端筛。这里只做「切换」，不做创建/编辑 ——
+     手机上编那种多条件表单太局促，要改去面板网页版改，切回来就能看到。
+     viewsFailed：/api/crons/views 是较新版本才有的接口，拉失败就置真、
+     整条 tab 栏藏起来。视图是锦上添花，**不能因为它把任务页也带崩**。 */
   crons: { list: [], total: 0, page: 1, size: 20, q: '', loading: false,
-           filter: 'all', edit: false, sel: {} },
+           filter: 'all', edit: false, sel: {},
+           views: [], view: null, viewsFailed: false },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
   envs: { list: [], q: '', tag: '', loading: false },
   logs: { tree: [], path: [], loading: false },
@@ -1609,7 +1631,9 @@ function setTab(tab, force) {
   refresh();
 }
 async function refresh() {
-  if (S.tab === 'crons') return loadCrons(true);
+  /* 进任务页先把视图列表拉一次：面板上可能刚加/删过视图，而且 loadCrons
+     要用 c.view 拼查询条件，得先拉完再查。 */
+  if (S.tab === 'crons') { await loadViews(); return loadCrons(true); }
   if (S.tab === 'envs') return loadEnvs();
   if (S.tab === 'scripts') return loadScripts(S.scripts.path, true);
   if (S.tab === 'subs') return loadSubs();
@@ -1670,6 +1694,72 @@ async function setCronFilter(f) {
     return;
   }
   renderCrons();
+}
+
+/* ================= 定时视图（面板「定时任务」页顶部那排 tab） =================
+   面板的「定时视图」是**保存好的筛选条件**，不是时间轴。每个视图长这样：
+     { id, name, filters: [{ property, operator, value }], sorts, filterRelation,
+       position, isDisabled }
+   查任务时把 filters / sorts / filterRelation 原样透传成 queryString 参数，
+   筛选在**后端**做 —— 所以切视图必须重新拉列表，不能在本地筛。
+   property 只认 6 个：command / name / schedule / status / labels / sub_id；
+   operator 只认 4 个：Reg（包含）/ NotReg（不包含）/ In / Nin。
+   这些值这里既不解释也不校验 —— 手机端只负责把后端存的东西原样送回去，
+   多一层本地校验反而会和面板以后新加的字段打架。 */
+
+/* 拉视图列表。失败就降级（老面板没有这个接口），整条 tab 栏藏起来。 */
+async function loadViews() {
+  var c = S.crons;
+  try {
+    var r = await api('/api/crons/views');
+    /* 面板前端只显示 isDisabled 不为真的那些，这里照做。 */
+    c.views = (Array.isArray(r.data) ? r.data : []).filter(function (v) { return !v.isDisabled; });
+    c.viewsFailed = false;
+  } catch (e) {
+    c.views = [];
+    c.viewsFailed = true;
+  }
+  /* 当前选中的视图还在列表里就保留（切走再切回来还停在原来那个 tab 上），
+     否则退回第一个 —— 通常就是内置的「全部任务」。 */
+  var keep = c.view && c.views.filter(function (v) {
+    return Number(v.id) === Number(c.view.id);
+  })[0];
+  c.view = keep || c.views[0] || null;
+  renderViewTabs();
+}
+
+function renderViewTabs() {
+  var box = $('#cronViewTabs');
+  if (!box) return;
+  var c = S.crons;
+  /* 一个视图都没有（或接口拉失败）就整条藏起来 ——
+     空着一行 tab 只会让人以为功能坏了。 */
+  if (c.viewsFailed || !c.views.length) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+  var cur = c.view ? Number(c.view.id) : null;
+  box.innerHTML = c.views.map(function (v) {
+    return '<button class="vtab' + (Number(v.id) === cur ? ' on' : '') + '" data-view="' +
+      esc(v.id) + '">' + esc(v.name) + '</button>';
+  }).join('');
+  box.classList.remove('hidden');
+}
+
+/* 切视图。筛选在后端做，所以要重新拉列表、回到第 1 页。
+   顺带把本地那四档重置成「全部」：档位属于上一个视图的上下文，
+   带着它切过去很容易出现「服务端筛出 3 条、本地那档又筛掉 3 条」的空列表，
+   用户会以为视图坏了。 */
+async function setView(id) {
+  var c = S.crons;
+  var v = c.views.filter(function (x) { return Number(x.id) === Number(id); })[0];
+  if (!v) return;
+  if (c.view && Number(c.view.id) === Number(v.id)) return;
+  c.view = v;
+  c.filter = 'all';
+  renderViewTabs();
+  await loadCrons(true);
 }
 
 function renderCrons() {
@@ -1747,7 +1837,18 @@ async function loadCrons(reset) {
   c.loading = true;
   if (reset) renderCrons();
   try {
-    var r = await api('/api/crons', { query: { searchValue: c.q, page: c.page, size: c.size } });
+    /* 选中的视图跟着一起送。面板前端是**无条件**透传的（哪怕 filters 是空的
+       「全部任务」也照送），这里保持一致 —— 自己加「空了就不送」的判断，
+       反而会和后端行为对不上。 */
+    var q = { searchValue: c.q, page: c.page, size: c.size };
+    if (c.view) {
+      q.queryString = JSON.stringify({
+        filters: c.view.filters || [],
+        sorts: c.view.sorts || null,
+        filterRelation: c.view.filterRelation || 'and'
+      });
+    }
+    var r = await api('/api/crons', { query: q });
     var d = r.data || {};
     var fresh = d.data || [];
     if (reset) c.list = fresh;
@@ -3429,7 +3530,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.11';
+var APP_VER = '1.0.12';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -4679,7 +4780,7 @@ function onClick(ev) {
      「先判 data-sact，再判 data-scr」，顺序反了会把菜单项当成打开文件。 */
   var el = ev.target.closest ? ev.target.closest(
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
-    '[data-cf],[data-cbatch],' +
+    '[data-cf],[data-view],[data-cbatch],' +
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-log],[data-preset],[data-path],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
@@ -4770,6 +4871,9 @@ function onClick(ev) {
      顺序反了会被 data-cron 之类的分支先截走。 */
   if (el.id === 'btnCronEdit') return toggleCronEdit();
   if (el.dataset.cf) return setCronFilter(el.dataset.cf);
+  /* 视图 id 用 != null 判而不是真值判：id 是后端自增主键，虽然目前从 1 起，
+     但真值判会顺手把 '0' 也吞掉，以后面板改了主键起点就是个哑 bug。 */
+  if (el.dataset.view != null) return setView(el.dataset.view);
   if (el.id === 'btnCronAll') return cronSelectAll(cronSelCount() !== cronFiltered().length);
   if (el.dataset.cbatch) return cronBatch(el.dataset.cbatch);
 

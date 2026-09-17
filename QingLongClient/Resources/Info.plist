@@ -22,10 +22,15 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- 启动屏（冷启动到页面画出来之间的那一瞬）。原来是空串，等于用系统默认底色
+	     —— 浅色模式下是纯白，而页面底色是 #f2f2f7，冷启动会先闪一下白。
+	     这里指到 Assets 里的 LaunchBackground：浅色 #f2f2f7 / 深色 #000000，
+	     跟页面底色完全一致，接得上。（注意 XML 注释里不能出现连续两个减号，
+	     所以这里不写 CSS 变量名，免得把 plist 写坏。） -->
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
-		<string></string>
+		<string>LaunchBackground</string>
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>

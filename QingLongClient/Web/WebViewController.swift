@@ -2,7 +2,7 @@ import UIKit
 import WebKit
 
 // 主界面：一个撑满屏幕的 WKWebView，装的是 qinglong-pwa 产出的单文件 index.html。
-// 跟安卓端 1.0.9 是同一份页面，所以功能天然一致（脚本树 / 变量标签 / 面板概览 /
+// 跟安卓端 1.0.10 是同一份页面，所以功能天然一致（脚本树 / 变量标签 / 面板概览 /
 // 外观模式 / 上传下载），不用在 iOS 上重写一遍 UI。
 
 final class WebViewController: UIViewController {

@@ -1,6 +1,6 @@
 # XcodeGen 工程定义。
 #
-# 目标：装 qinglong-pwa 产出的单文件 index.html 的原生壳（跟安卓 1.0.9 同一份页面），
+# 目标：装 qinglong-pwa 产出的单文件 index.html 的原生壳（跟安卓 1.0.10 同一份页面），
 # 产出可直接用 TrollStore（巨魔）安装的 ipa。
 #
 # 故意不用 SwiftUI / 不引三方包：这套工程在 GitHub 的 macOS 机器上编，

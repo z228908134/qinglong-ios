@@ -51,6 +51,14 @@ jobs:
           echo "页面版本 $VER / 工程版本 $PV"
           test "$VER" = "$PV" || { echo "::error::版本对不上（页面 $VER / 工程 $PV）"; exit 1; }
 
+      # plist 先 lint 一遍。XML 注释里出现连续两个减号（比如写 CSS 变量名 `--bg`）
+      # 会让整个 plist 非法，而 xcodebuild 报的错很含糊，不容易定位到注释上。
+      - name: Lint Info.plist
+        run: |
+          set -euo pipefail
+          plutil -lint QingLongClient/Resources/Info.plist
+          plutil -lint QingLongClient/Resources/Assets.xcassets/LaunchBackground.colorset/Contents.json
+
       - name: Install XcodeGen
         run: |
           brew install xcodegen || brew upgrade xcodegen || true

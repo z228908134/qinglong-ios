@@ -1,0 +1,3788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>青龙管家</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="青龙管家">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#1D9E75">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAEm0lEQVR42u3czYsVZBiGcf8RKc1aSNDGTe7aRauWbXUT5NqchLEgCPogBd20qBnNkWgSHAgsRS0yLBwTQUEZRYvKDuXg96TTzNsZwSjxY85xoPe9/T1w7Q/vueZwz/3As2jxR2sLkMIijwBCA4QGCA0QGoQGCA0QGiA0QGgQGiA0QGiA0AChQWiA0AChAUIDhAahAUIDhAYIDRAahAYIDRAaIDRAaBAaIDRAaIDQAKFBaIDQmA9Lhwe8A6EzeGbHG2XNgRFvQegMdp05Wl7ev81bELp9Vu8dKnPz4udbvAeh22b59sHy27VLt4Re+elb3oTQbbPj1Pe3ZJ7tsmzra96E0O3y0u4Pyu2Z/POaNyF0uzy1bX356crkP0KfnDzvXQjdLh+e+Kb8e77++ZR3IXSbzLUZM7Oz/xF6dOKwtyF0ezzR/cdv4mKn3Dlbju33PoRuj83H9pW7zeChXd6H0G3x/NjGMj0zc1ehbQkJ3RRLhteV43/8Uu41toSEboq3x3eX+40tIaGb4bmd75Ybf03fU2ZbQkI3w2NDr5bxzrn7/jrbEhK6GV7/bqw8aGwJCd0Ez3Zz8fXpmw8U2paQ0E1w8NeJMp+xJSR09aw9OFrmO7aEhK6aFZ+8WS7dmJq30LaEhK6aPT+eKL2MLSGhq2XNVyOl17ElJHS1pwguTF3tWWhbQkJXe4qg17ElJHTVpwh6HVtCQld9iqDXsSUkdLWnCPoZW0JCV3uKoJ+xJSR0tacI+hlbQkJXe4qgn7ElJHS1pwj6GVtCQld7iqCfsSUkdLWnCPoZW0JCV3uKwJaQ0FGnCGwJCR11isCWkNAxpwhsCQkddYrAlpDQUacIbAkJHXWKwJaQ0FGnCGwJCR11isCWkNBRpwhsCQkddYrAlpDQUacIbAkJHXWKwJaQ0DGnCPqZy918fuj8mQVl7rM/PrSO0Hi4UwS1zKru5/cLTeSHPkVQw3x2+ojvkdALc4rg/55O9w/x6ZENvkdCL8wpAlGD0FGnCEQNQkedIhA1CF0FT25dX9774cvy/tE9C0rn+mVRg9A5/D51RdQgdEj99/GgqEHoHF4Y2yRqEDqHVw5sFzUIncM7R74QNQidw+jEuKhB6BwOd86KGoRW2YkahH5kKjtRg9AxlZ2oQeiYyk7UIHRUZSdqEDqmshM1CB1T2YkahI6q7EQNQsdUdqIGoWMqO1GD0FGVnahB6JjKTtQgdExlJ2oQOqqyEzUIHVPZiRqEjqnsRA1CR1V2ogahYyo7UYPQMZWdqEHoqMpO1CB0TGUnahA6prITNQgdVdmJGoSOqexEDULHVHaiBqGjKjtRg9AxlZ2oQeiYyk7UIHRUZSdqEDqmshM1CB1T2YkahI6q7EQNQsdUdqIGoWMqO1GD0FGVnahB6JjKTtQgdExlJ2oQOqqyEzUIHVPZiRqEjqnsRA1CR1V2ogahYxj4dqd3IHQOS4YHvAOhAUIDhAahAUIDhAYIDRAahAYIDRAaIDRAaBAaIDRAaIDQAKFBaIDQAKEBQgOEBqEBQgOEBggNEBqEBggNEBogNAjtEUBogNAAoQFC49Hlb3phzaBVFBOKAAAAAElFTkSuQmCC">
+<link rel="icon" type="image/png" sizes="192x192" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAEvklEQVR42u3c3WsWdBjG8f0jRRkeiNBJEJ7tTE/aoccedBR1FIQyhkJYhMTMdRAFlTJlDJyK4qQ5RiNw9KLmC9QgaGDFwiTJl5x7+blHmMicuechxp7f9bnhe7LD357vdnHd293x3BfvFCCVDo8AAgAEAAgAEAAgAEAAgAAAAQACAAQACAAQACAAQACAAAABAAIABAAIABAAIABAAIAAAAEAAgAEAAgAEAAgAEAAgAAAAQACAAQACAAQACAAQACAANXzysC7ZfPh3d6CAJkMT10uLx7c5S0IkMcbY/3l+t1b3oIAebx8ZM/DD//VG797DwLkMfTL+dKYsWs/eQ8CZLFj5POyNAOT33oTAuSwqb+n/HH75iMBDvw46l0IkEP/zxPl8ek+d8y7ECCD7cOflOXz+uhBb0OA+tl4qLtM/fPXEwJ0nerzPgSon8+ujpeV5tXBvd6HAHXTderjMr+w8MSHf2Hxa7bABKialxY/4JN/T6/4098WmADV89HFs+VpYwtMgKrZeqK33J+fe6oAtsAEqJYXvtxZLl2/Vv5rbIEJUC3vf3+6PGtsgQlQJZ1H95V7c7PPFMAWmADV8fwi303/WlYztsAEqI6eieNltWMLTICq2DL4XrkzO7NqAWyBCVAV479NrvrDbwtMgKp4+5vB0szYAhOgGhqnTW7O3G1KAFtgAlTDmakrpdmxBSZAFTROm7QytsAEaHuWTpu0MrbABGh7lk6btDK2wARoax4/bdLK2AIToG1ZftqklbEFJkDbsvy0SStjC0yAtmSl0ybNji0wAao6bdLs2AIToKrTJs2OLTABqjlt0srYAhOgmtMmtsAEiD5tYgtMgOjTJrbABIg+bWILTIDo0ya2wASIPm1iC0yA6NMmtsAEiD5tYgtMgOjTJrbABIg9bWILTIDo0ya2wASIPm1iC0yA6NMmtsAEiD5tYgtMgOjTJrbABIg+bWILTIDo0ybraXovjPieEmBtT5usl2ks1zb48woCrPVpk/Uwjf9V2HZiv+8pAdb2tInoQ4Do0yaiDwGiT5uIPgSIPm0i+hCg7Xjz6yOl9+LI/86nV8ZFHwLk8trJPtGHALm8tfibRfQhQCwfXvhK9CGAvycSfQgQyfk/p0QfAuRy49/bog8BMtl8eLfoQwAVqOhDABWo6EMAFajoQwAVqOhDABWo6EMAFajoQwAVqOhDABWo6EMAFajoQwAVqOhDABWo6EMAFajoQ4DsClT0IUBsBSr6ECC2AhV9CBBdgYo+BIitQEUfAsRWoKIPAaIrUNGHALEVqOhDgNgKVPQhQHQFKvoQILYCFX0IEFuBij4EiK5ARR8CxFagog8BYitQ0YcA0RWo6EOA2ApU9CFAbAUq+hAgugIVfQgQW4GKPgSIrUBFHwJEV6CiDwFiK1DRhwCxFajoQ4DoClT0IUBsBSr6ECC2AhV9CBBdgYo+BIitQEUfAsRWoKIPAaIrUNGHALEVqOhDgFg++GFY9CFALp1D+7wDAQACAAQACAAQACAAQACAAAABAAIABAAIABAAIABAAIAAAAEAAgAEAAgAEAAgAEAAgAAAAQACAAQACAAQACAAQACAAAABAAIABAAIAAIABAAIABAAiOEBVYRq+47GMRkAAAAASUVORK5CYII=">
+<style>
+:root{
+  --bg:#f2f2f7; --card:#ffffff; --text:#1c1c1e; --text2:#6c6c70; --text3:#a1a1a6;
+  --sep:rgba(60,60,67,.13); --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.2);
+  --accent:#1D9E75; --green:#34c759; --orange:#ff9500; --red:#ff3b30; --blue:#007aff; --gray:#8e8e93;
+  --r:14px; --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+}
+[data-theme="dark"]{ --bg:#000000; --card:#1c1c1e; --text:#ffffff; --text2:#98989d; --text3:#636366;
+    --sep:rgba(84,84,88,.5); --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36); }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;overscroll-behavior:none;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:0;background:none;padding:0;cursor:pointer}
+input,textarea{-webkit-appearance:none;appearance:none;border:0;background:none;outline:none;width:100%}
+/* 手机上不该出现横向滚动条：多行文本框一律在屏幕宽度内折行。
+   长 token（access token / URL / 私钥）用 anywhere 强制断开；浏览器不认 anywhere 时退回 break-word。
+   textarea 默认的软换行不保证断长串，不加这条就会把框撑宽、整页跟着左右晃。 */
+textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-wrap:anywhere}
+.hidden{display:none!important}
+/* 「视觉上隐藏但仍在文档里」：文件选择器不能真的 display:none ——
+   部分 WebView 对隐藏的 input[type=file] 不弹选择器。 */
+.vh{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
+/* ---------- 通用 ---------- */
+.card{background:var(--card);border-radius:var(--r);overflow:hidden}
+.row{display:flex;align-items:center;gap:10px}
+.sp{flex:1;min-width:0}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.t2{color:var(--text2)} .t3{color:var(--text3)}
+.f11{font-size:11px} .f12{font-size:12px} .f13{font-size:13px}
+.b6{font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill.green{color:#1a8a3f;background:rgba(52,199,89,.15)}
+.pill.blue{color:#0066cc;background:rgba(0,122,255,.14)}
+.pill.orange{color:#b26a00;background:rgba(255,149,0,.16)}
+.pill.gray{color:var(--text2);background:var(--fill)}
+.pill.red{color:#c0392b;background:rgba(255,59,48,.14)}
+[data-theme="dark"] .pill.green{color:#5ee27f}[data-theme="dark"] .pill.blue{color:#6cb4ff}[data-theme="dark"] .pill.orange{color:#ffb340}[data-theme="dark"] .pill.red{color:#ff8078}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:11px;
+  background:var(--fill);font-weight:600;font-size:15px;transition:opacity .15s}
+.btn:active{opacity:.55}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.danger{background:rgba(255,59,48,.13);color:#d92b20}
+[data-theme="dark"] .btn.danger{color:#ff6b61}
+.btn[disabled]{opacity:.4}
+.sep{height:1px;background:var(--sep);margin-left:14px}
+
+/* ---------- 骨架 ---------- */
+#app{display:flex;flex-direction:column;height:100%}
+#topbar{padding:calc(var(--top) + 8px) 16px 8px;background:var(--bg);position:relative;z-index:5}
+#topbar .ttl{font-size:26px;font-weight:700;letter-spacing:-.4px}
+#topbar .sub{font-size:11px;color:var(--text2);margin-top:1px}
+#topbar .acts{display:flex;gap:14px;align-items:center}
+#topbar .ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--fill);font-size:15px;line-height:1}
+/* overflow-x:hidden 是保险：内容万一还是宽了，也不让整页左右晃（各文本框自带滚动）。 */
+#main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(96px + var(--bot))}
+.view{display:none} .view.on{display:block}
+#ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
+.searchbar{margin-bottom:12px}
+.searchbar input{background:var(--fill);border-radius:10px;padding:9px 12px;font-size:15px}
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
+  padding:6px 0 calc(var(--bot));background:rgba(249,249,249,.92);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-top:1px solid var(--sep)}
+[data-theme="dark"] #tabbar{background:rgba(22,22,22,.9)}
+/* 底栏 5 个入口（依赖 / 配置 / 日志从「我的」进，不占底栏）。
+   min-width:0 + nowrap 留着做保险：以后再加入口也不至于把整条底栏撑破。 */
+#tabbar button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:10px;line-height:1.15;color:var(--text3);padding:4px 0;white-space:nowrap}
+#tabbar button.on{color:var(--accent)}
+#tabbar .ti{font-size:19px;line-height:1}
+/* 「我的」这一项用头像代替字形，选中时套一圈高亮环（照参考图）。
+   选择器比 #tabbar .ti 多一个类，能稳定盖住上面的 font-size。 */
+#tabbar .ti.av{width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4ED8A8,#12A16F);
+  transition:box-shadow .18s}
+#tabbar button.on .ti.av{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+
+/* ---------- 分段控件（当单选组用） ---------- */
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
+.seg button{flex:1;min-width:0;padding:7px 4px;border-radius:8px;font-size:12.5px;font-weight:600;
+  color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* ---------- 文件路径面包屑 ---------- */
+.crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--text2);margin:0 4px 10px}
+/* 目录名可能很长（比如订阅拉下来的 6dylan6_jdpro），不折行会把面包屑撑出屏幕 */
+.crumb button{color:var(--accent);font-weight:600;font-size:12px;max-width:100%;word-break:break-all;text-align:left}
+
+/* ---------- 「所有功能」页（照参考图） ---------- */
+/* 「切换账号」胶囊挂在顶栏、大标题上方，所以它不在 #main 里而是单独一个槽，
+   由 setTab 控制显隐（其它 tab 要藏起来）。 */
+#acctBar{margin-bottom:12px}
+.acct{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:5px 13px 5px 5px;
+  border-radius:999px;background:var(--fill);font-size:13px;font-weight:600;color:var(--text)}
+.acct .av{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#4ED8A8,#12A16F)}
+.acct .un{max-width:92px}
+.acct .sw{flex:none;font-size:11px;font-weight:500;color:var(--text2)}
+
+/* ---------- 顶栏下拉菜单（脚本页的「+」，照参考图） ---------- */
+/* 挂成 #topbar 的绝对定位子元素：#topbar 自己就是 position:relative;z-index:5，
+   已经是一个层叠上下文，菜单放在里面自然盖在 #main 上面，不用再抬 z-index。
+   top:100% 是相对 topbar 的 padding box，所以正好落在标题栏下沿。 */
+.dropdown{position:absolute;right:16px;top:100%;margin-top:-2px;min-width:172px;
+  background:var(--card);border-radius:14px;padding:6px;
+  box-shadow:0 14px 34px -10px rgba(0,0,0,.3),0 0 0 .5px rgba(0,0,0,.06);z-index:20}
+.dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;
+  border-radius:10px;font-size:14.5px;font-weight:500;color:var(--text);text-align:left}
+.dropdown button:active{background:var(--fill)}
+.dropdown .di{flex:none;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:14px;line-height:1;background:var(--fill);color:var(--accent)}
+#topbar .ico.pri{background:var(--accent);color:#fff;font-size:20px;font-weight:400}
+
+/* 带图标的搜索框（照参考图：放大镜 + 圆角）。图标绝对定位、不占流，
+   所以 input 用 padding-left 给它让位。 */
+.searchbar.wi{position:relative}
+.searchbar.wi .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  font-size:15px;line-height:1;color:var(--text3);pointer-events:none}
+.searchbar.wi input{padding-left:34px;font-size:14px;border-radius:12px}
+
+/* ---------- 脚本树（照参考图：文件夹可展开收起，不再逐层下钻） ---------- */
+/* 缩进用 padding-left 而不是 margin：卡片背景才跟着一起缩，不会被推窄。
+   **基础那 14px 必须写在这条规则里** —— 它的特异性（.stree .ind）比 .item 高，
+   会把 .item 的 padding-left 整个盖掉。只写 calc(var(--d,0) * 15px) 的话，
+   根级条目（--d:0）会变成 0 内边距，图标直接贴着卡片左边缘。 */
+.stree .ind{padding-left:calc(14px + var(--d,0) * 15px)}
+.stree .tw{flex:none;width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;line-height:1;color:var(--text3);transition:transform .15s}
+.stree .tw.on{transform:rotate(180deg)}
+.stree .fi2{flex:none;width:20px;text-align:center;font-size:15px;line-height:1}
+
+/* ---------- 环境变量标签 ---------- */
+/* 颜色按标签名算出来（同一个标签到哪都是同一个色），所以这里只定形状，
+   具体的背景/前景色由行内 style 给。 */
+.tag{display:inline-flex;align-items:center;max-width:100%;padding:2px 8px;border-radius:7px;
+  font-size:11px;font-weight:600;line-height:1.55;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;word-break:break-all}
+/* 标签配色：按标签名算 hash 选一个固定色号（同名一定同色 —— 否则同屏出现几个
+   一样名字却是不同颜色的标签，看着像 bug）。用类而不是行内 style，才能跟着深色模式换。 */
+.tag.tg0{background:rgba(0,122,255,.14);color:#0066cc}
+.tag.tg1{background:rgba(52,199,89,.16);color:#1a8a3f}
+.tag.tg2{background:rgba(255,149,0,.18);color:#b26a00}
+.tag.tg3{background:rgba(175,82,222,.16);color:#8e3fc4}
+.tag.tg4{background:rgba(255,59,48,.14);color:#c0392b}
+.tag.tg5{background:rgba(0,190,182,.18);color:#0b8a85}
+.tag.tg6{background:rgba(90,110,255,.16);color:#3a4ad6}
+.tag.tg7{background:rgba(120,120,128,.18);color:#5a5a63}
+[data-theme="dark"] .tag.tg0{background:rgba(0,122,255,.26);color:#7ab8ff}[data-theme="dark"] .tag.tg1{background:rgba(52,199,89,.24);color:#5ee27f}[data-theme="dark"] .tag.tg2{background:rgba(255,149,0,.24);color:#ffb340}[data-theme="dark"] .tag.tg3{background:rgba(175,82,222,.28);color:#c88cf0}[data-theme="dark"] .tag.tg4{background:rgba(255,59,48,.26);color:#ff8078}[data-theme="dark"] .tag.tg5{background:rgba(0,190,182,.26);color:#4fd8d2}[data-theme="dark"] .tag.tg6{background:rgba(90,110,255,.28);color:#93a0ff}[data-theme="dark"] .tag.tg7{background:rgba(120,120,128,.3);color:#b0b0b8}
+.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tagbar button{padding:4px 11px;border-radius:999px;background:var(--fill);font-size:12px;
+  font-weight:600;color:var(--text2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tagbar button.on{background:var(--accent);color:#fff}
+
+/* ---------- 「我的」页的面板概览（照参考图） ---------- */
+.sec{margin:18px 4px 10px;font-size:13px;font-weight:600;color:var(--text2)}
+.ovcard{background:var(--card);border-radius:var(--r);padding:14px}
+.ovcard .dot{flex:none;width:8px;height:8px;border-radius:50%;background:#34c759}
+.ovcard .big{font-size:22px;font-weight:700;letter-spacing:-.3px;margin-top:9px;word-break:break-all}
+.ovcard .meta{font-size:11.5px;color:var(--text2);margin-top:5px;word-break:break-all}
+/* 「正在执行 N 个 / 排队 N 个」高亮：主色 + 数字加粗，跟面板运行时间那段区分开 */
+.ovcard .meta.live{margin-top:9px;font-size:13px;color:var(--text)}
+.ovcard .live-num{color:var(--accent);font-weight:700;font-size:15px;margin:0 2px}
+.ov2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ov2 .ovcard{padding:13px 13px 15px}
+.ov2 .ic{flex:none;width:30px;height:30px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:15px;line-height:1;color:#fff}
+.ov2 .pc{margin-left:auto;font-size:15px;font-weight:700}
+.ov2 .lb{font-size:11.5px;color:var(--text2);margin-top:10px;word-break:break-all}
+/* 进度条：轨道 fill，填充用行内渐变 + 宽度 */
+.meter{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:7px}
+.meter i{display:block;height:100%;border-radius:3px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;text-align:center}
+.stats .n{font-size:20px;font-weight:700;line-height:1.2}
+.stats .l{font-size:11px;color:var(--text2);margin-top:3px}
+
+/* 2 列卡片网格。 */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* 卡片：标题左上、图标右中、箭头左下。
+   三个元素都用绝对定位钉住，**不依赖 flex 定位**：
+   真机上出现过箭头和图标挤在一起的现象 —— 图标紧贴箭头、而卡片右侧空着一大块，
+   说明 justify-content:space-between 没生效。最可能的原因是老 WebView 对
+   <button> 上的 display:flex 支持不好，按钮退回 inline-block 后宽度收缩成内容宽，
+   space-between 就没空间可分了。
+   所以这里：① display:block + width:100% 保证卡片一定填满网格单元；
+   ② 图标 / 箭头绝对定位，卡片多宽都不影响它们落在该在的角上。 */
+.fcard{position:relative;display:block;width:100%;min-height:120px;
+  padding:14px 14px 50px;border-radius:18px;background:var(--card);text-align:left}
+/* 标题右侧留出 54px 给图标，再长的标题也不会钻到图标底下 */
+.fcard .ft{font-size:14.5px;font-weight:600;line-height:1.3;word-break:break-all;
+  max-width:calc(100% - 54px)}
+/* 图标：贴右边缘、垂直居中（「右中」） */
+.fcard .fi{position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  width:42px;height:42px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:19px;line-height:1;color:#fff}
+/* 圆形进入按钮：钉在左下角，用主色（照参考图那个箭头是绿的；灰色太淡几乎看不见） */
+.fcard .go{position:absolute;left:14px;bottom:14px;
+  width:26px;height:26px;border-radius:50%;border:1.5px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;
+  color:var(--accent)}
+/* 窄屏（≤340px）卡片只剩约 138px，留给标题的宽度不够 4 个字 —— 缩字号 + 少给图标留位，
+   否则「定时任务」会折成「定时任/务」，很难看。 */
+@media (max-width:340px){
+  .fcard .ft{font-size:13.5px;max-width:calc(100% - 46px)}
+}
+
+/* ---------- 文本编辑器 ---------- */
+/* pre-wrap 而不是 pre：pre 不折行，手机上只能左右拖着看 —— 这就是「输入框不适配屏幕」的根因。
+   高度用 dvh（可视视口）：vh 在移动端按「地址栏收起后」的最大高度算，
+   键盘弹起 / 地址栏变化时会把框顶出屏幕，dvh 跟随实际可视高度。不支持 dvh 时退回 vh。 */
+.editor{width:100%;max-width:100%;min-height:44vh;min-height:44dvh;background:var(--card);
+  border-radius:var(--r);padding:12px 13px;
+  font-size:12.5px;line-height:1.65;resize:vertical;white-space:pre-wrap;
+  overflow-wrap:break-word;overflow-wrap:anywhere;overflow:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* ---------- 列表 ---------- */
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--card);border-radius:var(--r);padding:13px 14px}
+.item .nm{font-size:15px;font-weight:600;word-break:break-all}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.tag{font-size:10px;padding:2px 7px;border-radius:6px;background:var(--fill);color:var(--text2);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.empty{text-align:center;color:var(--text2);padding:56px 20px}
+.empty .ei{font-size:40px;opacity:.35;display:block;margin-bottom:12px}
+.secttl{font-size:12px;font-weight:600;color:var(--text2);margin:18px 4px 8px;text-transform:uppercase;letter-spacing:.4px}
+.kv{display:flex;gap:12px;padding:11px 14px;font-size:14px;align-items:flex-start}
+.kv .k{color:var(--text2);flex:0 0 72px}
+.kv .v{flex:1;text-align:right;word-break:break-all}
+.kv .v.left{text-align:left}
+/* 「外观模式 ›」这种带箭头的设置行。套在 .card 里，整条可点；
+   跟 .kv 共享左右边距和字号。 */
+.kvrow{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;
+  font-size:14px;text-align:left}
+.kvrow .k{color:var(--text2);flex:0 0 72px}
+.kvrow .v{flex:1;text-align:right;color:var(--accent);font-weight:500}
+/* 外观选择弹层里的三个选项（照参考图） */
+.theme-opt{display:flex;align-items:center;justify-content:space-between;width:100%;
+  padding:13px 16px;font-size:15px;border-radius:0}
+.theme-opt:not(:last-child){border-bottom:1px solid var(--sep)}
+.theme-opt.on{color:var(--accent);font-weight:600}
+.theme-opt .ck{color:var(--accent);font-size:18px;line-height:1}
+.code{background:var(--fill);border-radius:10px;padding:11px 12px;font-size:12px;line-height:1.5;
+  white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.logbox{background:#12161c;color:#d6e2ee;border-radius:11px;padding:11px 12px;font-size:11px;line-height:1.55;
+  white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;
+  max-height:46vh;max-height:46dvh;overflow:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+/* 日志 / 文件正文的加高版本，替代原先 4 处内联高度
+   （内联样式会盖住上面这条，而且写死了 vh，键盘弹起会把框顶出屏幕）。 */
+.logbox.lg{max-height:70vh;max-height:70dvh}
+.spin{width:16px;height:16px;border:2px solid var(--fill2);border-top-color:var(--accent);
+  border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.center{display:flex;align-items:center;justify-content:center;gap:8px;padding:36px;color:var(--text2);font-size:13px}
+
+/* ---------- 弹层 ---------- */
+/* z-index 必须高于 #login(30)：登录失败时用户进不去主界面，诊断只能从登录页发起，
+   弹层要是压在登录页下面，表现就是「点了没反应」。（踩过一次，别改小。） */
+#sheet{position:fixed;inset:0;z-index:40;display:none}
+#sheet.on{display:block}
+#sheet .mask{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;transition:opacity .22s}
+#sheet.on .mask{opacity:1}
+#sheet .panel{position:absolute;left:0;right:0;bottom:0;top:calc(var(--top) + 6px);
+  background:var(--bg);border-radius:18px 18px 0 0;display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .26s cubic-bezier(.32,.72,0,1);overflow:hidden}
+#sheet.on .panel{transform:translateY(0)}
+#sheet .head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--sep)}
+#sheet .head .t{font-size:16px;font-weight:600;flex:1;min-width:0}
+#sheet .body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px 16px calc(20px + var(--bot))}
+#sheet .x{font-size:15px;color:var(--accent);font-weight:600}
+#toast{position:fixed;left:0;right:0;top:calc(var(--top) + 10px);z-index:50;display:flex;
+  justify-content:center;pointer-events:none}
+#toast .t{max-width:86%;padding:9px 15px;border-radius:12px;font-size:13px;font-weight:500;
+  background:rgba(28,28,30,.92);color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.22);
+  transform:translateY(-24px);opacity:0;transition:transform .22s,opacity .22s}
+#toast.on .t{transform:translateY(0);opacity:1}
+#toast .t.err{background:rgba(200,40,30,.95)}
+
+/* ---------- 登录 ---------- */
+/* 用 block + overflow-y:auto 而不是 flex 居中：内容一多（小屏 + 记住密码 + 安全提示），
+   居中的 flex 容器会把顶部溢出部分裁掉且滚不到，按钮就点不着了。 */
+#login{position:fixed;inset:0;z-index:30;background:var(--bg);display:block;
+  overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding:calc(var(--top) + 8vh) 24px calc(var(--bot) + 24px)}
+#login .logo{width:76px;height:76px;border-radius:20px;margin:0 auto 16px;display:block}
+#login h1{font-size:21px;font-weight:700;text-align:center;margin:0 0 4px}
+#login .sub{text-align:center;color:var(--text2);font-size:13px;margin-bottom:26px}
+.field{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px}
+.field input{font-size:16px}
+.rem{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text2);
+  margin:14px 4px 2px;line-height:1.5}
+.rem input{width:17px;height:17px;flex:none;margin:0;accent-color:var(--accent)}
+.warn{background:rgba(255,149,0,.12);border-radius:11px;padding:10px 12px;font-size:11.5px;
+  line-height:1.55;color:#8a5a00;margin-top:16px}
+[data-theme="dark"] .warn{color:#ffc766}
+</style>
+</head>
+<body>
+
+<div id="login" class="hidden">
+  <img class="logo" id="loginLogo" alt="">
+  <h1>青龙管家</h1>
+  <div class="sub">连接你的青龙面板</div>
+  <div class="field"><label>面板地址</label>
+    <input id="inServer" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="http://192.168.1.10:5700"></div>
+  <div class="field"><label>用户名</label>
+    <input id="inUser" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="admin"></div>
+  <div class="field"><label>密码</label>
+    <input id="inPass" type="password" placeholder="••••••••"></div>
+  <div class="field hidden" id="codeField"><label>两步验证码</label>
+    <input id="inCode" type="text" inputmode="numeric" maxlength="6" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="6 位动态码"></div>
+  <label class="rem" for="inRemember">
+    <input type="checkbox" id="inRemember">
+    <span>记住账号密码，下次打开直接进</span></label>
+  <button class="btn pri" id="btnLogin" style="width:100%;margin-top:6px">登录</button>
+  <button class="btn" id="btnDiagLogin" style="width:100%;margin-top:10px">连不上？点这里诊断</button>
+  <div class="warn">面板是明文 http 时，密码会以明文经过网络。建议给面板配上 HTTPS，或只在可信网络里使用。<br>
+    勾选「记住账号密码」后，凭据会存在本机 App 的私有目录里（其他应用读不到），
+    但手机若已 root 或被人拿到，仍可能被读走 —— 不放心就取消勾选。</div>
+</div>
+
+<div id="app" class="hidden">
+  <div id="topbar">
+    <!-- 「所有功能」页的「切换账号」胶囊放在大标题上方，照参考图。其它 tab 藏起来。 -->
+    <div id="acctBar" class="hidden"></div>
+    <div class="row">
+      <div class="sp">
+        <div class="ttl" id="ttl">定时任务</div>
+        <div class="sub" id="sub"></div>
+      </div>
+      <div class="acts">
+        <button class="ico hidden" id="btnBack" title="返回">‹</button>
+        <button class="ico" id="btnRefresh" title="刷新">↻</button>
+        <!-- 脚本页的「+」（照参考图：主色实心圆）。其它 tab 藏起来。 -->
+        <button class="ico pri hidden" id="btnScrAdd" title="新建">+</button>
+      </div>
+    </div>
+    <!-- 「+」的下拉菜单（照参考图：挂在按钮下方、右对齐）。
+         放在 #topbar 里而不是 #main 里，才不会跟着列表一起滚走。 -->
+    <div id="scrAddMenu" class="dropdown hidden">
+      <button data-sact="upload"><span class="di">⇪</span><span class="sp" style="text-align:left">上传脚本</span></button>
+      <button data-sact="newfile"><span class="di">✚</span><span class="sp" style="text-align:left">新建脚本</span></button>
+      <button data-sact="newdir"><span class="di">⌸</span><span class="sp" style="text-align:left">新建文件夹</span></button>
+    </div>
+  </div>
+  <div id="main">
+    <div id="ptr">↓ 下拉刷新</div>
+
+    <section class="view" id="v-crons">
+      <div class="searchbar"><input id="cronSearch" type="search" placeholder="搜索任务名 / 命令 / 标签" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="list" id="cronList"></div>
+      <div id="cronFoot"></div>
+    </section>
+
+    <section class="view" id="v-envs">
+      <div class="searchbar"><input id="envSearch" type="search" placeholder="搜索变量名" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 标签筛选条：点一个标签就只看带这个标签的变量，选中态高亮。
+           没有标签时不占位置（renderEnvs 里控制显隐）。 -->
+      <div class="tagbar hidden" id="envTagBar"></div>
+      <div class="list" id="envList"></div>
+      <div style="margin-top:12px"><button class="btn" id="btnNewEnv" style="width:100%">+ 新建环境变量</button></div>
+    </section>
+
+    <section class="view" id="v-scripts">
+      <div class="searchbar wi">
+        <span class="si">⌕</span>
+        <input id="scrSearch" type="search" placeholder="搜索脚本名称或路径…" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="list stree" id="scrList"></div>
+      <!-- 文件选择器：点「上传脚本」时用 JS 触发它，选完在 change 里直接上传 -->
+      <input type="file" id="filePick" class="vh" aria-hidden="true" tabindex="-1">
+    </section>
+
+    <section class="view" id="v-subs">
+      <div class="searchbar"><input id="subSearch" type="search" placeholder="搜索订阅名 / 链接" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="list" id="subList"></div>
+      <div style="margin-top:12px"><button class="btn" id="btnNewSub" style="width:100%">+ 新建订阅</button></div>
+    </section>
+
+    <section class="view" id="v-deps">
+      <div class="seg" id="depSeg">
+        <button data-segval="nodejs" class="on">NodeJs</button>
+        <button data-segval="python3">Python3</button>
+        <button data-segval="linux">Linux</button>
+      </div>
+      <div class="searchbar" style="margin-top:12px"><input id="depSearch" type="search" placeholder="搜索依赖名" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="list" id="depList"></div>
+      <div style="margin-top:12px"><button class="btn" id="btnNewDep" style="width:100%">+ 新建依赖</button></div>
+    </section>
+
+    <section class="view" id="v-configs">
+      <div class="list" id="cfgList"></div>
+      <div style="margin-top:12px"><button class="btn" id="btnNewCfg" style="width:100%">+ 新建配置文件</button></div>
+    </section>
+
+    <section class="view" id="v-logs">
+      <div id="logCrumbs" class="f12 t2" style="margin:0 4px 10px"></div>
+      <div class="list" id="logList"></div>
+    </section>
+
+    <section class="view" id="v-me">
+      <div id="meBody"></div>
+    </section>
+  </div>
+
+  <nav id="tabbar">
+    <button data-tab="me"><span class="ti av" id="tabAv">◍</span>我的</button>
+    <button data-tab="crons"><span class="ti">▤</span>任务</button>
+    <button data-tab="envs"><span class="ti">⚿</span>变量</button>
+    <button data-tab="scripts"><span class="ti">⌘</span>脚本</button>
+    <button data-tab="subs"><span class="ti">⇅</span>订阅</button>
+  </nav>
+</div>
+
+<div id="sheet"><div class="mask"></div><div class="panel">
+  <div class="head"><div class="t" id="shT"></div><button class="x" id="shX">关闭</button></div>
+  <div class="body" id="shB"></div>
+</div></div>
+
+<div id="toast"><div class="t" id="toastT"></div></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= 基础工具 ================= */
+var $ = function (s) { return document.querySelector(s); };
+var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+var esc = function (s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+};
+var pad = function (n) { return String(n).padStart(2, '0'); };
+
+var toastTimer = null;
+function toast(msg, isErr) {
+  var box = $('#toast'), t = $('#toastT');
+  t.textContent = msg;
+  t.className = 't' + (isErr ? ' err' : '');
+  box.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { box.classList.remove('on'); }, 2400);
+}
+
+// 面板多半是明文 http，navigator.clipboard 在非安全上下文下不存在，所以要兜底
+function copyText(text) {
+  text = String(text == null ? '' : text);
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function () { toast('已复制'); }, function () { fallbackCopy(text); });
+    return;
+  }
+  fallbackCopy(text);
+}
+function fallbackCopy(text) {
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast(ok ? '已复制' : '复制失败，请长按选择', !ok);
+  } catch (e) {
+    toast('复制失败，请长按选择', true);
+  }
+}
+
+/* ================= 状态 ================= */
+var K = {
+  server: 'ql.server', user: 'ql.user', pass: 'ql.pass',
+  token: 'ql.token', tab: 'ql.tab', remember: 'ql.remember', auto: 'ql.auto',
+  theme: 'ql.theme'
+};
+/* 登录页「面板地址」的默认值。**留空** —— 不预填任何地址：
+   这份页面会被打进安卓 / iOS 安装包，也会推到仓库里，写死一个 IP 等于把自己的
+   面板地址公开出去。留空的话用户第一次打开必须自己填，也就不会被别人蹭到。 */
+var FALLBACK_SERVER = '';
+
+/* ================= 外观模式 =================
+   三档：跟随系统（默认）/ 浅色 / 深色。CSS 里所有深色规则都已从
+   `@media (prefers-color-scheme:dark){...}` 改写成 `[data-theme="dark"] ...` 前缀
+   （在 build.py 里机械替换），所以只要给 <html> 加 / 去掉这个属性就切。
+   auto 模式要监听系统设置变化 —— 用户没改选项，但手机深色了，
+   页面也得跟着深色。 */
+function applyTheme() {
+  var t = S.theme || 'auto';
+  var isDark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme:dark)').matches);
+  /* 这里只挂「是否深色」，不挂具体值 —— 三档选项都映射到同一个属性值。
+     如果以后要区分 light/auto 的细节（比如浅色背景上不让某些元素强反白），
+     再改成 `data-theme="light"` / `data-theme="auto"` / `data-theme="dark"` 三态。 */
+  var html = document.documentElement;
+  if (isDark) html.setAttribute('data-theme', 'dark');
+  else html.removeAttribute('data-theme');
+}
+
+/* 必须在 boot 里跑一次，否则首屏按系统颜色闪一下才跟上 */
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function () {
+  if ((S.theme || 'auto') === 'auto') applyTheme();
+});
+
+/* ================= 本地存储 =================
+   浏览器里直接用 localStorage。
+
+   原生壳里改走 App 的私有存储（SharedPreferences），两个原因：
+     1. 壳内页面是从本机回环服务加载的，端口不保证每次一样，而 localStorage
+        按「源」隔离 —— 端口一变就取不到上次的数据，表现为每次重开都要重登。
+     2. 浏览器清缓存 / 隐私模式会把 localStorage 清掉，令牌丢了就得重登。
+
+   原生桥给到的是一份 JSON 快照，读改写都在内存里做，写完整体存回去。
+   存储里可能带密码，所以 App 侧用的是私有目录下的 SharedPreferences
+   （非 root 设备上其他应用读不到）。 */
+var NS = null;                 // 原生存储快照；null 表示当前用 localStorage
+
+function storeInit() {
+  try {
+    if (window.QLNative && typeof window.QLNative.loadState === 'function') {
+      var raw = window.QLNative.loadState();
+      var o = raw ? JSON.parse(raw) : null;
+      NS = (o && typeof o === 'object') ? o : {};
+    }
+  } catch (e) {
+    NS = null;                 // 桥有问题就退回 localStorage，不能因此起不来
+  }
+}
+
+function storeFlush() {
+  if (!NS) return;
+  try { window.QLNative.saveState(JSON.stringify(NS)); } catch (e) {}
+}
+
+function sget(k) {
+  if (NS) return (k in NS) ? NS[k] : null;
+  try { return localStorage.getItem(k); } catch (e) { return null; }
+}
+function sset(k, v) {
+  if (NS) { NS[k] = String(v); storeFlush(); return; }
+  try { localStorage.setItem(k, v); } catch (e) {}
+}
+function sdel(k) {
+  if (NS) { delete NS[k]; storeFlush(); return; }
+  try { localStorage.removeItem(k); } catch (e) {}
+}
+
+/* 是否记住账号密码。没存过这个键时按「记住」算 —— 用户既然装了 App，
+   默认就是不想每次手输。 */
+function rememberOn() { return sget(K.remember) !== '0'; }
+
+/* 下次打开时要不要自动登录。
+   用户主动点过「退出登录」就置为 0 —— 否则他退出后重开 App 又被自动登进去，
+   那个按钮就等于骗人。重新手动登录成功后会再置回 1。 */
+function autoLoginOn() { return rememberOn() && sget(K.auto) !== '0'; }
+
+/* 启动时该不该自动登一次。抽成纯函数是为了能脱离 DOM 测 —— 这段判断
+   一旦写错，表现是「每次打开都要重登」或者「退出登录后又被自动登进去」，
+   都属于用户会立刻骂人的那种。 */
+function shouldAutoLogin() {
+  return !S.token && autoLoginOn() && !!sget(K.pass) && !!sget(K.user);
+}
+
+storeInit();
+
+/* 页面是不是从「本机」打开的（本机预览 / 直接双击文件）。
+   注意 file:// 有两种完全不同的处境：
+     · 用户在浏览器里双击打开 —— 浏览器禁止一切跨域请求
+     · 跑在原生 App 壳里（安卓 APK）—— 壳已开启通用跨域访问，没有同源限制
+   靠 __QL_NATIVE__ 标记区分，否则诊断会给出误导性的结论。 */
+function isLocalPage() {
+  if (window.__QL_NATIVE__) return false;
+  var h = location.hostname;
+  return !h || h === 'localhost' || h === '127.0.0.1' || h === '::1' ||
+         location.protocol === 'file:';
+}
+
+/* 原生壳的名字。安卓壳注入 'android'，iOS 壳注入 'ios'。
+   之前这里写死「安卓版」，iOS 上「设置 → 关于」会显示错的平台名，
+   排查问题时很误导 —— 所以按标记区分。 */
+function nativeLabel() {
+  var n = window.__QL_NATIVE__;
+  if (!n) return '网页版 ';
+  return n === 'ios' ? 'iOS 版 ' : '安卓版 ';
+}
+
+/* 如果页面本身就是面板托管的（比如部署到 /ql.html），
+   那就用 location.origin 当面板地址 —— 同源请求，既没有 CORS 也没有混合内容问题。
+   判断办法：直接拿同源的 /api/system 探一下，返回青龙的格式就认。 */
+async function detectServer() {
+  if (sget(K.server)) return;   // 用户存过地址，尊重用户的选择
+  if (window.__QL_NATIVE__) return;             // 原生壳里页面是本地假域名，探测没意义
+  if (isLocalPage()) return;                    // 本机预览，用兜底地址
+  if (location.protocol === 'file:') return;    // 本地文件，没有「同源」可言
+  try {
+    var res = await fetch(location.origin + '/api/system', {
+      cache: 'no-store', headers: { Accept: 'application/json' }
+    });
+    var j = await res.json();
+    if (j && j.code === 200 && j.data && typeof j.data.version === 'string') {
+      S.server = location.origin;
+    }
+  } catch (e) { /* 不是面板，保持兜底地址 */ }
+}
+
+var S = {
+  server: sget(K.server) || FALLBACK_SERVER,
+  user: sget(K.user) || 'admin',
+  token: sget(K.token) || '',
+  tab: sget(K.tab) || 'crons',
+  /* 'auto'（跟随系统）/ 'light'（浅色）/ 'dark'（深色）。默认 auto —— 不主动覆盖系统选择 */
+  theme: sget(K.theme) || 'auto',
+  sys: null,
+  need2fa: false,
+  detailId: null,
+  crons: { list: [], total: 0, page: 1, size: 20, q: '', loading: false },
+  /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
+  envs: { list: [], q: '', tag: '', loading: false },
+  logs: { tree: [], path: [], loading: false },
+  /* scripts.expanded 的键是「从脚本根目录算起的相对路径」（如 dir1/sub），值是真值。
+     默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
+     path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
+     loadScripts(S.scripts.path, true) 的调用点。 */
+  scripts: { nodes: [], path: [], loading: false, expanded: {}, q: '' },
+  /* 「我的」页的面板概览（/api/dashboard/*）。字段全部按「有就显示、没有就藏」处理，
+     因为不同版本的面板返回的字段不完全一样，硬取会崩。 */
+  /* seq 是「第几轮请求」：一轮没回来时又点刷新，旧的结果要丢掉，
+     否则慢的那次后到，会把新数据覆盖回去。 */
+  dash: {
+    sys: null, ov: null, rt: null,
+    loading: false, err: '', seq: 0
+  },
+  subs: { list: [], q: '', loading: false },
+  deps: { list: [], type: 'nodejs', q: '', loading: false },
+  configs: { list: [], loading: false },
+  busy: false
+};
+
+/* ================= 网络 ================= */
+/* 用户填的面板地址，例如 http://1.2.3.4:5700 */
+function base() { return S.server.replace(/\/+$/, ''); }
+
+/* 从面板地址里取出「主机:端口」。用户可能填 http://1.2.3.4:5700/、1.2.3.4:5700
+   或 https://ql.example.com，去掉协议头、路径和结尾斜杠就够看了。
+   （青龙不返回主机名，概览页拿这个当「这是哪台面板」的标识。） */
+function hostOf(u) {
+  return String(u == null ? '' : u)
+    .replace(/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\/+$/, '');
+}
+
+/* 请求实际发往哪里。
+   安卓壳里页面是从 App 内置的回环服务加载的（http://127.0.0.1:<随机端口>），
+   /api/ 请求发给它，由 App 用系统 HTTP 栈转发到真正的面板。这样页面侧
+   完全同源 —— 没有跨域、没有预检、不依赖 WebView 的网络实现，而且
+   连不上面板时 App 会把具体原因当 JSON 回来，不再是空泛的 Failed to fetch。 */
+function apiBase() {
+  if (window.__QL_NATIVE__ && location.hostname === '127.0.0.1') return location.origin;
+  return base();
+}
+
+/* 把面板地址告诉原生代理。地址一变就要同步一次，否则请求会转发到旧地址。 */
+function syncTarget() {
+  if (window.QLNative && typeof window.QLNative.setTarget === 'function') {
+    try { window.QLNative.setTarget(base()); } catch (e) { /* 桥不可用就算了 */ }
+  }
+}
+
+/* XMLHttpRequest 版的请求，只作为 fetch 的兜底。返回一个跟 Response 形状
+   一致的替身，好让调用方无感。 */
+function xhrFetch(url, init) {
+  return new Promise(function (resolve, reject) {
+    var x = new XMLHttpRequest();
+    try {
+      x.open(init.method || 'GET', url, true);
+    } catch (e) {
+      reject(new Error('XMLHttpRequest 打不开这个地址'));
+      return;
+    }
+    x.timeout = 15000;
+    var hs = init.headers || {};
+    Object.keys(hs).forEach(function (k) {
+      try { x.setRequestHeader(k, hs[k]); } catch (e) {}
+    });
+    x.onload = function () {
+      var h = {};
+      try { h['Content-Type'] = x.getResponseHeader('Content-Type') || 'application/json'; } catch (e) {}
+      try {
+        resolve(new Response(x.responseText, { status: x.status, headers: h }));
+      } catch (e) {
+        resolve({
+          status: x.status,
+          ok: x.status >= 200 && x.status < 300,
+          text: function () { return Promise.resolve(x.responseText); }
+        });
+      }
+    };
+    x.onerror = function () { reject(new Error('XMLHttpRequest 网络错误')); };
+    x.ontimeout = function () { reject(new Error('XMLHttpRequest 超时')); };
+    try {
+      x.send(init.body === undefined ? null : init.body);
+    } catch (e) {
+      reject(new Error('XMLHttpRequest 发送失败'));
+    }
+  });
+}
+
+async function api(path, opt) {
+  opt = opt || {};
+  var url = apiBase() + path;
+  if (opt.query) {
+    var u = new URLSearchParams();
+    Object.keys(opt.query).forEach(function (k) {
+      var v = opt.query[k];
+      if (v !== undefined && v !== null && v !== '') u.append(k, v);
+    });
+    var qs = u.toString();
+    if (qs) url += '?' + qs;
+  }
+  var headers = { Accept: 'application/json' };
+  if (S.token) headers.Authorization = 'Bearer ' + S.token;
+  var init = { method: opt.method || 'GET', headers: headers, cache: 'no-store' };
+  if (opt.form) {
+    /* 上传文件用。**绝不能自己设 Content-Type** —— 浏览器要在里面塞 multipart 边界，
+       手写成 multipart/form-data 会缺 boundary，后端 multer 解析不出文件，
+       表现是「上传成功但面板里没有这个文件」。 */
+    init.body = opt.form;
+  } else if (opt.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(opt.body);
+  }
+
+  var res;
+  try {
+    res = await fetch(url, init);
+  } catch (e) {
+    var err = new Error('连不上面板：' + (e && e.message ? e.message : '网络错误'));
+    err.url = url;
+    err.network = true;
+    throw err;
+  }
+
+  var text = await res.text();
+  var json = null;
+  try { json = text ? JSON.parse(text) : null; } catch (e) { json = null; }
+
+  if (res.status === 401) {
+    signOut(true);
+    throw new Error((json && json.message) || '登录已失效，请重新登录');
+  }
+  if (!res.ok) {
+    throw new Error((json && json.message) || ('服务器错误 HTTP ' + res.status));
+  }
+  if (!json || typeof json.code !== 'number') throw new Error('响应格式异常');
+
+  if (json.code === 200) return json;
+  if (json.code === 420) { var e2 = new Error('需要两步验证'); e2.need2fa = true; throw e2; }
+  if (json.code === 401) { signOut(true); throw new Error(json.message || '登录已失效'); }
+  throw new Error(json.message || ('请求失败 code ' + json.code));
+}
+
+/* 下载接口（scripts/download）回的是**文件字节流**，不是 {code,data} 包装，
+   所以不能走 api()。出错时后端才回 JSON，所以失败分支里再尝试解析一次原因。 */
+async function apiBlob(path, body) {
+  var url = apiBase() + path;
+  var headers = { Accept: '*/*', 'Content-Type': 'application/json' };
+  if (S.token) headers.Authorization = 'Bearer ' + S.token;
+  var res;
+  try {
+    res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body || {}), cache: 'no-store' });
+  } catch (e) {
+    var err = new Error('连不上面板：' + (e && e.message ? e.message : '网络错误'));
+    err.network = true;
+    throw err;
+  }
+  if (res.status === 401) { signOut(true); throw new Error('登录已失效，请重新登录'); }
+  if (!res.ok) {
+    var t = '';
+    try { t = await res.text(); } catch (e3) { t = ''; }
+    var j = null;
+    try { j = t ? JSON.parse(t) : null; } catch (e4) { j = null; }
+    throw new Error((j && j.message) || ('下载失败 HTTP ' + res.status));
+  }
+  return await res.blob();
+}
+
+/* 取「原样正文」的接口（配置文件详情就是这种）。不能走 api()：那个强制要求
+   响应是 {code,data} 包装，拿到纯文本会直接判成「响应格式异常」。
+   顺便兼容被包了一层的版本 —— 青龙不同小版本的实现不一致。 */
+async function apiText(path, query) {
+  var url = apiBase() + path;
+  if (query) {
+    var u = new URLSearchParams();
+    Object.keys(query).forEach(function (k) {
+      var v = query[k];
+      if (v !== undefined && v !== null && v !== '') u.append(k, v);
+    });
+    var qs = u.toString();
+    if (qs) url += '?' + qs;
+  }
+  var headers = { Accept: '*/*' };
+  if (S.token) headers.Authorization = 'Bearer ' + S.token;
+  var res;
+  try {
+    res = await fetch(url, { headers: headers, cache: 'no-store' });
+  } catch (e) {
+    var err = new Error('连不上面板：' + (e && e.message ? e.message : '网络错误'));
+    err.url = url;
+    err.network = true;
+    throw err;
+  }
+  if (res.status === 401) { signOut(true); throw new Error('登录已失效，请重新登录'); }
+  if (!res.ok) throw new Error('服务器错误 HTTP ' + res.status);
+  var text = await res.text();
+  if (text && text.charAt(0) === '{') {
+    var j = null;
+    try { j = JSON.parse(text); } catch (e2) { j = null; }
+    if (j && typeof j.code === 'number') {
+      if (j.code === 200) return j.data == null ? '' : String(j.data);
+      throw new Error(j.message || ('请求失败 code ' + j.code));
+    }
+  }
+  return text;
+}
+
+/* ================= 格式化 ================= */
+function fmtAbs(d) {
+  return pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+         pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+function fmtRel(ms) {
+  if (!ms || ms <= 0) return '从未运行';
+  var diff = (Date.now() - ms) / 1000;
+  if (diff < 0) return fmtAbs(new Date(ms));
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+  if (diff < 86400 * 30) return Math.floor(diff / 86400) + ' 天前';
+  return fmtAbs(new Date(ms));
+}
+function fmtCountdown(d) {
+  var s = (d.getTime() - Date.now()) / 1000;
+  if (s < 0) return '已过期';
+  if (s < 60) return '不到 1 分钟后';
+  if (s < 3600) return Math.floor(s / 60) + ' 分钟后';
+  if (s < 86400) return Math.floor(s / 3600) + ' 小时后';
+  return Math.floor(s / 86400) + ' 天后';
+}
+function fmtSize(n) {
+  if (n == null) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+/* 依赖 / 订阅列表给的时间是 ISO 字符串，不是毫秒数，直接喂 fmtRel 会得到「从未运行」 */
+function fmtWhen(v) {
+  if (!v) return '—';
+  var t = typeof v === 'number' ? v : Date.parse(v);
+  if (!t || isNaN(t)) return String(v);
+  return fmtRel(t);
+}
+function stripAnsi(s) {
+  return String(s == null ? '' : s)
+    .replace(/\u001b\][^\u0007\u001b]*(\u0007|\u001b\\)/g, '')
+    .replace(/\u001b\[[0-9;?]*[ -\/]*[@-~]/g, '');
+}
+function maskValue(v) {
+  var s = String(v == null ? '' : v);
+  if (!s) return '（空）';
+  return '•'.repeat(Math.min(Math.max(s.length, 6), 20)) + '  (' + s.length + ' 字符)';
+}
+
+/* ================= 任务状态 ================= */
+var ST = {
+  0: { t: '运行中', c: 'green' },
+  1: { t: '空闲', c: 'blue' },
+  2: { t: '已禁用', c: 'gray' },
+  3: { t: '排队中', c: 'orange' }
+};
+function statusOf(t) {
+  if (t.isDisabled === 1 || t.status === 2) return { t: '已禁用', c: 'gray' };
+  return ST[t.status] || ST[1];
+}
+function isBusy(t) {
+  var s = statusOf(t).t;
+  return s === '运行中' || s === '排队中';
+}
+function pill(s) { return '<span class="pill ' + s.c + '">' + esc(s.t) + '</span>'; }
+
+/* ================= cron 下次执行时间 ================= */
+var MACROS = {
+  '@yearly': '0 0 1 1 *', '@annually': '0 0 1 1 *', '@monthly': '0 0 1 * *',
+  '@weekly': '0 0 * * 0', '@daily': '0 0 * * *', '@midnight': '0 0 * * *', '@hourly': '0 * * * *'
+};
+var MNAMES = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+var WNAMES = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+
+function cronVal(s, names) {
+  s = String(s).toLowerCase();
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  return names[s] !== undefined ? names[s] : null;
+}
+function cronField(raw, lo, hi, names) {
+  var s = String(raw).trim();
+  var all = new Set();
+  if (s === '*' || s === '?') {
+    for (var i = lo; i <= hi; i++) all.add(i);
+    return { set: all, restricted: false };
+  }
+  var set = new Set();
+  var parts = s.split(',');
+  for (var p = 0; p < parts.length; p++) {
+    var part = parts[p], step = 1, body = part;
+    var sl = part.indexOf('/');
+    if (sl >= 0) {
+      body = part.slice(0, sl);
+      step = parseInt(part.slice(sl + 1), 10);
+      if (!(step > 0)) return null;
+    }
+    var a, b;
+    if (body === '*' || body === '?' || body === '') { a = lo; b = hi; }
+    else if (body.indexOf('-') > 0) {
+      var xy = body.split('-');
+      a = cronVal(xy[0], names); b = cronVal(xy[1], names);
+    } else {
+      a = cronVal(body, names);
+      b = step > 1 ? hi : a;
+    }
+    if (a === null || b === null || a > b) return null;
+    for (var v = a; v <= b; v += step) if (v >= lo && v <= hi) set.add(v);
+  }
+  if (!set.size) return null;
+  return { set: set, restricted: true };
+}
+function parseCron(expr) {
+  if (!expr) return null;
+  var t = String(expr).trim();
+  if (!t) return null;
+  if (t.charAt(0) === '@') {
+    var m = MACROS[t.toLowerCase()];
+    if (!m) return null;
+    t = m;
+  }
+  var f = t.split(/\s+/).filter(Boolean);
+  if (f.length === 6) f.shift();
+  if (f.length !== 5) return null;
+  var mi = cronField(f[0], 0, 59), ho = cronField(f[1], 0, 23),
+      dm = cronField(f[2], 1, 31), mo = cronField(f[3], 1, 12, MNAMES),
+      dw = cronField(f[4], 0, 6, WNAMES);
+  if (!mi || !ho || !dm || !mo || !dw) return null;
+  var dws = new Set();
+  dw.set.forEach(function (v) { dws.add(v % 7); });
+  return { mi: mi.set, ho: ho.set, dm: dm.set, mo: mo.set, dw: dws, dmR: dm.restricted, dwR: dw.restricted };
+}
+function nextRunDate(sch) {
+  if (!sch) return null;
+  var now = new Date();
+  var cur = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes() + 1, 0, 0);
+  var hours = Array.from(sch.ho).sort(function (a, b) { return a - b; });
+  var mins = Array.from(sch.mi).sort(function (a, b) { return a - b; });
+  for (var d = 0; d < 400; d++) {
+    var day = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + d);
+    if (!sch.mo.has(day.getMonth() + 1)) continue;
+    var dom = day.getDate(), wd = day.getDay(), ok;
+    if (sch.dmR && sch.dwR) ok = sch.dm.has(dom) || sch.dw.has(wd);
+    else if (sch.dmR) ok = sch.dm.has(dom);
+    else if (sch.dwR) ok = sch.dw.has(wd);
+    else ok = true;
+    if (!ok) continue;
+    for (var i = 0; i < hours.length; i++) {
+      for (var j = 0; j < mins.length; j++) {
+        var cand = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours[i], mins[j], 0, 0);
+        if (cand >= cur) return cand;
+      }
+    }
+  }
+  return null;
+}
+function nextRunText(expr) {
+  var sch = parseCron(expr);
+  if (!sch) return null;
+  var d = nextRunDate(sch);
+  if (!d) return null;
+  return fmtAbs(d) + '（' + fmtCountdown(d) + '）';
+}
+
+/* ================= 登录 / 登出 ================= */
+
+/* 令牌失效后自动重登的次数锁。密码要是改了，不加锁会一直重试。 */
+var autoRetried = false;
+
+function showLogin() {
+  $('#login').classList.remove('hidden');
+  $('#app').classList.add('hidden');
+  $('#inServer').value = S.server;
+  $('#inUser').value = S.user;
+  var rem = rememberOn();
+  if ($('#inRemember')) $('#inRemember').checked = rem;
+  $('#codeField').classList.toggle('hidden', !S.need2fa);
+  // 记住密码时直接填回去，用户点一下就能进
+  $('#inPass').value = rem ? (sget(K.pass) || '') : '';
+  $('#inCode').value = '';
+  // 有填好的密码就聚焦登录按钮，别把光标怼在密码框里
+  setTimeout(function () {
+    if ($('#inServer').value && $('#inUser').value && !$('#inPass').value) $('#inServer').focus();
+    else if (!$('#inPass').value) $('#inPass').focus();
+  }, 220);
+}
+function showApp() {
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+}
+function signOut(silent) {
+  S.token = '';
+  S.sys = null;
+  sdel(K.token);
+  S.crons.list = []; S.crons.total = 0; S.crons.page = 1;
+  S.envs.list = []; S.logs.tree = []; S.logs.path = [];
+  S.scripts.nodes = []; S.scripts.path = [];
+  S.subs.list = []; S.deps.list = []; S.configs.list = [];
+  /* 概览也要清干净：换账号后如果还留着上一条面板的数据，会看着像「新面板就是那样」。
+     seq 一并自增，让还在飞的那一轮结果作废。 */
+  S.dash.sys = null; S.dash.ov = null; S.dash.rt = null;
+  S.dash.err = '';
+  S.dash.seq = (S.dash.seq || 0) + 1; S.dash.loading = false;
+  closeSheet();
+  showLogin();
+  if (!silent) {
+    sset(K.auto, '0');     // 主动退出就别在下次打开时又自动登进来
+    toast('已退出登录');
+    return;
+  }
+  /* silent 表示令牌失效（过期 / 面板重启过）。存了账号密码就自动重登一次，
+     用户完全无感。autoRetried 兜住「密码错了」的情况，避免无限重试。 */
+  if (!autoRetried && autoLoginOn() && sget(K.pass) && sget(K.user)) {
+    autoRetried = true;
+    doLogin(true);
+  }
+}
+
+/* 按复选框决定要不要留下凭据。用户取消勾选时必须把已存的密码删掉 ——
+   只是「不写」的话，上次存的那份会一直留着，跟界面显示的状态不符。 */
+function saveCreds(pass) {
+  var want = $('#inRemember') ? $('#inRemember').checked : true;
+  sset(K.remember, want ? '1' : '0');
+  if (want) sset(K.pass, pass);
+  else sdel(K.pass);
+}
+
+/* auto=true 表示这是自动重登，失败时不要弹提示和诊断，免得一开屏就糊一脸 */
+async function doLogin(auto) {
+  var server = $('#inServer').value.trim();
+  var user = $('#inUser').value.trim();
+  var pass = $('#inPass').value;
+  var code = $('#inCode').value.trim();
+  if (!server) { if (!auto) toast('请填写面板地址', true); return false; }
+  if (!user || !pass) { if (!auto) toast('请填写用户名和密码', true); return false; }
+  if (S.need2fa && !code) { if (!auto) toast('请填写动态验证码', true); return false; }
+
+  var btn = $('#btnLogin');
+  btn.disabled = true; btn.textContent = '登录中…';
+  S.server = server;
+  syncTarget();          // 用户可能刚改过地址，先同步给原生代理再发请求
+  try {
+    var r;
+    if (S.need2fa) {
+      r = await api('/api/user/two-factor/login', { method: 'PUT', body: { username: user, password: pass, code: code } });
+    } else {
+      r = await api('/api/user/login', { method: 'POST', body: { username: user, password: pass } });
+    }
+    S.token = (r.data && r.data.token) || '';
+    if (!S.token) throw new Error('服务器没有返回令牌');
+    S.user = user;
+    S.need2fa = false;
+    autoRetried = false;
+    sset(K.server, S.server);
+    sset(K.user, S.user);
+    sset(K.token, S.token);
+    sset(K.auto, '1');     // 登录成功 → 下次打开可以自动进
+    saveCreds(pass);
+    showApp();
+    if (!auto) toast('登录成功');
+    await bootAfterLogin();
+    return true;
+  } catch (e) {
+    if (e.need2fa) {
+      S.need2fa = true;
+      $('#codeField').classList.remove('hidden');
+      $('#inCode').focus();
+      toast('该账号开了两步验证，请输入动态码', true);
+    } else if (auto) {
+      // 自动重登失败：静默退回登录页，凭据已经填好了，用户点一下就行
+      S.need2fa = false;
+      $('#codeField').classList.add('hidden');
+      console.warn('[青龙管家] 自动登录失败', e);
+    } else {
+      S.need2fa = false;
+      $('#codeField').classList.add('hidden');
+      toast(e.message || '登录失败', true);
+      /* 网络层失败时直接把诊断报告弹出来，省得用户对着一句 Failed to fetch 发懵 */
+      if (e.network) {
+        console.warn('[青龙管家] 请求失败', e.url, e);
+        setTimeout(function () {
+          openSheet('连接诊断', '<div class="f13 t2" style="padding:6px 4px 12px">正在测试…</div>');
+          diagnose().then(function (html) { openSheet('连接诊断', html); });
+        }, 800);
+      }
+    }
+    return false;
+  } finally {
+    btn.disabled = false; btn.textContent = '登录';
+  }
+}
+
+async function bootAfterLogin() {
+  try { var sys = await api('/api/system'); S.sys = sys.data || null; } catch (e) {}
+  setTab(S.tab || 'crons', true);
+}
+
+/* ================= 顶栏 / Tab ================= */
+/* 底栏那一项叫「我的」，但页面大标题是「所有功能」（照参考图）。 */
+var TITLES = {
+  crons: '定时任务', envs: '环境变量', scripts: '脚本管理',
+  subs: '订阅管理', deps: '依赖管理', configs: '配置文件',
+  logs: '日志文件', me: '所有功能'
+};
+function setTab(tab, force) {
+  if (!TITLES[tab]) tab = 'crons';
+  /* 头像和「切换账号」胶囊都依赖登录后的用户名，所以放在早退分支之前无条件同步。 */
+  syncTabAvatar();
+  if (S.tab === tab && !force) { refresh(); return; }
+  S.tab = tab;
+  sset(K.tab, tab);
+  $('#acctBar').classList.toggle('hidden', tab !== 'me');
+  $$('#tabbar button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === tab); });
+  $$('.view').forEach(function (v) { v.classList.toggle('on', v.id === 'v-' + tab); });
+  $('#ttl').textContent = TITLES[tab];
+  /* 日志没有底栏入口（从「我的」进去的），给它一个返回按钮，不然只能靠底栏跳走 */
+  $('#btnBack').classList.toggle('hidden', !!$('#tabbar button[data-tab="' + tab + '"]'));
+  /* 脚本页的「+」只在这一页出现；顺手把它的下拉菜单收起来，
+     否则从脚本页切走再切回来，菜单会莫名其妙地开着。 */
+  $('#btnScrAdd').classList.toggle('hidden', tab !== 'scripts');
+  $('#scrAddMenu').classList.add('hidden');
+  $('#main').scrollTop = 0;
+  refresh();
+}
+
+async function refresh() {
+  if (S.tab === 'crons') return loadCrons(true);
+  if (S.tab === 'envs') return loadEnvs();
+  if (S.tab === 'scripts') return loadScripts(S.scripts.path, true);
+  if (S.tab === 'subs') return loadSubs();
+  if (S.tab === 'deps') return loadDeps();
+  if (S.tab === 'configs') return loadConfigs();
+  if (S.tab === 'logs') return loadLogs(S.logs.path, true);
+  if (S.tab === 'me') return loadDash();
+}
+
+/* ================= 任务列表 ================= */
+function renderCrons() {
+  var c = S.crons;
+  $('#sub').textContent = c.total ? ('共 ' + c.total + ' 个 · 已加载 ' + c.list.length + ' 个') : '';
+
+  var box = $('#cronList');
+  if (c.loading && !c.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    $('#cronFoot').innerHTML = '';
+    return;
+  }
+  if (!c.list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">▤</span>' +
+      (c.q ? '没有匹配「' + esc(c.q) + '」的任务' : '还没有定时任务') + '</div>';
+    $('#cronFoot').innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = c.list.map(function (t) {
+    var s = statusOf(t);
+    var tags = '';
+    if (t.schedule) tags += '<span class="tag">' + esc(t.schedule) + '</span>';
+    (t.labels || []).slice(0, 3).forEach(function (l) { tags += '<span class="tag">' + esc(l) + '</span>'; });
+    if (t.isSystem === 1) tags += '<span class="tag">系统</span>';
+
+    var next = nextRunText(t.schedule);
+    return '<div class="item" data-cron="' + t.id + '">' +
+      '<div class="row"><div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>' +
+      '<div class="tags">' + tags + '</div>' +
+      '<div class="row f11 t3" style="margin-top:8px">' +
+        '<span>上次 ' + esc(fmtRel(t.last_execution_time)) + '</span>' +
+        (next ? '<span class="sp ell" style="text-align:right">下次 ' + esc(next.split('（')[0]) + '</span>' : '') +
+      '</div>' +
+      '<div class="row" style="margin-top:10px;gap:8px">' +
+        '<button class="btn" style="flex:1;padding:8px" data-act="' + (isBusy(t) ? 'stop' : 'run') + '" data-id="' + t.id + '">' +
+          (isBusy(t) ? '停止' : '运行') + '</button>' +
+        '<button class="btn" style="flex:1;padding:8px" data-act="more" data-id="' + t.id + '">更多</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  $('#cronFoot').innerHTML = c.list.length < c.total
+    ? '<div class="center"><span class="spin"></span>加载更多…</div>'
+    : '<div class="center">已经到底了</div>';
+}
+
+async function loadCrons(reset) {
+  var c = S.crons;
+  if (c.loading) return;
+  if (reset) { c.page = 1; }
+  else if (c.list.length >= c.total) return;
+  c.loading = true;
+  if (reset) renderCrons();
+  try {
+    var r = await api('/api/crons', { query: { searchValue: c.q, page: c.page, size: c.size } });
+    var d = r.data || {};
+    var fresh = d.data || [];
+    if (reset) c.list = fresh;
+    else {
+      var seen = new Set(c.list.map(function (x) { return x.id; }));
+      fresh.forEach(function (x) { if (!seen.has(x.id)) c.list.push(x); });
+    }
+    c.total = d.total || 0;
+    c.page += 1;
+  } catch (e) {
+    toast(e.message, true);
+    if (reset) c.list = [];
+  } finally {
+    c.loading = false;
+    renderCrons();
+  }
+}
+
+async function cronAction(id, act) {
+  id = Number(id);
+  var t = S.crons.list.filter(function (x) { return x.id === id; })[0];
+  if (!t) return;
+  var label = '';
+  try {
+    if (act === 'run') { label = '已启动'; await api('/api/crons/run', { method: 'PUT', body: [id] }); }
+    else if (act === 'stop') { label = '已停止'; await api('/api/crons/stop', { method: 'PUT', body: [id] }); }
+    else if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: [id] }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: [id] }); }
+    else if (act === 'pin') { label = '已置顶'; await api('/api/crons/pin', { method: 'PUT', body: [id] }); }
+    else if (act === 'unpin') { label = '已取消置顶'; await api('/api/crons/unpin', { method: 'PUT', body: [id] }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: [id] }); }
+    toast(label);
+    setTimeout(function () { loadCrons(true); }, act === 'delete' ? 0 : 600);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* ---------- 任务详情 ---------- */
+var detailTimer = null;
+
+async function openCron(id) {
+  id = Number(id);
+  var t = S.crons.list.filter(function (x) { return x.id === id; })[0];
+  if (!t) return;
+  S.detailId = id;
+  openSheet(t.name || '未命名任务', '<div class="center"><span class="spin"></span>加载中…</div>');
+  renderCronDetail(t);
+  loadCronLog(id, false);
+  startDetailPolling(id);
+}
+
+function renderCronDetail(t) {
+  var s = statusOf(t);
+  var next = nextRunText(t.schedule);
+  var h = '';
+
+  h += '<div class="card" style="padding:14px">';
+  h += '<div class="row"><div class="nm sp" style="font-size:17px">' + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>';
+  if ((t.labels || []).length) {
+    h += '<div class="tags">' + t.labels.map(function (l) { return '<span class="tag">' + esc(l) + '</span>'; }).join('') + '</div>';
+  }
+  h += '</div>';
+
+  h += '<div class="secttl">调度</div><div class="card">';
+  h += kv('定时规则', t.schedule || '—');
+  if (next) h += kv('下次执行', next);
+  h += kv('上次执行', fmtRel(t.last_execution_time));
+  if (t.last_running_time > 0) h += kv('上次开始', fmtAbs(new Date(t.last_running_time)));
+  if (isBusy(t) && t.pid) h += kv('进程号', t.pid);
+  h += '</div>';
+
+  h += '<div class="secttl">执行命令</div>';
+  h += '<div class="code">' + esc(t.command || '') + '</div>';
+
+  h += '<div class="secttl">操作</div>';
+  h += '<div class="row" style="gap:8px;flex-wrap:wrap">';
+  h += '<button class="btn ' + (isBusy(t) ? '' : 'pri') + '" data-dact="' + (isBusy(t) ? 'stop' : 'run') + '" data-id="' + t.id + '">' + (isBusy(t) ? '停止' : '立即运行') + '</button>';
+  h += '<button class="btn" data-dact="' + (t.isDisabled === 1 ? 'enable' : 'disable') + '" data-id="' + t.id + '">' + (t.isDisabled === 1 ? '启用' : '禁用') + '</button>';
+  h += '<button class="btn" data-dact="' + (t.isPinned === 1 ? 'unpin' : 'pin') + '" data-id="' + t.id + '">' + (t.isPinned === 1 ? '取消置顶' : '置顶') + '</button>';
+  h += '<button class="btn" data-edit="' + t.id + '">编辑</button>';
+  h += '<button class="btn" data-copycmd="' + t.id + '">复制命令</button>';
+  h += '<button class="btn danger" data-del="' + t.id + '">删除</button>';
+  h += '</div>';
+
+  h += '<div class="secttl">运行日志 <span class="t3" id="logStat" style="font-weight:400;text-transform:none"></span></div>';
+  h += '<div class="row" style="margin-bottom:8px;gap:8px">';
+  h += '<button class="btn" id="btnLogReload" style="padding:8px 12px">刷新日志</button>';
+  h += '<label class="btn" style="padding:8px 12px"><input type="checkbox" id="autoLog" checked style="width:auto;margin-right:6px">自动刷新</label>';
+  h += '<button class="btn" id="btnLogCopy" style="padding:8px 12px">复制</button>';
+  h += '</div>';
+  h += '<div class="logbox" id="logBox">加载中…</div>';
+
+  h += '<div class="secttl">其他</div><div class="card">';
+  h += kv('任务 ID', t.id);
+  h += kv('日志名', t.log_name || '默认');
+  if (t.work_dir) h += kv('工作目录', t.work_dir);
+  if (t.task_before) h += kv('前置脚本', t.task_before);
+  if (t.task_after) h += kv('后置脚本', t.task_after);
+  h += kv('多实例', t.allow_multiple_instances === 1 ? '允许' : '不允许');
+  h += '</div>';
+
+  $('#shB').innerHTML = h;
+}
+
+function kv(k, v) {
+  return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>';
+}
+
+async function loadCronLog(id, silent) {
+  var box = $('#logBox');
+  if (!box) return;
+  if (!silent) box.textContent = '加载中…';
+  try {
+    var r = await api('/api/crons/' + id + '/log');
+    box.textContent = stripAnsi(r.data || '（日志为空）');
+    box.scrollTop = box.scrollHeight;
+    var st = $('#logStat');
+    if (st) {
+      var map = { running: '运行中', completed: '已完成', ignored: '已忽略日志', empty: '暂无日志', notFound: '日志不存在' };
+      st.textContent = map[r.logStatus] ? '· ' + map[r.logStatus] : '';
+    }
+  } catch (e) {
+    if (!silent) box.textContent = '读取失败：' + e.message;
+  }
+}
+
+function startDetailPolling(id) {
+  stopDetailPolling();
+  detailTimer = setInterval(async function () {
+    var auto = $('#autoLog');
+    if (!auto || !auto.checked) return;
+    try {
+      var r = await api('/api/crons/' + id);
+      var fresh = r.data;
+      if (fresh) {
+        var old = S.crons.list.filter(function (x) { return x.id === id; })[0];
+        if (old) Object.assign(old, fresh);
+        if (isBusy(fresh)) await loadCronLog(id, true);
+      }
+    } catch (e) { /* 静默 */ }
+  }, 3000);
+}
+function stopDetailPolling() {
+  if (detailTimer) { clearInterval(detailTimer); detailTimer = null; }
+}
+
+/* ---------- 任务编辑 ---------- */
+var PRESETS = [
+  ['每分钟', '* * * * *'], ['每 5 分钟', '*/5 * * * *'], ['每 15 分钟', '*/15 * * * *'],
+  ['每 30 分钟', '*/30 * * * *'], ['每小时整点', '0 * * * *'], ['每天 0 点', '0 0 * * *'],
+  ['每天 8 点', '0 8 * * *'], ['每周一 9 点', '0 9 * * 1'], ['每月 1 号 0 点', '0 0 1 * *']
+];
+
+function openCronEdit(id) {
+  if (id) id = Number(id);
+  var t = id ? S.crons.list.filter(function (x) { return x.id === id; })[0] : null;
+  var h = '';
+  h += '<div class="secttl">基本信息</div><div class="card" style="padding:4px 14px">';
+  h += '<div style="padding:9px 0"><input id="eName" placeholder="任务名称" value="' + esc(t ? t.name || '' : '') + '"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="eSched" class="mono" placeholder="0 8 * * *" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? t.schedule || '' : '0 0 * * *') + '"></div>';
+  h += '</div>';
+  /* 一个 div 只能有一个 style 属性，写两个第二个会被静默丢掉 ——
+     这里原本把 margin-top 和 flex-wrap 拆进了两个 style 属性，
+     结果 flex-wrap 没了，预设按钮在窄屏上直接撑出屏幕。 */
+  h += '<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">';
+  PRESETS.forEach(function (p, i) {
+    h += '<button class="btn" data-preset="' + esc(p[1]) + '" style="padding:6px 10px;font-size:12px">' + esc(p[0]) + '</button>';
+  });
+  h += '</div>';
+  h += '<div class="f12 t2" id="eNext" style="margin:10px 4px"></div>';
+
+  h += '<div class="secttl">执行命令</div>';
+  h += '<div class="card" style="padding:4px 14px"><textarea id="eCmd" rows="4" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(t ? t.command || '' : '') + '</textarea></div>';
+
+  h += '<div class="secttl">标签</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0"><input id="eLabels" placeholder="用英文逗号分隔" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? (t.labels || []).join(',') : '') + '"></div></div>';
+
+  h += '<div class="secttl">高级（可选）</div><div class="card" style="padding:4px 14px">';
+  h += '<div style="padding:9px 0"><input id="eBefore" class="mono f13" placeholder="前置脚本" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? t.task_before || '' : '') + '"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="eAfter" class="mono f13" placeholder="后置脚本" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? t.task_after || '' : '') + '"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="eLog" placeholder="日志名（留空用默认）" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? t.log_name || '' : '') + '"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="eWork" class="mono f13" placeholder="工作目录" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? t.work_dir || '' : '') + '"></div>';
+  h += '</div>';
+
+  h += '<div style="margin-top:16px"><button class="btn pri" id="btnSaveCron" style="width:100%" data-id="' + (t ? t.id : '') + '">保存</button></div>';
+
+  openSheet(t ? '编辑任务' : '新建任务', h);
+  var upd = function () {
+    var el = $('#eNext');
+    if (!el) return;
+    var v = $('#eSched').value.trim();
+    var txt = nextRunText(v);
+    el.textContent = txt ? ('下次执行：' + txt) : (v ? '这条规则解析不了，面板也会校验' : '');
+    el.style.color = txt ? '' : 'var(--orange)';
+  };
+  $('#eSched').addEventListener('input', upd);
+  upd();
+}
+
+async function saveCron(id) {
+  var name = $('#eName').value.trim();
+  var sched = $('#eSched').value.trim();
+  var cmd = $('#eCmd').value.trim();
+  if (!cmd) return toast('执行命令不能为空', true);
+  if (!sched) return toast('定时规则不能为空', true);
+
+  var labels = $('#eLabels').value.split(/[,，\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+  var payload = {
+    command: cmd,
+    schedule: sched,
+    labels: labels.length ? labels : undefined,
+    task_before: $('#eBefore').value || undefined,
+    task_after: $('#eAfter').value || undefined,
+    log_name: $('#eLog').value || undefined,
+    work_dir: $('#eWork').value || undefined,
+    allow_multiple_instances: 0
+  };
+  if (name) payload.name = name;
+  if (id) payload.id = Number(id);
+
+  var btn = $('#btnSaveCron');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    if (id) await api('/api/crons', { method: 'PUT', body: payload });
+    else await api('/api/crons', { method: 'POST', body: payload });
+    toast(id ? '任务已保存' : '任务已创建');
+    closeSheet();
+    loadCrons(true);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '保存';
+  }
+}
+
+/* ---------- 任务「更多」菜单 ---------- */
+function openCronMore(id) {
+  id = Number(id);
+  var t = S.crons.list.filter(function (x) { return x.id === id; })[0];
+  if (!t) return;
+  var h = '<div class="list">';
+  h += '<button class="item row" data-mact="' + (isBusy(t) ? 'stop' : 'run') + '" data-id="' + id + '"><span class="sp" style="text-align:left">' + (isBusy(t) ? '停止任务' : '立即运行') + '</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-mact="' + (t.isDisabled === 1 ? 'enable' : 'disable') + '" data-id="' + id + '"><span class="sp" style="text-align:left">' + (t.isDisabled === 1 ? '启用任务' : '禁用任务') + '</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-mact="' + (t.isPinned === 1 ? 'unpin' : 'pin') + '" data-id="' + id + '"><span class="sp" style="text-align:left">' + (t.isPinned === 1 ? '取消置顶' : '置顶任务') + '</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-edit="' + id + '"><span class="sp" style="text-align:left">编辑任务</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-copycmd="' + id + '"><span class="sp" style="text-align:left">复制命令</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-del="' + id + '" style="color:var(--red)"><span class="sp" style="text-align:left">删除任务</span><span class="t3">›</span></button>';
+  h += '</div>';
+  openSheet(t.name || '任务操作', h);
+}
+
+/* ================= 环境变量 ================= */
+/* ---------- 环境变量标签 ---------- */
+/* 青龙从 v2.21 起 env 有 labels: string[] 字段（back/data/env.ts），
+   还有 POST/DELETE /api/envs/labels 可以批量加删。这里只做「显示 + 筛选 + 编辑」，
+   批量加删标签先不做 —— 手机上多选操作体验不好。 */
+
+/* 标签色号：按名字算 hash 取模。同名一定同色，不需要维护映射表。 */
+function tagCls(name) {
+  var s = String(name == null ? '' : name), h = 0;
+  for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100003;
+  return 'tg' + (h % 8);
+}
+function tagHtml(name) {
+  var t = String(name == null ? '' : name).trim();
+  if (!t) return '';
+  return '<span class="tag ' + tagCls(t) + '">' + esc(t) + '</span>';
+}
+/* 一条变量上的标签。后端可能给 null / 非数组 / 带空串，都要能扛住。 */
+function envLabels(v) {
+  var ls = v && v.labels;
+  if (!Array.isArray(ls)) return [];
+  return ls.map(function (l) { return String(l == null ? '' : l).trim(); })
+    .filter(function (l) { return l; });
+}
+/* 当前列表里出现过的所有标签，去重 + 按出现次数从多到少 */
+function envAllTags() {
+  var cnt = {};
+  S.envs.list.forEach(function (v) {
+    envLabels(v).forEach(function (l) { cnt[l] = (cnt[l] || 0) + 1; });
+  });
+  return Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; });
+}
+
+function envRow(v) {
+  var on = v.status !== 1;
+  var ls = envLabels(v);
+  return '<div class="item" data-env="' + v.id + '">' +
+    '<div class="row"><div class="nm sp mono" style="font-size:14px">' + esc(v.name) + '</div>' +
+      (v.isPinned ? '<span class="pill blue">置顶</span>' : '') +
+      '<span class="pill ' + (on ? 'green' : 'gray') + '">' + (on ? '已启用' : '已禁用') + '</span></div>' +
+    /* 标签行：flex-wrap 是必须的 —— 标签数量和长度都不可控，不换行会撑出屏幕。
+       这里**绝不能**再出现第二个 style 属性（第二个会被解析器丢掉，正好丢掉 flex-wrap）。 */
+    (ls.length ? '<div class="row" style="flex-wrap:wrap;gap:5px;margin-top:7px">' +
+      ls.map(tagHtml).join('') + '</div>' : '') +
+    '<div class="f11 t2 mono ell" style="margin-top:6px" data-val="' + v.id + '">' + esc(maskValue(v.value)) + '</div>' +
+    (v.remarks ? '<div class="f11 t3" style="margin-top:5px">' + esc(v.remarks) + '</div>' : '') +
+    '<div class="row" style="margin-top:10px;gap:8px">' +
+      '<button class="btn" style="flex:1;padding:8px" data-eact="reveal" data-id="' + v.id + '">显示值</button>' +
+      '<button class="btn" style="flex:1;padding:8px" data-eact="edit" data-id="' + v.id + '">编辑</button>' +
+      '<button class="btn" style="flex:1;padding:8px" data-eact="' + (on ? 'disable' : 'enable') + '" data-id="' + v.id + '">' + (on ? '禁用' : '启用') + '</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderEnvs() {
+  var e = S.envs;
+  $('#sub').textContent = e.list.length ? ('共 ' + e.list.length + ' 个变量') : '';
+
+  /* 标签筛选条：只列当前列表里真的出现过的标签。
+     一个标签都没有时整条藏起来，不占位置。 */
+  var tags = envAllTags();
+  var bar = $('#envTagBar');
+  if (tags.length) {
+    var bh = '<button data-envtag="__all" class="' + (e.tag ? '' : 'on') + '">全部</button>';
+    tags.forEach(function (l) {
+      bh += '<button data-envtag="' + esc(l) + '" class="' + (e.tag === l ? 'on' : '') + '">' + esc(l) + '</button>';
+    });
+    bar.innerHTML = bh;
+    bar.classList.remove('hidden');
+  } else {
+    /* 标签全没了（比如刚删完）要把筛选也一起清掉，否则会卡在一个不存在的筛选上 */
+    e.tag = '';
+    bar.innerHTML = '';
+    bar.classList.add('hidden');
+  }
+
+  var list = e.tag
+    ? e.list.filter(function (v) { return envLabels(v).indexOf(e.tag) >= 0; })
+    : e.list;
+
+  var box = $('#envList');
+  if (e.loading && !e.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (!list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">⚿</span>' +
+      (e.tag ? '「' + esc(e.tag) + '」标签下没有变量' : (e.q ? '没有匹配的变量' : '还没有环境变量')) + '</div>';
+    return;
+  }
+  box.innerHTML = list.map(envRow).join('');
+}
+
+async function loadEnvs() {
+  var e = S.envs;
+  if (e.loading) return;
+  e.loading = true;
+  renderEnvs();
+  try {
+    var r = await api('/api/envs', { query: { searchValue: e.q } });
+    e.list = r.data || [];
+  } catch (err) {
+    toast(err.message, true);
+    e.list = [];
+  } finally {
+    e.loading = false;
+    renderEnvs();
+  }
+}
+
+function openEnvEdit(id) {
+  if (id) id = Number(id);
+  var v = id ? S.envs.list.filter(function (x) { return x.id === id; })[0] : null;
+  var h = '';
+  h += '<div class="card" style="padding:4px 14px">';
+  h += '<div style="padding:9px 0"><input id="vName" class="mono" placeholder="变量名，如 JD_COOKIE" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(v ? v.name : '') + '"' + (v ? ' readonly style="opacity:.6"' : '') + '></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><textarea id="vValue" rows="5" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" placeholder="变量值" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(v ? v.value || '' : '') + '</textarea></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="vRemarks" placeholder="备注（可选）" value="' + esc(v ? v.remarks || '' : '') + '"></div><div class="sep"></div>';
+  /* 标签：用逗号分隔的纯文本输入。手机上没有好用的多选控件，
+     而且标签是自由文本（后端只校验非空），输入框反而最省事。 */
+  h += '<div style="padding:9px 0"><input id="vLabels" placeholder="标签，多个用逗号分隔（可选）" autocapitalize="off" autocorrect="off" value="' + esc(v ? envLabels(v).join(', ') : '') + '"></div>';
+  h += '</div>';
+  h += '<div class="f12 t3" style="margin:10px 4px">变量名规则：字母或下划线开头，只能包含字母、数字、下划线。' + (v ? '（编辑时变量名不可改）' : '') + '</div>';
+  if (v && envLabels(v).length) {
+    h += '<div class="row" style="flex-wrap:wrap;gap:5px;margin:0 4px 4px">' + envLabels(v).map(tagHtml).join('') + '</div>';
+  }
+  h += '<div style="margin-top:14px"><button class="btn pri" id="btnSaveEnv" style="width:100%" data-id="' + (v ? v.id : '') + '">保存</button></div>';
+  if (v) h += '<div style="margin-top:10px"><button class="btn danger" id="btnDelEnv" style="width:100%" data-id="' + v.id + '">删除该变量</button></div>';
+  openSheet(v ? '编辑变量' : '新建变量', h);
+}
+
+/* 逗号分隔的标签串 → 数组。中英文逗号都认（手机上中文输入法很容易打出「，」）。
+   去重是必须的：后端的 Joi 只校验「非空」，重复标签会照存，
+   界面上就会出现两个一模一样的 pill，看着像渲染出错。 */
+function parseTags(s) {
+  var out = [];
+  String(s == null ? '' : s).split(/[,，]/).forEach(function (x) {
+    x = x.trim();
+    if (x && out.indexOf(x) < 0) out.push(x);
+  });
+  return out;
+}
+
+async function saveEnv(id) {
+  var name = $('#vName').value.trim();
+  var val = $('#vValue').value;
+  var remarks = $('#vRemarks').value.trim();
+  var labels = parseTags($('#vLabels') ? $('#vLabels').value : '');
+  if (!name) return toast('变量名不能为空', true);
+  if (!/^[a-zA-Z_][0-9a-zA-Z_]*$/.test(name)) return toast('变量名不符合规则', true);
+  if (!val) return toast('变量值不能为空', true);
+
+  var btn = $('#btnSaveEnv');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    if (id) {
+      await api('/api/envs', { method: 'PUT', body: { id: Number(id), name: name, value: val, remarks: remarks, labels: labels } });
+    } else {
+      await api('/api/envs', { method: 'POST', body: [{ name: name, value: val, remarks: remarks, labels: labels }] });
+    }
+    toast(id ? '变量已保存' : '变量已创建');
+    closeSheet();
+    loadEnvs();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '保存';
+  }
+}
+
+/* ================= 日志文件 ================= */
+function renderLogs() {
+  var crumbs = S.logs.path.length ? ('根目录 / ' + S.logs.path.join(' / ')) : '根目录';
+  $('#logCrumbs').innerHTML = '<button id="logUp" style="color:var(--accent);font-weight:600">' +
+    (S.logs.path.length ? '← 返回上一级' : '') + '</button>' +
+    '<span style="margin-left:8px">' + esc(crumbs) + '</span>';
+
+  var nodes = currentLogNodes();
+  var box = $('#logList');
+  if (S.logs.loading && !S.logs.tree.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (!nodes.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">▤</span>这里没有日志文件</div>';
+    return;
+  }
+  box.innerHTML = nodes.map(function (n) {
+    var isDir = n.type === 'directory';
+    var meta = [];
+    if (!isDir && n.size != null) meta.push(fmtSize(n.size));
+    if (n.createTime) meta.push(fmtAbs(new Date(n.createTime)));
+    if (isDir) meta.push((n.children || []).length + ' 项');
+    return '<div class="item row" data-log="' + esc(n.key) + '" data-dir="' + (isDir ? '1' : '0') + '">' +
+      '<div style="font-size:16px;width:22px;text-align:center">' + (isDir ? '📁' : '📄') + '</div>' +
+      '<div class="sp"><div style="font-size:14px;font-weight:' + (isDir ? 600 : 400) + '" class="ell">' + esc(n.title) + '</div>' +
+      '<div class="f11 t3">' + esc(meta.join(' · ')) + '</div></div>' +
+      '<div class="t3">›</div></div>';
+  }).join('');
+}
+
+function currentLogNodes() {
+  var nodes = S.logs.tree;
+  for (var i = 0; i < S.logs.path.length; i++) {
+    var found = null;
+    for (var j = 0; j < nodes.length; j++) if (nodes[j].key === S.logs.path[i]) { found = nodes[j]; break; }
+    if (!found) return [];
+    nodes = found.children || [];
+  }
+  return nodes;
+}
+
+async function loadLogs(path, force) {
+  S.logs.path = path || [];
+  if (force || !S.logs.tree.length) {
+    S.logs.loading = true;
+    renderLogs();
+    try {
+      var r = await api('/api/logs');
+      S.logs.tree = r.data || [];
+    } catch (e) {
+      toast(e.message, true);
+      S.logs.tree = [];
+    } finally {
+      S.logs.loading = false;
+    }
+  }
+  renderLogs();
+}
+
+async function openLogFile(node) {
+  openSheet(node.title, '<div class="center"><span class="spin"></span>加载中…</div>');
+  var dir = node.key.split('/');
+  dir.pop();
+  try {
+    var r = await api('/api/logs/detail', { query: { path: dir.join('/'), file: node.title } });
+    var txt = stripAnsi(r.data || '');
+    var lines = txt ? txt.split('\n').length : 0;
+    $('#shB').innerHTML =
+      '<div class="f11 t3" style="margin:0 4px 8px">' + esc(fmtSize(node.size)) + ' · ' + lines + ' 行</div>' +
+      '<div class="logbox lg">' + esc(txt || '（空文件）') + '</div>' +
+      '<div class="row" style="margin-top:12px;gap:8px">' +
+        '<button class="btn" id="btnCopyLog" style="flex:1">复制内容</button>' +
+        '<button class="btn danger" id="btnDelLog" style="flex:1" data-path="' + esc(dir.join('/')) + '" data-file="' + esc(node.title) + '">删除文件</button>' +
+      '</div>';
+  } catch (e) {
+    $('#shB').innerHTML = '<div class="empty">读取失败：' + esc(e.message) + '</div>';
+  }
+}
+
+/* ================= 分段控件（单选组） =================
+   弹层内容每次都是重新渲染的，所以监听得在渲染之后重新挂。 */
+function bindSeg(sel) {
+  var box = $(sel);
+  if (!box) return;
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-segval]') : null;
+    if (!b) return;
+    $$(sel + ' button').forEach(function (x) { x.classList.remove('on'); });
+    b.classList.add('on');
+  });
+}
+function segVal(sel) {
+  var b = $(sel + ' button.on');
+  return b ? b.dataset.segval : '';
+}
+function segHtml(id, opts, sel) {
+  var h = '<div class="seg" id="' + id + '">';
+  opts.forEach(function (o) {
+    h += '<button type="button" data-segval="' + esc(o.v) + '"' +
+         (o.v === sel ? ' class="on"' : '') + '>' + esc(o.t) + '</button>';
+  });
+  return h + '</div>';
+}
+
+/* ================= 脚本管理 =================
+   GET /api/scripts 不带 path 时返回的是「递归整棵树」（后端 readDirs），带 path 才只回一层
+   （readDir）。这里一次拿整棵树，靠 S.scripts.path 在本地下钻 —— 跟日志那套一样，
+   翻目录不用再打一次网络。
+
+   接口的 path 参数语义是「从脚本根目录算起的相对路径」，根目录是空字符串
+   （后端会 join(scriptPath, path)）。所以这里直接用「逐层 title 拼出来的相对路径」，
+   不依赖返回的 key 到底长什么样 —— key 的格式换版本是会变的，title 不会。 */
+/* ---------- 脚本树 ---------- */
+/* 相对路径拼接。dir 是「从脚本根目录算起」的路径，根是空串 —— 跟接口的 path 语义一致。 */
+function scrKey(dir, title) { return dir ? dir + '/' + title : title; }
+function scrExpanded(key) { return !!S.scripts.expanded[key]; }
+
+/* 点文件夹右边的箭头：只在本机展开/收起，不打网络（整棵树早就在内存里了）。 */
+function toggleScrDir(key) {
+  if (S.scripts.expanded[key]) delete S.scripts.expanded[key];
+  else S.scripts.expanded[key] = 1;
+  renderScripts();
+}
+
+/* 摊平成一行行。all=true 时不管展开状态全摊平（搜索要用，否则搜不到收起目录里的文件）。 */
+function flattenScripts(nodes, dir, depth, all, out) {
+  (nodes || []).forEach(function (n) {
+    var isDir = n.type === 'directory';
+    var key = scrKey(dir, n.title);
+    out.push({ n: n, dir: dir, key: key, depth: depth, isDir: isDir });
+    if (isDir && (all || scrExpanded(key))) flattenScripts(n.children, key, depth + 1, all, out);
+  });
+  return out;
+}
+
+/* 按「相对路径 + 名字」定位节点。不同目录下可以有同名文件，所以必须用完整相对路径，
+   不能只按 title 找 —— 只按 title 会拿到别的目录里的同名文件，改错对象。 */
+function findScriptNode(dir, title) {
+  var nodes = S.scripts.nodes;
+  var segs = String(dir == null ? '' : dir).split('/').filter(function (s) { return s; });
+  for (var i = 0; i < segs.length; i++) {
+    var hit = null;
+    for (var j = 0; j < nodes.length; j++) if (nodes[j].title === segs[i]) { hit = nodes[j]; break; }
+    if (!hit) return null;
+    nodes = hit.children || [];
+  }
+  for (var k = 0; k < nodes.length; k++) if (nodes[k].title === title) return nodes[k];
+  return null;
+}
+
+function countScripts(nodes) {
+  var n = 0;
+  (nodes || []).forEach(function (x) {
+    n++;
+    if (x.type === 'directory') n += countScripts(x.children);
+  });
+  return n;
+}
+
+function scrRow(r) {
+  var n = r.n, isDir = r.isDir;
+  var meta = [];
+  if (!isDir && n.size != null) meta.push(fmtSize(n.size));
+  if (isDir) meta.push((n.children || []).length + ' 项');
+  if (n.createTime) meta.push(fmtAbs(new Date(n.createTime)));
+  var open = isDir && scrExpanded(r.key);
+  /* 缩进用行内 --d 传给 CSS 的 padding-left（卡片背景跟着一起缩，不会被推窄）。 */
+  return '<div class="item row ind" style="--d:' + r.depth + ';gap:8px">' +
+    '<div class="fi2">' + (isDir ? '📁' : '📄') + '</div>' +
+    '<button class="sp" style="text-align:left;min-width:0" data-scr="' + esc(n.title) +
+      '" data-path="' + esc(r.dir) + '" data-scrtype="' + n.type + '">' +
+      '<div class="ell" style="font-size:14px;font-weight:' + (isDir ? 600 : 400) + '">' + esc(n.title) + '</div>' +
+      (meta.length ? '<div class="f11 t3 ell">' + esc(meta.join(' · ')) + '</div>' : '') +
+    '</button>' +
+    (isDir ? '<button class="tw' + (open ? ' on' : '') + '" data-scrtog="' + esc(r.key) + '">⌄</button>' : '') +
+    '<button class="t3" style="padding:8px 2px 8px 8px;font-size:17px" data-sact="more" data-scr="' + esc(n.title) +
+      '" data-path="' + esc(r.dir) + '" data-scrtype="' + n.type + '">⋯</button>' +
+  '</div>';
+}
+
+function renderScripts() {
+  var sc = S.scripts;
+  var q = String(sc.q || '').trim().toLowerCase();
+  var box = $('#scrList');
+  var rows;
+
+  if (q) {
+    rows = flattenScripts(sc.nodes, '', 0, true, []).filter(function (r) {
+      return (r.key + ' ' + r.n.title).toLowerCase().indexOf(q) >= 0;
+    });
+    $('#sub').textContent = rows.length ? (rows.length + ' 项匹配') : '';
+  } else {
+    rows = flattenScripts(sc.nodes, '', 0, false, []);
+    $('#sub').textContent = sc.nodes.length ? (countScripts(sc.nodes) + ' 个文件 / 目录') : '';
+  }
+
+  if (sc.loading && !sc.nodes.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">⌘</span>' +
+      (q ? '没有匹配的脚本' : '脚本目录是空的') + '</div>';
+    return;
+  }
+  box.innerHTML = rows.map(scrRow).join('');
+}
+
+/* 当前目录下的节点。按 title 逐层下钻（同一层里不会重名）。 */
+function currentScriptNodes() {
+  var nodes = S.scripts.nodes;
+  for (var i = 0; i < S.scripts.path.length; i++) {
+    var found = null;
+    for (var j = 0; j < nodes.length; j++) if (nodes[j].title === S.scripts.path[i]) { found = nodes[j]; break; }
+    if (!found) return [];
+    nodes = found.children || [];
+  }
+  return nodes;
+}
+
+/* 目录被改名或删掉后，之前记下的路径就悬空了。这时得退回根目录，
+   否则用户会卡在一个永远空白的列表上。 */
+function scriptDirExists() {
+  var nodes = S.scripts.nodes;
+  for (var i = 0; i < S.scripts.path.length; i++) {
+    var found = null;
+    for (var j = 0; j < nodes.length; j++) if (nodes[j].title === S.scripts.path[i]) { found = nodes[j]; break; }
+    if (!found) return false;
+    nodes = found.children || [];
+  }
+  return true;
+}
+
+/* 当前所在目录的相对路径 —— 接口的 path 参数就用它。 */
+function scriptDir() { return S.scripts.path.join('/'); }
+
+async function loadScripts(path, force) {
+  var sc = S.scripts;
+  sc.path = path || [];
+  if (force || !sc.nodes.length) {
+    sc.loading = true;
+    renderScripts();
+    try {
+      var r = await api('/api/scripts');
+      sc.nodes = r.data || [];
+    } catch (e) {
+      toast(e.message, true);
+      sc.nodes = [];
+    } finally {
+      sc.loading = false;
+    }
+  }
+  if (sc.path.length && sc.nodes.length && !scriptDirExists()) sc.path = [];
+  renderScripts();
+}
+
+async function openScriptEditor(node, dir) {
+  if (!node) return;
+  /* 目录要由调用方传进来：改成树形展开后没有「当前目录」这个概念了，
+     再靠 scriptDir() 会永远拿到空串，等于把子目录里的文件当根目录的开。 */
+  dir = dir || '';
+  openSheet(node.title, '<div class="center"><span class="spin"></span>读取中…</div>');
+  var content = '';
+  try {
+    var r = await api('/api/scripts/detail', { query: { path: dir, file: node.title } });
+    content = r.data == null ? '' : String(r.data);
+  } catch (e) {
+    $('#shB').innerHTML = '<div class="empty">读取失败<br><span class="f12 t3">' + esc(e.message) + '</span></div>';
+    return;
+  }
+  $('#shB').innerHTML =
+    '<div class="f11 t3 mono ell" style="margin:0 4px 8px">' + esc((dir ? dir + '/' : '') + node.title) + '</div>' +
+    '<textarea class="editor" id="scrBody" spellcheck="false" autocapitalize="off" autocorrect="off">' + esc(content) + '</textarea>' +
+    '<div class="row" style="gap:8px;margin-top:14px">' +
+      '<button class="btn pri" id="btnSaveScript" style="flex:1" data-file="' + esc(node.title) + '" data-path="' + esc(dir) + '">保存</button>' +
+      '<button class="btn" id="btnRunScript" style="flex:1" data-file="' + esc(node.title) + '" data-path="' + esc(dir) + '">运行</button>' +
+    '</div>' +
+    '<div class="row" style="gap:8px;margin-top:10px">' +
+      '<button class="btn" id="btnRenameScript" style="flex:1" data-file="' + esc(node.title) + '" data-path="' + esc(dir) + '">重命名</button>' +
+      '<button class="btn danger" id="btnDelScript" style="flex:1" data-file="' + esc(node.title) + '" data-path="' + esc(dir) + '">删除</button>' +
+    '</div>' +
+    '<div class="f11 t3" style="margin:12px 4px;line-height:1.6">' +
+      '「运行」执行的是编辑器里当前的内容（面板会写成 .swap 副本再跑），所以没保存也能先试一次。' +
+      '运行输出在「⋯ → 查看运行日志」里看。</div>';
+}
+
+async function saveScript(dir, file) {
+  var el = $('#scrBody');
+  if (!el) return;
+  var btn = $('#btnSaveScript');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  try {
+    await api('/api/scripts', { method: 'PUT', body: { filename: file, path: dir || '', content: el.value } });
+    toast('已保存');
+    await loadScripts(S.scripts.path, true);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '保存'; }
+  }
+}
+
+/* fromEditor=true 时用编辑器里的内容（未保存的改动也能试跑）；
+   否则先把文件内容拉下来 —— 不然会把空内容写进 .swap 跑一个空脚本。 */
+async function runScript(dir, file, fromEditor) {
+  dir = dir || '';
+  try {
+    var content = '';
+    if (fromEditor && $('#scrBody')) {
+      content = $('#scrBody').value;
+    } else {
+      var d = await api('/api/scripts/detail', { query: { path: dir, file: file } });
+      content = d.data == null ? '' : String(d.data);
+    }
+    var r = await api('/api/scripts/run', { method: 'PUT', body: { filename: file, path: dir, content: content } });
+    var pid = r.data;
+    toast(pid ? ('已运行，进程 ' + pid) : '已提交运行');
+    await loadScripts(S.scripts.path, true);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function delScript(dir, file, type) {
+  var extra = type === 'directory' ? '目录里的内容会一起删掉。' : '';
+  if (!confirm('确认删除 ' + file + '？' + extra + '此操作不可恢复。')) return;
+  try {
+    await api('/api/scripts', { method: 'DELETE', body: { filename: file, path: dir || '', type: type || 'file' } });
+    toast('已删除');
+    closeSheet();
+    await loadScripts(S.scripts.path, true);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function openScriptRename(dir, file) {
+  openSheet('重命名', '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+    '<input id="sRenameTo" class="mono" value="' + esc(file) + '" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>' +
+    '<div class="f12 t3" style="margin:10px 4px">位置：' + esc(dir || '根目录') + '</div>' +
+    '<div style="margin-top:14px"><button class="btn pri" id="btnRenameOk" style="width:100%" data-file="' +
+    esc(file) + '" data-path="' + esc(dir || '') + '">重命名</button></div>');
+  setTimeout(function () { var el = $('#sRenameTo'); if (el) el.focus(); }, 260);
+}
+
+async function renameScript(dir, file) {
+  var el = $('#sRenameTo');
+  if (!el) return;
+  var to = el.value.trim();
+  if (!to) return toast('新名称不能为空', true);
+  if (to === file) { closeSheet(); return; }
+  if (to.indexOf('/') >= 0) return toast('名称里不能带斜杠', true);
+  var btn = $('#btnRenameOk');
+  if (btn) { btn.disabled = true; btn.textContent = '处理中…'; }
+  try {
+    await api('/api/scripts/rename', { method: 'PUT', body: { filename: file, path: dir || '', newFilename: to } });
+    toast('已重命名');
+    closeSheet();
+    await loadScripts(S.scripts.path, true);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '重命名'; }
+  }
+}
+
+function openScriptNew(isDir, dir) {
+  dir = dir || '';
+  openSheet(isDir ? '新建文件夹' : '新建脚本',
+    '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+    '<input id="sNewName" class="mono" placeholder="' + (isDir ? '文件夹名，如 mytask' : '文件名，如 task.js') +
+    '" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>' +
+    '<div class="f12 t3" style="margin:10px 4px">位置：' + esc(dir || '根目录') + '</div>' +
+    '<div style="margin-top:14px"><button class="btn pri" id="btnNewScriptOk" style="width:100%" data-dir="' +
+    (isDir ? '1' : '0') + '" data-path="' + esc(dir) + '">创建</button></div>');
+  setTimeout(function () { var el = $('#sNewName'); if (el) el.focus(); }, 260);
+}
+
+async function createScript(isDir, dir) {
+  dir = dir || '';
+  var el = $('#sNewName');
+  if (!el) return;
+  var name = el.value.trim();
+  if (!name) return toast('名称不能为空', true);
+  if (name.indexOf('/') >= 0) return toast('名称里不能带斜杠', true);
+  if (!isDir) {
+    var exists = !!findScriptNode(dir, name);
+    if (exists && !confirm(name + ' 已存在，创建会覆盖它（面板会先备份一份）。继续？')) return;
+  }
+  var body = { filename: name, path: dir };
+  if (isDir) body.directory = name;   // filename 是 Joi 必填项，建文件夹也得带上
+  else body.content = '';
+  var btn = $('#btnNewScriptOk');
+  if (btn) { btn.disabled = true; btn.textContent = '创建中…'; }
+  try {
+    await api('/api/scripts', { method: 'POST', body: body });
+    toast('已创建');
+    closeSheet();
+    /* 建在子目录里就把那一层展开，不然用户看不到刚建的东西，会以为没成功。 */
+    if (dir) S.scripts.expanded[dir] = 1;
+    await loadScripts(S.scripts.path, true);
+    if (!isDir) {
+      var node = findScriptNode(dir, name);
+      if (node) openScriptEditor(node, dir);
+    }
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '创建'; }
+  }
+}
+
+/* ---------- 上传 / 下载脚本 ---------- */
+/* 上传走 POST /api/scripts 的 multipart 分支：后端用 multer 收，字段名固定是 file，
+   另两个字段是 filename（落地的文件名）和 path（相对面板脚本目录的目录，空串=根）。
+   走的是 api() 的 form 选项，绝不能自己设 Content-Type（浏览器要填 multipart 边界）。
+   重名会覆盖（面板会先备份一份），所以先问一句。 */
+/* dir 由入口传进来：顶栏「+」菜单 = 根目录，文件夹的 ⋯ 菜单 = 那个文件夹。
+   文件选择器是异步回的，change 里没法再问「传到哪儿」，所以点菜单时先把目标
+   记在 S.scripts.upDir 上，change 触发时再取。 */
+async function uploadScript(input, dir) {
+  var f = input && input.files && input.files[0];
+  if (!f) return;
+  if (dir == null) dir = S.scripts.upDir || '';
+  var name = f.name || 'script.js';
+  var exists = !!findScriptNode(dir, name);
+  if (exists && !confirm((dir ? dir + '/' : '') + name + ' 已存在，上传会覆盖它（面板会先备份一份）。继续？')) {
+    input.value = '';
+    return;
+  }
+  try {
+    var fd = new FormData();
+    fd.append('filename', name);
+    fd.append('path', dir);
+    fd.append('file', f, name);
+    await api('/api/scripts', { method: 'POST', form: fd });
+    toast('已上传到 ' + (dir || '根目录') + '：' + name);
+    /* 传到子目录里就把那层展开，否则看不到刚传上去的文件 */
+    if (dir) S.scripts.expanded[dir] = 1;
+    await loadScripts(S.scripts.path, true);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    /* 清掉选择器的值：不清的话同一个文件连选两次不会触发 change */
+    input.value = '';
+    S.scripts.upDir = '';
+  }
+}
+
+/* 下载走 POST /api/scripts/download，回的是**文件字节流**（不是 {code,data}），
+   所以用 apiBlob() 而不是 api()。存到手机那一步见 saveBlobToDevice()。 */
+async function downloadScript(dir, file) {
+  toast('读取中…');
+  try {
+    var blob = await apiBlob('/api/scripts/download', { filename: file, path: dir || '' });
+    await saveBlobToDevice(file, blob);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 待回调的保存请求。壳保存完会调 window.__qlSaved(id, ok, msg)。 */
+var saveCb = {};
+/* 把一段文件内容存到手机。两条路：
+   · 原生壳：读成 base64 交给壳 —— 用 base64 而不是文本，是因为脚本目录里可能有
+     二进制文件，当文本传会把字节改坏。壳在 Android 10+ 直接写进「下载」目录（免权限），
+     更老的系统退到系统「另存为」让用户选位置。
+   · 浏览器（PWA）：a[download] + createObjectURL。 */
+function saveBlobToDevice(name, blob) {
+  if (!window.__QL_NATIVE__) return saveViaBrowser(name, blob);
+  return new Promise(function (resolve, reject) {
+    var fr = new FileReader();
+    fr.onerror = function () { reject(new Error('读取文件内容失败')); };
+    fr.onload = function () {
+      var s = String(fr.result || '');
+      var i = s.indexOf(',');
+      if (i < 0) return reject(new Error('文件内容异常'));
+      var id = 'sv' + Date.now() + Math.floor(Math.random() * 1000);
+      saveCb[id] = { resolve: resolve, reject: reject };
+      try {
+        window.QLNative.saveFile(name, s.slice(i + 1), id);
+      } catch (e) {
+        delete saveCb[id];
+        reject(new Error('这台设备不支持直接保存'));
+      }
+    };
+    fr.readAsDataURL(blob);
+  });
+}
+function saveViaBrowser(name, blob) {
+  try {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    toast('已开始下载 ' + name);
+    return Promise.resolve();
+  } catch (e) {
+    toast('这个环境不支持直接保存，请用 App 版', true);
+    return Promise.reject(e);
+  }
+}
+/* 壳保存完回调这里：成功时 msg 是保存位置，失败时是原因。 */
+window.__qlSaved = function (cbId, ok, msg) {
+  var c = saveCb[cbId];
+  if (!c) return;
+  delete saveCb[cbId];
+  if (ok) { toast('已保存到 ' + msg); c.resolve(); }
+  else { toast(msg || '保存失败', true); c.reject(new Error(msg || '保存失败')); }
+};
+
+function openScriptMore(dir, file, type) {
+  dir = dir || '';
+  var at = ' data-scr="' + esc(file) + '" data-path="' + esc(dir) + '" data-scrtype="' + type + '"';
+  var h = '<div class="list">';
+  if (type === 'file') {
+    h += '<button class="item row" data-sact="edit"' + at + '><span class="sp" style="text-align:left">编辑内容</span><span class="t3">›</span></button>';
+    h += '<button class="item row" data-sact="run"' + at + '><span class="sp" style="text-align:left">运行</span><span class="t3">›</span></button>';
+    h += '<button class="item row" data-sact="log"' + at + '><span class="sp" style="text-align:left">查看运行日志</span><span class="t3">›</span></button>';
+    h += '<button class="item row" data-sact="download"' + at + '><span class="sp" style="text-align:left">下载到手机</span><span class="t3">›</span></button>';
+  } else {
+    /* 文件夹：先给「在这个文件夹里干活」的三个入口。
+       顶栏「+」只能作用于根目录，要传到子目录里就得从这里进。 */
+    h += '<button class="item row" data-sact="upload"' + at + '><span class="sp" style="text-align:left">上传到此文件夹</span><span class="t3">›</span></button>';
+    h += '<button class="item row" data-sact="newfile"' + at + '><span class="sp" style="text-align:left">在此新建脚本</span><span class="t3">›</span></button>';
+    h += '<button class="item row" data-sact="newdir"' + at + '><span class="sp" style="text-align:left">在此新建文件夹</span><span class="t3">›</span></button>';
+  }
+  h += '<button class="item row" data-sact="rename"' + at + '><span class="sp" style="text-align:left">重命名</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-sact="delete"' + at + ' style="color:var(--red)"><span class="sp" style="text-align:left">删除</span><span class="t3">›</span></button>';
+  h += '</div>';
+  openSheet(file, h);
+}
+
+/* 运行输出落在日志目录里、文件名是 <原名>.swap.log（跟脚本目录同构）。
+   面板没有「读某次脚本运行的日志」这个接口，只能照约定去日志树里捞。 */
+async function openScriptLog(dir, file) {
+  var base = file.replace(/\.[^.]+$/, '');
+  var name = base + '.swap.log';
+  openSheet('运行日志', '<div class="center"><span class="spin"></span>读取中…</div>');
+  try {
+    var r = await api('/api/logs/detail', { query: { path: dir || '', file: name } });
+    $('#shB').innerHTML =
+      '<div class="f11 t3 mono ell" style="margin:0 4px 8px">' + esc((dir ? dir + '/' : '') + name) + '</div>' +
+      '<div class="logbox lg">' + esc(stripAnsi(r.data || '') || '（暂无日志）') + '</div>';
+  } catch (e) {
+    $('#shB').innerHTML = '<div class="empty">读不到运行日志<br><span class="f12 t3">' + esc(e.message) +
+      '</span><br><span class="f12 t3" style="margin-top:8px;display:block">也可以去「我的 → 日志文件」里找 ' + esc(name) + '</span></div>';
+  }
+}
+
+/* ================= 依赖管理 =================
+   类型在「列表查询」里是字符串（nodejs/python3/linux），在「新建/编辑的请求体」里
+   却是数字（Joi.number().required()）。两边不一样，别搞混 —— 后端 DependenceTypes
+   枚举 nodejs=0 python3=1 linux=2。
+
+   状态也是数字（DependenceStatus）：
+     0 安装中  1 已安装  2 安装失败  3 删除中  4 已删除  5 删除失败  6 队列中  7 已取消
+   注意「已安装」是 1 不是 2，跟直觉反着来。 */
+var DEP_TYPES = [
+  { key: 'nodejs', num: 0, label: 'NodeJs' },
+  { key: 'python3', num: 1, label: 'Python3' },
+  { key: 'linux', num: 2, label: 'Linux' }
+];
+var DEP_STATUS = {
+  0: { t: '安装中', c: 'orange' }, 1: { t: '已安装', c: 'green' },
+  2: { t: '安装失败', c: 'red' }, 3: { t: '删除中', c: 'orange' },
+  4: { t: '已删除', c: 'gray' }, 5: { t: '删除失败', c: 'red' },
+  6: { t: '队列中', c: 'blue' }, 7: { t: '已取消', c: 'gray' }
+};
+function depTypeNum(key) {
+  for (var i = 0; i < DEP_TYPES.length; i++) if (DEP_TYPES[i].key === key) return DEP_TYPES[i].num;
+  return 0;
+}
+function depStatus(s) { return DEP_STATUS[s] || { t: '未知(' + s + ')', c: 'gray' }; }
+/* 正在装 / 正在删 —— 这几种状态只能取消，重装会被面板拒掉 */
+function depWorking(s) { return s === 0 || s === 3 || s === 6; }
+
+function renderDeps() {
+  var d = S.deps;
+  $('#sub').textContent = d.list.length ? (d.list.length + ' 个依赖') : '';
+  var box = $('#depList');
+  if (d.loading && !d.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (!d.list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">◫</span>' + (d.q ? '没有匹配的依赖' : '这一类还没有依赖') + '</div>';
+    return;
+  }
+  box.innerHTML = d.list.map(function (x) {
+    var s = depStatus(x.status);
+    var busy = depWorking(x.status);
+    return '<div class="item">' +
+      '<div class="row"><div class="nm sp mono" style="font-size:14px">' + esc(x.name) + '</div>' + pill(s) + '</div>' +
+      (x.remark ? '<div class="f11 t3" style="margin-top:5px">' + esc(x.remark) + '</div>' : '') +
+      '<div class="f11 t3" style="margin-top:5px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' +
+      '<div class="row" style="gap:8px;margin-top:10px">' +
+        '<button class="btn" style="flex:1;padding:8px" data-depact="log" data-id="' + x.id + '">日志</button>' +
+        '<button class="btn" style="flex:1;padding:8px" data-depact="' + (busy ? 'cancel' : 'reinstall') + '" data-id="' + x.id + '">' + (busy ? '取消' : '重装') + '</button>' +
+        '<button class="btn" style="flex:1;padding:8px" data-depact="more" data-id="' + x.id + '">更多</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function loadDeps() {
+  var d = S.deps;
+  if (d.loading) return;
+  d.loading = true;
+  renderDeps();
+  try {
+    var r = await api('/api/dependencies', { query: { searchValue: d.q, type: d.type } });
+    d.list = r.data || [];
+  } catch (e) {
+    toast(e.message, true);
+    d.list = [];
+  } finally {
+    d.loading = false;
+    renderDeps();
+  }
+}
+
+async function depAction(id, act) {
+  id = Number(id);
+  var label = '';
+  try {
+    if (act === 'reinstall') { label = '已提交重装'; await api('/api/dependencies/reinstall', { method: 'PUT', body: [id] }); }
+    else if (act === 'cancel') { label = '已取消'; await api('/api/dependencies/cancel', { method: 'PUT', body: [id] }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/dependencies', { method: 'DELETE', body: [id] }); }
+    else if (act === 'force') { label = '已强制删除'; await api('/api/dependencies/force', { method: 'DELETE', body: [id] }); }
+    else return;
+    toast(label);
+    closeSheet();
+    setTimeout(loadDeps, 600);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function openDepLog(id) {
+  id = Number(id);
+  var x = S.deps.list.filter(function (y) { return y.id === id; })[0];
+  openSheet(x ? x.name : '依赖日志', '<div class="center"><span class="spin"></span>读取中…</div>');
+  try {
+    var r = await api('/api/dependencies/' + id);
+    var log = (r.data && r.data.log) || [];
+    var txt = Array.isArray(log) ? log.join('\n') : String(log || '');
+    $('#shB').innerHTML =
+      '<div class="row" style="margin-bottom:10px">' +
+        '<div class="sp f11 t3">状态：' + esc(depStatus(r.data ? r.data.status : -1).t) + '</div>' +
+        '<button class="btn" id="btnDepLogReload" style="padding:7px 12px" data-id="' + id + '">刷新</button>' +
+      '</div>' +
+      '<div class="logbox lg">' + esc(stripAnsi(txt) || '（暂无日志）') + '</div>';
+  } catch (e) {
+    $('#shB').innerHTML = '<div class="empty">读取失败<br><span class="f12 t3">' + esc(e.message) + '</span></div>';
+  }
+}
+
+function openDepMore(id) {
+  id = Number(id);
+  var x = S.deps.list.filter(function (y) { return y.id === id; })[0];
+  if (!x) return;
+  var h = '<div class="list">';
+  h += '<button class="item row" data-depact="edit" data-id="' + id + '"><span class="sp" style="text-align:left">编辑名称 / 备注</span><span class="t3">›</span></button>';
+  if (x.status === 1) {
+    h += '<button class="item row" data-depact="delete" data-id="' + id + '" style="color:var(--red)"><span class="sp" style="text-align:left">删除依赖</span><span class="t3">›</span></button>';
+  }
+  h += '<button class="item row" data-depact="force" data-id="' + id + '" style="color:var(--red)"><span class="sp" style="text-align:left">强制删除（连带已装的文件）</span><span class="t3">›</span></button>';
+  h += '</div>';
+  openSheet(x.name, h);
+}
+
+function openDepEdit(id) {
+  if (id) id = Number(id);
+  var x = id ? S.deps.list.filter(function (y) { return y.id === id; })[0] : null;
+  var sel = x ? x.type : depTypeNum(S.deps.type);
+  var h = '';
+  h += '<div class="secttl">依赖类型</div>' +
+    segHtml('depTypeSeg', DEP_TYPES.map(function (t) { return { v: String(t.num), t: t.label }; }), String(sel));
+  h += '<div class="secttl">名称</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+    '<textarea id="depName" rows="2" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" ' +
+    'placeholder="如 axios 或 requests==2.31.0" autocapitalize="off" autocorrect="off" spellcheck="false">' +
+    esc(x ? x.name : '') + '</textarea></div></div>';
+  if (!x) h += '<div class="f12 t3" style="margin:8px 4px">多个依赖可以一行写一个，会逐个提交安装。</div>';
+  h += '<div class="secttl">备注（可选）</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+    '<input id="depRemark" placeholder="备注" value="' + esc(x ? x.remark || '' : '') + '"></div></div>';
+  h += '<div style="margin-top:16px"><button class="btn pri" id="btnSaveDep" style="width:100%" data-id="' +
+    (x ? x.id : '') + '">' + (x ? '保存' : '安装') + '</button></div>';
+  openSheet(x ? '编辑依赖' : '新建依赖', h);
+  bindSeg('#depTypeSeg');
+}
+
+async function saveDep(id) {
+  var nameEl = $('#depName');
+  if (!nameEl) return;
+  var names = nameEl.value.split(/[\n,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+  if (!names.length) return toast('依赖名称不能为空', true);
+  var type = Number(segVal('#depTypeSeg'));
+  if (isNaN(type)) type = depTypeNum(S.deps.type);
+  var remark = $('#depRemark').value.trim();
+
+  var btn = $('#btnSaveDep');
+  if (btn) { btn.disabled = true; btn.textContent = '提交中…'; }
+  try {
+    if (id) {
+      await api('/api/dependencies', { method: 'PUT', body: { id: Number(id), name: names[0], type: type, remark: remark } });
+    } else {
+      await api('/api/dependencies', {
+        method: 'POST',
+        body: names.map(function (n) { return { name: n, type: type, remark: remark }; })
+      });
+    }
+    toast(id ? '已保存' : '已提交安装');
+    closeSheet();
+    setTimeout(loadDeps, 500);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = id ? '保存' : '安装'; }
+  }
+}
+
+/* ================= 订阅管理 =================
+   alias（唯一值）是必填的，但它不是用户填的 —— 面板从 url + 分支 + 类型算出来。
+   算法照搬面板前端 formatAlias：按类型挑正则 → 取捕获组 → 把 / 和 . 换成 _ →
+   有分支再拼 _分支。算不出来（链接格式不认）时得提前拦住，否则后端只会回一个
+   语焉不详的校验错误。 */
+var SUB_STATUS = {
+  0: { t: '运行中', c: 'green' }, 1: { t: '空闲', c: 'blue' },
+  2: { t: '已禁用', c: 'gray' }, 3: { t: '排队中', c: 'orange' }
+};
+var SUB_TYPES = [
+  { v: 'public-repo', t: '公开仓库' },
+  { v: 'private-repo', t: '私有仓库' },
+  { v: 'file', t: '单文件' }
+];
+var SUB_SCHED = [{ v: 'crontab', t: 'crontab' }, { v: 'interval', t: '间隔' }];
+var SUB_PULL = [{ v: 'ssh-key', t: '私钥' }, { v: 'user-pwd', t: '用户名密码' }];
+var SUB_IVAL = [{ v: 'minutes', t: '分' }, { v: 'hours', t: '时' }, { v: 'days', t: '天' }];
+
+function subStatus(s) { return SUB_STATUS[s] || { t: '未知', c: 'gray' }; }
+function subTypeName(v) {
+  for (var i = 0; i < SUB_TYPES.length; i++) if (SUB_TYPES[i].v === v) return SUB_TYPES[i].t;
+  return v || '—';
+}
+var RE_REPO = /([^\/\:]+\/[^\/]+)(?=\.git)/;
+var RE_FILE = /([^\/\:]+\/[^\/\.]+)\.[a-z]+(\?[^\s]*)?(#.*)?$/;
+function formatAlias(url, branch, type) {
+  var a = '';
+  var re = type === 'file' ? RE_FILE : RE_REPO;
+  if (url && re.test(url)) a = url.match(re)[1].replace(/\//g, '_').replace(/\./g, '_');
+  if (branch) a += '_' + branch;
+  return a;
+}
+function subScheduleText(x) {
+  if (x.schedule_type === 'interval' && x.interval_schedule) {
+    var m = { minutes: '分', hours: '时', days: '天', seconds: '秒' };
+    return '每 ' + x.interval_schedule.value + (m[x.interval_schedule.type] || x.interval_schedule.type);
+  }
+  return x.schedule || '—';
+}
+
+function renderSubs() {
+  var s = S.subs;
+  $('#sub').textContent = s.list.length ? (s.list.length + ' 个订阅') : '';
+  var box = $('#subList');
+  if (s.loading && !s.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (!s.list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">⇅</span>' + (s.q ? '没有匹配的订阅' : '还没有订阅') + '</div>';
+    return;
+  }
+  box.innerHTML = s.list.map(function (x) {
+    var st = subStatus(x.status);
+    var running = x.status === 0 || x.status === 3;
+    var tags = '<span class="tag">' + esc(subTypeName(x.type)) + '</span>' +
+               '<span class="tag">' + esc(subScheduleText(x)) + '</span>';
+    if (x.branch) tags += '<span class="tag">' + esc(x.branch) + '</span>';
+    if (x.autoAddCron === false) tags += '<span class="tag">不自动加任务</span>';
+    return '<div class="item">' +
+      '<div class="row"><div class="nm sp">' + esc(x.name || x.alias || '未命名订阅') + '</div>' + pill(st) + '</div>' +
+      '<div class="tags">' + tags + '</div>' +
+      '<div class="f11 t2 mono ell" style="margin-top:6px">' + esc(x.url || '') + '</div>' +
+      (x.updatedAt ? '<div class="f11 t3" style="margin-top:4px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' : '') +
+      '<div class="row" style="gap:8px;margin-top:10px">' +
+        '<button class="btn" style="flex:1;padding:8px" data-subact="' + (running ? 'stop' : 'run') + '" data-id="' + x.id + '">' + (running ? '停止' : '运行') + '</button>' +
+        '<button class="btn" style="flex:1;padding:8px" data-subact="log" data-id="' + x.id + '">日志</button>' +
+        '<button class="btn" style="flex:1;padding:8px" data-subact="more" data-id="' + x.id + '">更多</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function loadSubs() {
+  var s = S.subs;
+  if (s.loading) return;
+  s.loading = true;
+  renderSubs();
+  try {
+    var r = await api('/api/subscriptions', { query: { searchValue: s.q } });
+    s.list = r.data || [];
+  } catch (e) {
+    toast(e.message, true);
+    s.list = [];
+  } finally {
+    s.loading = false;
+    renderSubs();
+  }
+}
+
+async function subAction(id, act) {
+  id = Number(id);
+  var label = '';
+  try {
+    if (act === 'run') { label = '已开始拉取'; await api('/api/subscriptions/run', { method: 'PUT', body: [id] }); }
+    else if (act === 'stop') { label = '已停止'; await api('/api/subscriptions/stop', { method: 'PUT', body: [id] }); }
+    else if (act === 'enable') { label = '已启用'; await api('/api/subscriptions/enable', { method: 'PUT', body: [id] }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/subscriptions/disable', { method: 'PUT', body: [id] }); }
+    else if (act === 'delete') { label = '已删除（保留文件）'; await api('/api/subscriptions', { method: 'DELETE', body: [id] }); }
+    else if (act === 'forcedel') { label = '已删除（含文件）'; await api('/api/subscriptions', { method: 'DELETE', body: [id], query: { force: true } }); }
+    else return;
+    toast(label);
+    closeSheet();
+    setTimeout(loadSubs, act === 'run' ? 900 : 500);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function openSubLog(id) {
+  id = Number(id);
+  var x = S.subs.list.filter(function (y) { return y.id === id; })[0];
+  openSheet((x && (x.name || x.alias)) || '订阅日志', '<div class="center"><span class="spin"></span>读取中…</div>');
+  await loadSubLog(id);
+}
+
+async function loadSubLog(id) {
+  id = Number(id);
+  try {
+    var r = await api('/api/subscriptions/' + id + '/log', { query: { t: String(Date.now()) } });
+    var meta = [];
+    if (r.logPath) meta.push(r.logPath);
+    if (r.logStatus) meta.push(r.logStatus);
+    $('#shB').innerHTML =
+      '<div class="row" style="margin-bottom:10px">' +
+        '<div class="sp f11 t3 ell">' + esc(meta.join(' · ')) + '</div>' +
+        '<button class="btn" id="btnSubLogReload" style="padding:7px 12px" data-id="' + id + '">刷新</button>' +
+      '</div>' +
+      '<div class="logbox lg">' + esc(stripAnsi(r.data || '') || '（暂无日志）') + '</div>';
+  } catch (e) {
+    $('#shB').innerHTML = '<div class="empty">读取失败<br><span class="f12 t3">' + esc(e.message) + '</span></div>';
+  }
+}
+
+function openSubMore(id) {
+  id = Number(id);
+  var x = S.subs.list.filter(function (y) { return y.id === id; })[0];
+  if (!x) return;
+  var running = x.status === 0 || x.status === 3;
+  var disabled = x.status === 2;
+  var h = '<div class="list">';
+  h += '<button class="item row" data-subact="edit" data-id="' + id + '"><span class="sp" style="text-align:left">编辑订阅</span><span class="t3">›</span></button>';
+  if (!running) h += '<button class="item row" data-subact="run" data-id="' + id + '"><span class="sp" style="text-align:left">立即拉取一次</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-subact="' + (disabled ? 'enable' : 'disable') + '" data-id="' + id + '"><span class="sp" style="text-align:left">' + (disabled ? '启用定时拉取' : '禁用定时拉取') + '</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-subact="copyurl" data-id="' + id + '"><span class="sp" style="text-align:left">复制订阅链接</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-subact="delete" data-id="' + id + '" style="color:var(--red)"><span class="sp" style="text-align:left">删除订阅（保留已拉取的文件）</span><span class="t3">›</span></button>';
+  h += '<button class="item row" data-subact="forcedel" data-id="' + id + '" style="color:var(--red)"><span class="sp" style="text-align:left">删除订阅并删掉已拉取的文件</span><span class="t3">›</span></button>';
+  h += '</div>';
+  openSheet(x.name || x.alias || '订阅', h);
+}
+
+function subFormVis() {
+  var t = segVal('#suTypeSeg');
+  var st = segVal('#suSchedSeg');
+  var pt = segVal('#suPullSeg');
+  $$('.suRepo').forEach(function (e) { e.classList.toggle('hidden', t === 'file'); });
+  $$('.suPriv').forEach(function (e) { e.classList.toggle('hidden', t !== 'private-repo'); });
+  var k = $('#suPullKeyOnly'), p = $('#suPullPwdOnly');
+  if (k) k.classList.toggle('hidden', !(t === 'private-repo' && pt === 'ssh-key'));
+  if (p) p.classList.toggle('hidden', !(t === 'private-repo' && pt === 'user-pwd'));
+  var c = $('#suCronOnly'), iv = $('#suIntervalOnly');
+  if (c) c.classList.toggle('hidden', st !== 'crontab');
+  if (iv) iv.classList.toggle('hidden', st !== 'interval');
+}
+
+function syncAlias() {
+  var el = $('#suAlias');
+  if (!el) return;
+  var url = $('#suUrl') ? $('#suUrl').value.trim() : '';
+  var branch = $('#suBranch') ? $('#suBranch').value.trim() : '';
+  el.value = formatAlias(url, branch, segVal('#suTypeSeg') || 'public-repo');
+}
+
+function openSubEdit(id) {
+  if (id) id = Number(id);
+  var x = id ? S.subs.list.filter(function (y) { return y.id === id; })[0] : null;
+  var type = x ? x.type : 'public-repo';
+  var schedType = x ? (x.schedule_type || 'crontab') : 'crontab';
+  var pull = x ? (x.pull_type || 'ssh-key') : 'ssh-key';
+  var iv = (x && x.interval_schedule) || { type: 'hours', value: 12 };
+  var po = (x && x.pull_option) || {};
+  var h = '';
+
+  h += '<div class="secttl">基本信息</div><div class="card" style="padding:4px 14px">';
+  h += '<div style="padding:9px 0"><input id="suName" placeholder="订阅名称" value="' + esc(x ? x.name || '' : '') + '"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><textarea id="suUrl" rows="2" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" ' +
+       'placeholder="https://github.com/user/repo.git" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(x ? x.url || '' : '') + '</textarea></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="suAlias" class="mono f13" placeholder="自动生成" readonly style="opacity:.6" value="' + esc(x ? x.alias || '' : '') + '"></div>';
+  h += '</div>';
+  h += '<div class="f12 t3" style="margin:8px 4px">唯一值由链接和分支自动生成，面板拿它当日志目录和私钥别名，不用你填。</div>';
+
+  h += '<div class="secttl">类型</div>' + segHtml('suTypeSeg', SUB_TYPES, type);
+
+  h += '<div class="suRepo"><div class="secttl">分支</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+       '<input id="suBranch" class="mono" placeholder="main（留空用默认分支）" value="' + esc(x ? x.branch || '' : '') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div></div>';
+
+  h += '<div class="suPriv"><div class="secttl">拉取方式</div>' + segHtml('suPullSeg', SUB_PULL, pull);
+  h += '<div id="suPullKeyOnly"><div class="secttl">私钥</div><div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+       '<textarea id="suKey" rows="4" class="mono" style="font-size:12px;padding:9px 0;resize:vertical" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" ' +
+       'autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(po.private_key || '') + '</textarea></div></div></div>';
+  h += '<div id="suPullPwdOnly"><div class="secttl">凭据</div><div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+       '<input id="suUser" class="mono" placeholder="用户名" value="' + esc(po.username || '') + '" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="sep"></div>' +
+       '<div style="padding:9px 0"><input id="suPwd" class="mono" type="password" placeholder="密码 / Token" value="' + esc(po.password || '') + '"></div></div></div>';
+  h += '</div>';
+
+  h += '<div class="secttl">定时拉取</div>' + segHtml('suSchedSeg', SUB_SCHED, schedType);
+  h += '<div id="suCronOnly" style="margin-top:8px"><div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+       '<input id="suCron" class="mono" placeholder="0 0 * * *" value="' + esc(x ? x.schedule || '' : '0 0 * * *') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div></div>';
+  h += '<div id="suIntervalOnly" style="margin-top:8px">' + segHtml('suIvalSeg', SUB_IVAL, iv.type) +
+       '<div class="card" style="padding:4px 14px;margin-top:8px"><div style="padding:9px 0">' +
+       '<input id="suIval" class="mono" inputmode="numeric" placeholder="12" value="' + esc(iv.value) + '"></div></div></div>';
+
+  h += '<div class="suRepo"><div class="secttl">过滤（可选）</div><div class="card" style="padding:4px 14px">';
+  h += '<div style="padding:9px 0"><textarea id="suWhite" rows="2" class="mono f13" style="padding:9px 0;resize:vertical" placeholder="白名单：只拉这些文件" ' +
+       'autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(x ? x.whitelist || '' : '') + '</textarea></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><textarea id="suBlack" rows="2" class="mono f13" style="padding:9px 0;resize:vertical" placeholder="黑名单：排除这些文件" ' +
+       'autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(x ? x.blacklist || '' : '') + '</textarea></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="suDeps" class="mono f13" placeholder="依赖文件（空格分隔）" value="' + esc(x ? x.dependences || '' : '') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="suExt" class="mono f13" placeholder="拉取的文件后缀（空格分隔）" value="' + esc(x ? x.extensions || '' : '') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div>';
+  h += '</div>';
+  h += '<div class="secttl">执行前后（可选）</div><div class="card" style="padding:4px 14px">';
+  h += '<div style="padding:9px 0"><input id="suBefore" class="mono f13" placeholder="拉取前执行" value="' + esc(x ? x.sub_before || '' : '') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><input id="suAfter" class="mono f13" placeholder="拉取后执行" value="' + esc(x ? x.sub_after || '' : '') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div>';
+  h += '</div></div>';
+
+  h += '<div class="secttl">其他</div><div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+       '<input id="suProxy" class="mono f13" placeholder="代理，如 http://127.0.0.1:1080" value="' + esc(x ? x.proxy || '' : '') +
+       '" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>';
+  h += '<label class="rem" for="suAutoAdd"><input type="checkbox" id="suAutoAdd"' +
+       ((!x || x.autoAddCron !== false) ? ' checked' : '') + '><span>拉取到的任务自动加进定时任务</span></label>';
+  h += '<label class="rem" for="suAutoDel"><input type="checkbox" id="suAutoDel"' +
+       ((!x || x.autoDelCron !== false) ? ' checked' : '') + '><span>任务不存在时自动删除</span></label>';
+
+  h += '<div style="margin-top:16px"><button class="btn pri" id="btnSaveSub" style="width:100%" data-id="' +
+       (x ? x.id : '') + '">' + (x ? '保存' : '创建') + '</button></div>';
+
+  openSheet(x ? '编辑订阅' : '新建订阅', h);
+
+  ['#suTypeSeg', '#suPullSeg', '#suSchedSeg', '#suIvalSeg'].forEach(bindSeg);
+  ['#suTypeSeg', '#suPullSeg', '#suSchedSeg'].forEach(function (s) {
+    var el = $(s);
+    if (el) el.addEventListener('click', function () { subFormVis(); syncAlias(); });
+  });
+  ['#suUrl', '#suBranch'].forEach(function (s) {
+    var el = $(s);
+    if (el) el.addEventListener('input', syncAlias);
+  });
+  subFormVis();
+  syncAlias();
+}
+
+async function saveSub(id) {
+  var url = $('#suUrl') ? $('#suUrl').value.trim() : '';
+  if (!url) return toast('订阅链接不能为空', true);
+  var type = segVal('#suTypeSeg') || 'public-repo';
+  var schedType = segVal('#suSchedSeg') || 'crontab';
+  var alias = $('#suAlias') ? $('#suAlias').value.trim() : '';
+  if (!alias) return toast('这个链接识别不出唯一值。请填完整的仓库地址（…/user/repo.git）或文件地址。', true);
+
+  var body = {
+    type: type,
+    url: url,
+    alias: alias,
+    schedule_type: schedType,
+    autoAddCron: $('#suAutoAdd') ? $('#suAutoAdd').checked : true,
+    autoDelCron: $('#suAutoDel') ? $('#suAutoDel').checked : true
+  };
+  var name = $('#suName') ? $('#suName').value.trim() : '';
+  if (name) body.name = name;
+
+  if (schedType === 'interval') {
+    var val = Number($('#suIval') ? $('#suIval').value.trim() : '');
+    if (!(val > 0)) return toast('间隔要是大于 0 的数字', true);
+    body.interval_schedule = { type: segVal('#suIvalSeg') || 'hours', value: val };
+  } else {
+    var cron = $('#suCron') ? $('#suCron').value.trim() : '';
+    if (!cron) return toast('定时规则不能为空', true);
+    body.schedule = cron;
+  }
+
+  if (type !== 'file') {
+    body.branch = $('#suBranch') ? $('#suBranch').value.trim() : '';
+    body.whitelist = $('#suWhite') ? $('#suWhite').value : '';
+    body.blacklist = $('#suBlack') ? $('#suBlack').value : '';
+    body.dependences = $('#suDeps') ? $('#suDeps').value.trim() : '';
+    body.extensions = $('#suExt') ? $('#suExt').value.trim() : '';
+    body.sub_before = $('#suBefore') ? $('#suBefore').value.trim() : '';
+    body.sub_after = $('#suAfter') ? $('#suAfter').value.trim() : '';
+  }
+  if (type === 'private-repo') {
+    body.pull_type = segVal('#suPullSeg') || 'ssh-key';
+    if (body.pull_type === 'ssh-key') {
+      var k = $('#suKey') ? $('#suKey').value.trim() : '';
+      if (!k) return toast('请填私钥', true);
+      body.pull_option = { private_key: k };
+    } else {
+      var u = $('#suUser') ? $('#suUser').value.trim() : '';
+      var p = $('#suPwd') ? $('#suPwd').value : '';
+      if (!u || !p) return toast('请填用户名和密码 / Token', true);
+      body.pull_option = { username: u, password: p };
+    }
+  }
+  var proxy = $('#suProxy') ? $('#suProxy').value.trim() : '';
+  if (proxy) body.proxy = proxy;
+  if (id) body.id = Number(id);
+
+  var btn = $('#btnSaveSub');
+  if (btn) { btn.disabled = true; btn.textContent = '提交中…'; }
+  try {
+    if (id) await api('/api/subscriptions', { method: 'PUT', body: body });
+    else await api('/api/subscriptions', { method: 'POST', body: body });
+    toast(id ? '已保存' : '已创建');
+    closeSheet();
+    setTimeout(loadSubs, 400);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = id ? '保存' : '创建'; }
+  }
+}
+
+/* ================= 配置文件 =================
+   只有三个接口：files 列目录、detail 读正文、save 写回去。
+   detail 回的是「裸文本」而不是 {code,data} 包装，所以走 apiText 而不是 api。 */
+function renderConfigs() {
+  var c = S.configs;
+  $('#sub').textContent = c.list.length ? (c.list.length + ' 个文件') : '';
+  var box = $('#cfgList');
+  if (c.loading && !c.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (!c.list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">⚙</span>没有可编辑的配置文件</div>';
+    return;
+  }
+  box.innerHTML = c.list.map(function (f) {
+    return '<div class="item row" data-cfg="' + esc(f.value) + '">' +
+      '<div style="font-size:16px;width:22px;text-align:center">📄</div>' +
+      '<div class="sp"><div style="font-size:14px" class="mono ell">' + esc(f.title) + '</div></div>' +
+      '<div class="t3">›</div></div>';
+  }).join('');
+}
+
+async function loadConfigs() {
+  var c = S.configs;
+  if (c.loading) return;
+  c.loading = true;
+  renderConfigs();
+  try {
+    var r = await api('/api/configs/files');
+    c.list = r.data || [];
+  } catch (e) {
+    toast(e.message, true);
+    c.list = [];
+  } finally {
+    c.loading = false;
+    renderConfigs();
+  }
+}
+
+async function openConfigFile(name) {
+  openSheet(name, '<div class="center"><span class="spin"></span>读取中…</div>');
+  var content = '';
+  try {
+    content = await apiText('/api/configs/detail', { path: name });
+  } catch (e) {
+    $('#shB').innerHTML = '<div class="empty">读取失败<br><span class="f12 t3">' + esc(e.message) + '</span></div>';
+    return;
+  }
+  $('#shB').innerHTML =
+    '<div class="f11 t3 mono ell" style="margin:0 4px 8px">' + esc(name) + '</div>' +
+    '<textarea class="editor" id="cfgBody" spellcheck="false" autocapitalize="off" autocorrect="off">' + esc(content) + '</textarea>' +
+    '<div style="margin-top:14px"><button class="btn pri" id="btnSaveCfg" style="width:100%" data-name="' + esc(name) + '">保存</button></div>' +
+    '<div class="f11 t3" style="margin:12px 4px;line-height:1.6">' +
+      '改错了不好回退，重要内容建议先复制一份留底。保存后有些配置要重启面板才生效。</div>';
+}
+
+async function saveConfig(name) {
+  var el = $('#cfgBody');
+  if (!el) return;
+  var btn = $('#btnSaveCfg');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  try {
+    await api('/api/configs/save', { method: 'POST', body: { name: name, content: el.value } });
+    toast('已保存');
+    closeSheet();
+    loadConfigs();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '保存'; }
+  }
+}
+
+async function openConfigNew() {
+  openSheet('新建配置文件', '<div class="center"><span class="spin"></span>加载中…</div>');
+  var samples = [];
+  try {
+    var r = await api('/api/configs/samples');
+    samples = (r.data || []).map(function (s) {
+      if (typeof s === 'string') return { title: s, value: s };
+      return { title: s.title || s.value || String(s), value: s.value || s.title };
+    }).filter(function (s) { return s.value; });
+  } catch (e) { /* 拿不到样例就算了，让用户手输 */ }
+
+  var h = '<div class="secttl">文件名</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+       '<input id="cfgNewName" class="mono" placeholder="如 config.sh" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>';
+  if (samples.length) {
+    h += '<div class="secttl">面板自带（点一下填入）</div><div class="list">';
+    samples.forEach(function (s) {
+      h += '<button class="item row" data-cfgsample="' + esc(s.value) + '"><span class="sp mono f13" style="text-align:left">' +
+           esc(s.title) + '</span><span class="t3">›</span></button>';
+    });
+    h += '</div>';
+  }
+  h += '<div class="f12 t3" style="margin:10px 4px">文件建在面板的配置目录里。名字带斜杠的路径（如 data/scripts/…）也会按面板的规则解析。</div>';
+  h += '<div style="margin-top:16px"><button class="btn pri" id="btnNewCfgOk" style="width:100%">创建并编辑</button></div>';
+  openSheet('新建配置文件', h);
+}
+
+async function createConfig() {
+  var el = $('#cfgNewName');
+  if (!el) return;
+  var name = el.value.trim();
+  if (!name) return toast('文件名不能为空', true);
+  var btn = $('#btnNewCfgOk');
+  if (btn) { btn.disabled = true; btn.textContent = '创建中…'; }
+  try {
+    await api('/api/configs/save', { method: 'POST', body: { name: name, content: '' } });
+    toast('已创建');
+    await loadConfigs();
+    openConfigFile(name);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '创建并编辑'; }
+  }
+}
+
+/* ================= 所有功能 ================= */
+/* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
+   升级时漏掉一处就会显示旧版本。 */
+var APP_VER = '1.0.9';
+
+/* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
+   图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
+   注意「系统设置」那张不是 tab（TITLES 里没有它），所以走弹层、单独挂 id。 */
+var FEATURES = [
+  { tab: 'crons',   icon: '▤', label: '定时任务', g: ['#5AA9FF', '#2E6BFF'], sh: 'rgba(46,107,255,.38)' },
+  { tab: 'envs',    icon: '⚿', label: '环境变量', g: ['#4ED8A8', '#12A16F'], sh: 'rgba(18,161,111,.38)' },
+  { tab: 'scripts', icon: '⌘', label: '脚本管理', g: ['#B07CFF', '#7A3FF2'], sh: 'rgba(122,63,242,.38)' },
+  { tab: 'subs',    icon: '⇅', label: '订阅管理', g: ['#5AD1E8', '#1E9CC0'], sh: 'rgba(30,156,192,.38)' },
+  { tab: 'deps',    icon: '◈', label: '依赖管理', g: ['#FFB65C', '#F08200'], sh: 'rgba(240,130,0,.38)' },
+  { tab: 'configs', icon: '▣', label: '配置文件', g: ['#8C9EFF', '#4E5BE8'], sh: 'rgba(78,91,232,.38)' },
+  { tab: 'logs',    icon: '▦', label: '日志文件', g: ['#A9B4C4', '#6C7A8C'], sh: 'rgba(108,122,140,.38)' },
+  { icon: '⚙', label: '系统设置', g: ['#FF8FA0', '#E8455F'], sh: 'rgba(232,69,95,.38)', id: 'btnSettings' }
+];
+
+function featCard(f) {
+  var attr = f.tab ? ' data-goto="' + f.tab + '"' : ' id="' + f.id + '"';
+  /* 图标和箭头是卡片的直接子元素、靠绝对定位摆位（标题左上 / 图标右中 / 箭头左下）。
+     中间不再套一层 flex 行 —— 那层在真机上没能把两个元素拉开。 */
+  return '<button class="fcard"' + attr + '>' +
+    '<div class="ft">' + esc(f.label) + '</div>' +
+    '<span class="fi" style="background:linear-gradient(135deg,' + f.g[0] + ',' + f.g[1] + ');' +
+      'box-shadow:0 8px 18px -8px ' + f.sh + '">' + f.icon + '</span>' +
+    '<span class="go">→</span>' +
+    '</button>';
+}
+
+/* 头像取用户名首字母。用户名要登录之后才知道，所以登录前后都必须能安全调用
+   （未登录时 S.user 是空串，退回一个字形）。 */
+function avChar() {
+  var u = String(S.user == null ? '' : S.user).trim();
+  return u ? u.charAt(0).toUpperCase() : '◍';
+}
+function syncTabAvatar() {
+  var el = $('#tabAv');
+  if (el) el.textContent = avChar();
+}
+
+/* ================= 「我的」页：面板概览 ================= */
+/* 数据来自青龙 v2.21+ 的 /api/dashboard/*（back/api/dashboard.ts）。
+   **面板真实提供的字段就这些**（对着 tag v2.21.0 的源码逐字核过）：
+     系统  platform / uptime(面板进程秒数，不是开机时长) / memTotal / memFree /
+           memUsagePercent('37.5' 这种**字符串**) / heapUsed / heapTotal(单位 MB) /
+           loadAvg[3] / cpus
+     概览  total / enabled / disabled / todayRuns / todaySuccess / todayFail /
+           successRate(字符串) / avgTime(毫秒)
+     趋势  [{date:'MM-DD', total, success, fail}]，固定补齐 days 天，没跑过的日子是 0
+     运行  {runningCount, queuedCount, running[], idleTasks[]}
+   面板**没有**磁盘、没有 CPU 使用率百分比、也没有主机名 —— 它自己的「系统资源」卡
+   （src/pages/dashboard/index.tsx）就只有内存使用率 / 运行时长 / 堆内存 / 负载 / 核数 /
+   platform。所以「主机名」改显示登录用户名，「CPU」那格标的是负载不是使用率，
+   磁盘和堆内存直接不做（不编数字）。
+   其余全部「有就显示、没有就藏」—— 面板小版本不同字段可能缺，硬取会白屏。 */
+
+/* 秒 → 「3 天 4 小时」/「4 小时 12 分」/「12 分 30 秒」 */
+function fmtUptime(sec) {
+  /* 先挡一道 null/undefined：Number(null) 是 0，不挡的话「没有数据」会显示成「0 秒」，
+     看着像面板刚重启。 */
+  if (sec == null || sec === '') return '';
+  var s = Number(sec);
+  if (!isFinite(s) || s < 0) return '';
+  var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
+  var m = Math.floor((s % 3600) / 60);
+  if (d > 0) return d + ' 天 ' + h + ' 小时';
+  if (h > 0) return h + ' 小时 ' + m + ' 分';
+  if (m > 0) return m + ' 分 ' + Math.floor(s % 60) + ' 秒';
+  return Math.floor(s) + ' 秒';
+}
+/* 字节 → GB/MB。面板给的是 os.totalmem() 的字节数。 */
+function fmtBytes(n) {
+  var b = Number(n);
+  if (!isFinite(b) || b <= 0) return '';
+  if (b >= 1073741824) return (b / 1073741824).toFixed(1) + ' GB';
+  return Math.round(b / 1048576) + ' MB';
+}
+/* 百分比取数字。面板给的是 '37.5' 这种字符串，直接参与运算会变成字符串拼接。 */
+function pctNum(v) {
+  var n = parseFloat(v);
+  if (!isFinite(n)) return null;
+  return Math.max(0, Math.min(100, n));
+}
+/* 占用率分档配色：<70 绿 / <90 橙 / 其余红 */
+function meterColor(p) { return p < 70 ? '#34C759' : (p < 90 ? '#FF9500' : '#FF3B30'); }
+
+/* 一张带图标 + 百分比 + 进度条的指标卡（照参考图：左上小图标，右上百分比）。
+   必须放在 .ov2 里 —— .ic/.pc 的样式是按 .ov2 作用域写的。 */
+function ovMeter(icon, color, label, pct, sub) {
+  if (pct == null) return '';
+  var p = pct.toFixed(1);
+  return '<div class="ovcard">' +
+    '<div class="row"><span class="ic" style="background:' + color + '">' + icon + '</span>' +
+      '<span class="pc">' + p + '%</span></div>' +
+    '<div class="lb">' + esc(label) + '</div>' +
+    '<div class="meter"><i style="width:' + p + '%;background:' + meterColor(pct) + '"></i></div>' +
+    (sub ? '<div class="lb" style="margin-top:6px">' + esc(sub) + '</div>' : '') +
+    '</div>';
+}
+
+/* 主机信息卡。
+   第一版显示的是面板地址（hostOf(S.server)），用户说改成登录用户名 ——
+   用户名就是 S.user，登录之后就一定有，比地址更好认。
+   「正在执行 N 个」和「排队 N 个」单独高亮（主色 + 加粗），不跟面板运行时间混在一起。 */
+function dashHost() {
+  var s = S.dash.sys || {};
+  var rt = S.dash.rt || {};
+  var meta = [];
+  var ver = (S.sys && S.sys.version) || '';
+  if (ver) meta.push('青龙 ' + ver);
+  if (S.sys && S.sys.branch) meta.push(S.sys.branch);
+  if (s.platform) meta.push(s.platform);
+
+  /* 「正在执行 N 个」+「排队 N 个」拼成一段，前后用主色和高亮样式
+     —— 跟参考图一致，跟面板运行时间灰色那段区分开。 */
+  var live = [];
+  if (rt.runningCount != null) live.push(
+    '<span class="live-num">' + esc(rt.runningCount) + '</span> 个任务正在执行');
+  if (rt.queuedCount) live.push(
+    '<span class="live-num">' + esc(rt.queuedCount) + '</span> 个排队');
+
+  return '<div class="ovcard">' +
+    '<div class="row" style="gap:7px"><span class="dot"></span>' +
+      '<span class="f12 t2">已连接</span></div>' +
+    '<div class="big">' + esc(S.user || '未登录') + '</div>' +
+    (meta.length ? '<div class="meta">' + esc(meta.join(' · ')) + '</div>' : '') +
+    (s.uptime != null ? '<div class="meta">面板已运行 ' + esc(fmtUptime(s.uptime)) + '</div>' : '') +
+    (live.length ? '<div class="meta live">' + live.join(' · ') + '</div>' : '') +
+    '</div>';
+}
+
+/* 系统状态：内存 + CPU 负载。两个都要有数据才画这一节。
+   磁盘/堆内存按用户要求删了 —— 磁盘本来就走 df 兜底，不在这里。 */
+function dashSysCards() {
+  var s = S.dash.sys || {};
+  var out = '';
+
+  var mem = pctNum(s.memUsagePercent);
+  if (mem != null) {
+    var mt = fmtBytes(s.memTotal);
+    var used = (Number(s.memTotal) - Number(s.memFree));
+    out += ovMeter('▤', 'linear-gradient(135deg,#5AA9FF,#2E6BFF)', '内存使用率', mem,
+      mt ? ('已用 ' + fmtBytes(used) + ' / 共 ' + mt) : '');
+  }
+
+  /* 负载：面板只给 loadAvg（1/5/15 分钟）。换算成「相对核数的百分比」只是为了让
+     进度条有个长度，标签写「CPU 负载」而不是「CPU 使用率」—— 两者不是一回事，
+     真机上别让人误读。 */
+  var la = s.loadAvg;
+  var cpus = Number(s.cpus);
+  if (Array.isArray(la) && la.length && isFinite(cpus) && cpus > 0) {
+    var l1 = Number(la[0]);
+    if (isFinite(l1)) {
+      out += ovMeter('◈', 'linear-gradient(135deg,#4ED8A8,#12A16F)', 'CPU 负载',
+        Math.min(100, l1 / cpus * 100), '1 分钟 ' + l1 + ' · ' + cpus + ' 核');
+    }
+  }
+  return out ? '<div class="sec">系统状态</div><div class="ov2">' + out + '</div>' : '';
+}
+
+/* 任务概览：总任务 / 已启用 / 今日执行 / 成功率（照参考图的 2×2，这里 4 列一行）。 */
+function dashTasks() {
+  var o = S.dash.ov;
+  if (!o) return '';
+  var rate = pctNum(o.successRate);
+  var cells = [
+    [o.total == null ? '—' : o.total, '总任务'],
+    [o.enabled == null ? '—' : o.enabled, '已启用'],
+    [o.todayRuns == null ? '—' : o.todayRuns, '今日执行'],
+    [rate == null ? '—' : rate.toFixed(1) + '%', '成功率']
+  ];
+  var h = '<div class="stats">';
+  cells.forEach(function (c) {
+    h += '<div><div class="n">' + esc(c[0]) + '</div><div class="l">' + esc(c[1]) + '</div></div>';
+  });
+  h += '</div>';
+  return '<div class="sec">任务概览</div><div class="ovcard">' + h + '</div>';
+}
+
+/* 概览区。加载中只盖住这一块，下面的功能网格立刻就能用。 */
+function dashCards() {
+  var d = S.dash;
+  if (d.loading && !d.sys && !d.ov) {
+    return '<div class="center"><span class="spin"></span>读取面板状态…</div>';
+  }
+  var h = '';
+  if (d.sys || d.rt) h += '<div class="sec">面板</div>' + dashHost();
+  h += dashSysCards();
+  h += dashTasks();
+  if (d.err) {
+    h += '<div class="f11 t3" style="margin:12px 4px;line-height:1.6">' + esc(d.err) + '</div>';
+  }
+  return h;
+}
+
+/* 渲染整页。功能网格是静态的，跟网络无关 —— 必须**同步**渲染出来，
+   否则进页面先是一片空白（测试里也读不到卡片）。 */
+function renderDash() {
+  $('#sub').textContent = '';
+  /* 「切换账号」胶囊渲染进顶栏的槽（在大标题上方），不在 #main 里 */
+  $('#acctBar').innerHTML = '<button class="acct" id="btnAcct">' +
+    '<span class="av">' + esc(avChar()) + '</span>' +
+    '<span class="un ell">' + esc(S.user) + '</span>' +
+    '<span class="sw">切换账号</span></button>';
+
+  var h = dashCards();
+  h += '<div class="sec">功能</div>';
+  h += '<div class="fgrid">';
+  FEATURES.forEach(function (f) { h += featCard(f); });
+  h += '</div>';
+  h += '<div class="f11 t3" style="margin:14px 4px 0;line-height:1.6">共 ' + FEATURES.length +
+    ' 个功能模块。登录状态和凭据只存在本机（' + (NS ? 'App 私有存储' : '浏览器 localStorage') +
+    '），不会上传到任何第三方。</div>';
+  $('#meBody').innerHTML = h;
+}
+
+async function loadDash() {
+  var d = S.dash;
+  /* 已经有一轮在飞：只重画一遍（可能刚切回来，DOM 被清过），不重复打接口。
+     **不能在这里直接 return** —— 那样切回来会看到空白页。 */
+  if (d.loading) { renderDash(); return; }
+  d.loading = true;
+  d.err = '';
+  d.seq = (d.seq || 0) + 1;
+  var seq = d.seq;
+  renderDash();
+
+  /* 三个接口各自 catch：面板小版本不同，可能只装了其中一部分，
+     一个 404 不该把整页拖成空白。 */
+  var one = function (p, q) {
+    return api(p, q ? { query: q } : undefined)
+      .then(function (r) { return r.data; })
+      .catch(function () { return null; });
+  };
+  var rs = await Promise.all([
+    one('/api/dashboard/system'),
+    one('/api/dashboard/overview'),
+    one('/api/dashboard/runtime')
+  ]);
+  /* 期间用户又点了一次刷新：这次的结果已经过期，丢掉，别把新数据覆盖回去 */
+  if (seq !== d.seq) return;
+  d.sys = rs[0]; d.ov = rs[1]; d.rt = rs[2];
+  d.loading = false;
+  if (!rs[0] && !rs[1]) {
+    d.err = '这个面板没有统计接口（需要青龙 v2.21 及以上）。功能模块不受影响。';
+  }
+  renderDash();
+}
+
+/* 磁盘 + 执行趋势 + 堆内存已按用户要求移除，相关实现（跑 df 的兜底命令、
+   解析函数、柱状图）一并撤了，不留空壳 —— 死代码只会让人以为还在用。 */
+
+/* 切换账号：账号级的东西都收在这里（地址 / 重新登录 / 退出登录）。
+   原来这些直接摊在「我的」页上，占了整整一屏；收进弹层后页面才腾得出位置放功能网格。 */
+function openAccount() {
+  var h = '';
+  h += '<div class="secttl" style="margin-top:0">当前账号</div><div class="card">';
+  h += kv('用户名', S.user || '未知');
+  h += kv('接口地址', base());
+  h += '</div>';
+
+  h += '<div class="secttl">服务器地址</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+    '<input id="meServer" autocapitalize="off" autocorrect="off" spellcheck="false" value="' +
+    esc(S.server) + '"></div></div>';
+  h += '<div class="f12 t3" style="margin:8px 4px">改完点下面的按钮保存，会退出登录（令牌是按面板签发的）。</div>';
+  h += '<button class="btn" id="btnSaveServer" style="width:100%">保存地址并重新登录</button>';
+
+  h += '<div style="margin-top:18px">' +
+    '<button class="btn danger" id="btnLogout" style="width:100%">退出登录</button></div>';
+  openSheet('切换账号', h);
+}
+
+/* 系统设置：面板信息 / 连接诊断 / 关于。 */
+function openSettings() {
+  var h = '';
+  h += '<div class="secttl" style="margin-top:0">面板</div><div class="card">';
+  h += kv('版本', (S.sys && S.sys.version) || '未知');
+  h += kv('分支', (S.sys && S.sys.branch) || '未知');
+  h += '</div>';
+
+  /* 外观：跟在系统里看到的「主题」类设置一样。点整条打开选项弹层。
+     当前值显示在右边（onAction），让人一眼看出现在是什么模式。 */
+  h += '<div class="secttl">外观</div>';
+  h += '<div class="card" style="padding:0">' +
+    '<button class="kvrow" id="btnTheme">' +
+        '<span class="k">外观模式</span>' +
+        '<span class="v">' + esc(themeLabel(S.theme)) + ' ›</span>' +
+      '</button>' +
+    '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">' +
+    '跟随系统 = 用手机当前的深浅色模式；浅色 / 深色 强制指定。</div>';
+
+  h += '<div class="secttl">排查</div>';
+  h += '<button class="btn" id="btnDiag" style="width:100%">连接诊断</button>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">连不上面板时点这个，' +
+    '会测出问题卡在哪一层，并给出具体原因。</div>';
+
+  h += '<div class="secttl">关于</div><div class="card">';
+  h += kv('客户端', nativeLabel() + APP_VER);
+  h += kv('适配面板', '青龙 v2.21.x');
+  h += '</div>';
+  h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">' +
+    '面板走明文 http 时，密码与令牌会以明文经过网络，建议配置 HTTPS。</div>';
+  openSheet('系统设置', h);
+}
+
+/* 外观三档的中文文案 */
+function themeLabel(t) {
+  return t === 'dark' ? '深色模式' : (t === 'light' ? '浅色模式' : '跟随系统');
+}
+
+/* 外观选择弹层：照参考图是三个圆角条目，当前选中高亮 */
+function openTheme() {
+  var h = '';
+  ['auto', 'light', 'dark'].forEach(function (t) {
+    var on = (S.theme || 'auto') === t;
+    h += '<button class="theme-opt' + (on ? ' on' : '') + '" data-theme-set="' + t + '">' +
+      '<span>' + esc(themeLabel(t)) + '</span>' +
+      (on ? '<span class="ck">✓</span>' : '') +
+      '</button>';
+  });
+  openSheet('外观模式', h);
+}
+
+function setTheme(t) {
+  if (t !== 'auto' && t !== 'light' && t !== 'dark') return;
+  S.theme = t;
+  sset(K.theme, t);
+  applyTheme();
+}
+
+/* ================= 弹层 ================= */
+function openSheet(title, html) {
+  $('#shT').textContent = title;
+  $('#shB').innerHTML = html;
+  $('#shB').scrollTop = 0;
+  var sh = $('#sheet');
+  /* 兜一道：显式把弹层抬到登录页之上。CSS 里已经改成 40 了，这里再钉一次，
+     避免以后有人调样式时又把它压回去 —— 这类层叠问题不会报错，只会「点了没反应」。 */
+  sh.style.zIndex = '45';
+  sh.classList.add('on');
+  requestAnimationFrame(function () { sh.querySelector('.panel').style.transform = 'translateY(0)'; });
+}
+function closeSheet() {
+  stopDetailPolling();
+  S.detailId = null;
+  $('#sheet').classList.remove('on');
+}
+
+/* ================= 下拉刷新 ================= */
+var ptrStart = 0, ptrPull = 0;
+function bindPTR() {
+  var main = $('#main'), ptr = $('#ptr');
+  main.addEventListener('touchstart', function (e) {
+    ptrStart = main.scrollTop <= 0 ? e.touches[0].clientY : 0;
+    ptrPull = 0;
+  }, { passive: true });
+  main.addEventListener('touchmove', function (e) {
+    if (!ptrStart) return;
+    var dy = e.touches[0].clientY - ptrStart;
+    if (dy > 0 && main.scrollTop <= 0) {
+      ptrPull = Math.min(dy * 0.45, 64);
+      ptr.style.height = ptrPull + 'px';
+      ptr.style.opacity = String(Math.min(ptrPull / 55, 1));
+      ptr.textContent = ptrPull > 48 ? '松手刷新' : '↓ 下拉刷新';
+    }
+  }, { passive: true });
+  main.addEventListener('touchend', function () {
+    if (ptrPull > 48) {
+      ptr.textContent = '刷新中…';
+      refresh().then(function () {
+        ptr.style.height = '0px'; ptr.style.opacity = '0';
+      });
+    } else {
+      ptr.style.height = '0px'; ptr.style.opacity = '0';
+    }
+    ptrStart = 0; ptrPull = 0;
+  });
+  main.addEventListener('scroll', function () {
+    if (S.tab !== 'crons') return;
+    var c = S.crons;
+    if (main.scrollTop + main.clientHeight > main.scrollHeight - 260 && c.list.length < c.total && !c.loading) {
+      loadCrons(false);
+    }
+  }, { passive: true });
+}
+
+/* ================= 事件绑定 ================= */
+function bind() {
+  $('#loginLogo').src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAEvklEQVR42u3c3WsWdBjG8f0jRRkeiNBJEJ7tTE/aoccedBR1FIQyhkJYhMTMdRAFlTJlDJyK4qQ5RiNw9KLmC9QgaGDFwiTJl5x7+blHmMicuechxp7f9bnhe7LD357vdnHd293x3BfvFCCVDo8AAgAEAAgAEAAgAEAAgAAAAQACAAQACAAQACAAQACAAAABAAIABAAIABAAIABAAIAAAAEAAgAEAAgAEAAgAEAAgAAAAQACAAQACAAQACAAQACAANXzysC7ZfPh3d6CAJkMT10uLx7c5S0IkMcbY/3l+t1b3oIAebx8ZM/DD//VG797DwLkMfTL+dKYsWs/eQ8CZLFj5POyNAOT33oTAuSwqb+n/HH75iMBDvw46l0IkEP/zxPl8ek+d8y7ECCD7cOflOXz+uhBb0OA+tl4qLtM/fPXEwJ0nerzPgSon8+ujpeV5tXBvd6HAHXTderjMr+w8MSHf2Hxa7bABKialxY/4JN/T6/4098WmADV89HFs+VpYwtMgKrZeqK33J+fe6oAtsAEqJYXvtxZLl2/Vv5rbIEJUC3vf3+6PGtsgQlQJZ1H95V7c7PPFMAWmADV8fwi303/WlYztsAEqI6eieNltWMLTICq2DL4XrkzO7NqAWyBCVAV479NrvrDbwtMgKp4+5vB0szYAhOgGhqnTW7O3G1KAFtgAlTDmakrpdmxBSZAFTROm7QytsAEaHuWTpu0MrbABGh7lk6btDK2wARoax4/bdLK2AIToG1ZftqklbEFJkDbsvy0SStjC0yAtmSl0ybNji0wAao6bdLs2AIToKrTJs2OLTABqjlt0srYAhOgmtMmtsAEiD5tYgtMgOjTJrbABIg+bWILTIDo0ya2wASIPm1iC0yA6NMmtsAEiD5tYgtMgOjTJrbABIg9bWILTIDo0ya2wASIPm1iC0yA6NMmtsAEiD5tYgtMgOjTJrbABIg+bWILTIDo0ybraXovjPieEmBtT5usl2ks1zb48woCrPVpk/Uwjf9V2HZiv+8pAdb2tInoQ4Do0yaiDwGiT5uIPgSIPm0i+hCg7Xjz6yOl9+LI/86nV8ZFHwLk8trJPtGHALm8tfibRfQhQCwfXvhK9CGAvycSfQgQyfk/p0QfAuRy49/bog8BMtl8eLfoQwAVqOhDABWo6EMAFajoQwAVqOhDABWo6EMAFajoQwAVqOhDABWo6EMAFajoQwAVqOhDABWo6EMAFajoQ4DsClT0IUBsBSr6ECC2AhV9CBBdgYo+BIitQEUfAsRWoKIPAaIrUNGHALEVqOhDgNgKVPQhQHQFKvoQILYCFX0IEFuBij4EiK5ARR8CxFagog8BYitQ0YcA0RWo6EOA2ApU9CFAbAUq+hAgugIVfQgQW4GKPgSIrUBFHwJEV6CiDwFiK1DRhwCxFajoQ4DoClT0IUBsBSr6ECC2AhV9CBBdgYo+BIitQEUfAsRWoKIPAaIrUNGHALEVqOhDgFg++GFY9CFALp1D+7wDAQACAAQACAAQACAAQACAAAABAAIABAAIABAAIABAAIAAAAEAAgAEAAgAEAAgAEAAgAAAAQACAAQACAAQACAAQACAAAABAAIABAAIAAIABAAIABAAiOEBVYRq+47GMRkAAAAASUVORK5CYII=';
+  $('#btnLogin').addEventListener('click', doLogin);
+  ['inServer', 'inUser', 'inPass', 'inCode'].forEach(function (id) {
+    $('#' + id).addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  });
+
+  $$('#tabbar button').forEach(function (b) {
+    b.addEventListener('click', function () { setTab(b.dataset.tab); });
+  });
+  $('#btnRefresh').addEventListener('click', function () { refresh(); });
+
+  var t1 = null;
+  $('#cronSearch').addEventListener('input', function (e) {
+    clearTimeout(t1);
+    t1 = setTimeout(function () { S.crons.q = e.target.value.trim(); loadCrons(true); }, 350);
+  });
+  var t2 = null;
+  $('#envSearch').addEventListener('input', function (e) {
+    clearTimeout(t2);
+    t2 = setTimeout(function () { S.envs.q = e.target.value.trim(); loadEnvs(); }, 350);
+  });
+  $('#btnNewEnv').addEventListener('click', function () { openEnvEdit(null); });
+
+  $('#btnBack').addEventListener('click', function () { setTab('me'); });
+
+  var t3 = null;
+  $('#subSearch').addEventListener('input', function (e) {
+    clearTimeout(t3);
+    t3 = setTimeout(function () { S.subs.q = e.target.value.trim(); loadSubs(); }, 350);
+  });
+  var t4 = null;
+  $('#depSearch').addEventListener('input', function (e) {
+    clearTimeout(t4);
+    t4 = setTimeout(function () { S.deps.q = e.target.value.trim(); loadDeps(); }, 350);
+  });
+
+  /* 脚本页的「+」：只负责开合下拉菜单，具体动作交给事件委托（菜单项带 data-sact）。
+     stopPropagation 是为了不让这次点击冒泡到下面的「点别处收菜单」监听里。 */
+  $('#btnScrAdd').addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    var m = $('#scrAddMenu');
+    if (m) m.classList.toggle('hidden');
+  });
+  /* 点菜单以外的地方要把菜单收起来，否则它会一直挂在页面上挡着列表。 */
+  document.addEventListener('click', function (ev) {
+    var m = $('#scrAddMenu');
+    if (!m || m.classList.contains('hidden')) return;
+    if (ev.target && ev.target.closest && ev.target.closest('#scrAddMenu,#btnScrAdd')) return;
+    m.classList.add('hidden');
+  });
+  /* 上传：菜单项只记下目标目录并唤起文件选择器，真正的上传在 change 里做。
+     change 必须单独绑 —— 它不在 click 事件委托里。 */
+  $('#filePick').addEventListener('change', function () { uploadScript(this, S.scripts.upDir); });
+  /* 脚本搜索：跨整棵树匹配（含收起目录里的文件），所以是本地过滤、不打网络 */
+  var tScr = 0;
+  $('#scrSearch').addEventListener('input', function (e) {
+    var v = e.target.value;
+    clearTimeout(tScr);
+    tScr = setTimeout(function () { S.scripts.q = v; renderScripts(); }, 180);
+  });
+  $('#btnNewSub').addEventListener('click', function () { openSubEdit(null); });
+  $('#btnNewDep').addEventListener('click', function () { openDepEdit(null); });
+  $('#btnNewCfg').addEventListener('click', function () { openConfigNew(); });
+
+  /* 依赖类型切换：分段控件先自己更新选中态，这里再读出来重新拉列表 */
+  bindSeg('#depSeg');
+  var ds = $('#depSeg');
+  if (ds) ds.addEventListener('click', function () {
+    S.deps.type = segVal('#depSeg') || 'nodejs';
+    S.deps.list = [];
+    loadDeps();
+  });
+
+  $('#shX').addEventListener('click', closeSheet);
+  $('#sheet').querySelector('.mask').addEventListener('click', closeSheet);
+
+  document.addEventListener('click', onClick, false);
+  bindPTR();
+}
+
+function onClick(ev) {
+  /* 所有可点元素都挂在这一个选择器上。新增模块时别忘了往这里加属性/ id，
+     否则表现是「点了没反应」—— 不报错，最难查。
+     注意：data-sact 的按钮同时也带 data-scr，所以下面的分支必须
+     「先判 data-sact，再判 data-scr」，顺序反了会把菜单项当成打开文件。 */
+  var el = ev.target.closest ? ev.target.closest(
+    '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
+    '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-log],[data-preset],[data-path],' +
+    '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
+    '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnDelLog,' +
+    '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
+    '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
+    '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
+    '#btnAcct,#btnSettings,#btnTheme'
+  ) : null;
+  if (!el) return;
+
+  var id = el.dataset.id;
+
+  /* 系统设置 → 外观：三档选项。点哪个就切哪个，再重画弹层让 ✓ 跟过去。 */
+  if (el.dataset.themeSet != null) {
+    setTheme(el.dataset.themeSet);
+    openTheme();
+    return;
+  }
+  /* 系统设置 → 点「外观模式」整条 */
+  if (el.id === 'btnTheme') return openTheme();
+
+  /* 任务列表 */
+  if (el.dataset.act) {
+    ev.stopPropagation();
+    if (el.dataset.act === 'more') return openCronMore(id);
+    return cronAction(id, el.dataset.act);
+  }
+  if (el.dataset.cron) return openCron(Number(el.dataset.cron));
+
+  /* 任务详情 / 更多菜单里的动作 */
+  if (el.dataset.mact) { closeSheet(); return cronAction(id, el.dataset.mact); }
+  if (el.dataset.dact) { cronAction(id, el.dataset.dact); return; }
+  if (el.dataset.edit) return openCronEdit(id);
+  if (el.dataset.copycmd) {
+    var t = S.crons.list.filter(function (x) { return x.id === Number(id); })[0];
+    if (t) copyText(t.command || '');
+    return;
+  }
+  if (el.dataset.del) {
+    if (!confirm('确认删除这个任务？删除后不可恢复。')) return;
+    closeSheet();
+    cronAction(id, 'delete');
+    return;
+  }
+
+  /* 编辑表单里的常用规则 */
+  if (el.dataset.preset) {
+    var sc = $('#eSched');
+    if (sc) {
+      sc.value = el.dataset.preset;
+      sc.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    return;
+  }
+
+  /* 日志相关 */
+  if (el.id === 'btnLogReload') {
+    if (S.detailId) loadCronLog(S.detailId, false);
+    return;
+  }
+  if (el.id === 'btnLogCopy') {
+    var box = $('#logBox');
+    if (box) copyText(box.textContent || '');
+    return;
+  }
+
+  /* 任务保存 */
+  if (el.id === 'btnSaveCron') return saveCron(id || null);
+
+  /* 变量：标签筛选条。再点一次同一个标签 = 取消筛选（比去找「全部」按钮顺手）。 */
+  if (el.dataset.envtag != null) {
+    var tg = el.dataset.envtag;
+    S.envs.tag = (tg === '__all' || S.envs.tag === tg) ? '' : tg;
+    renderEnvs();
+    return;
+  }
+
+  /* 变量 */
+  if (el.dataset.eact) {
+    var v = S.envs.list.filter(function (x) { return x.id === Number(id); })[0];
+    if (!v) return;
+    if (el.dataset.eact === 'reveal') {
+      var line = document.querySelector('[data-val="' + id + '"]');
+      if (!line) return;
+      var shown = line.dataset.shown === '1';
+      line.textContent = shown ? maskValue(v.value) : (v.value || '（空）');
+      line.dataset.shown = shown ? '0' : '1';
+      el.textContent = shown ? '显示值' : '隐藏值';
+      return;
+    }
+    if (el.dataset.eact === 'edit') return openEnvEdit(id);
+    if (el.dataset.eact === 'enable' || el.dataset.eact === 'disable') {
+      var path = el.dataset.eact === 'enable' ? '/api/envs/enable' : '/api/envs/disable';
+      api(path, { method: 'PUT', body: [Number(id)] })
+        .then(function () { toast('已' + (el.dataset.eact === 'enable' ? '启用' : '禁用')); loadEnvs(); })
+        .catch(function (e) { toast(e.message, true); });
+      return;
+    }
+  }
+  if (el.id === 'btnSaveEnv') return saveEnv(id || null);
+  if (el.id === 'btnDelEnv') {
+    if (!confirm('确认删除这个变量？')) return;
+    api('/api/envs', { method: 'DELETE', body: [Number(id)] })
+      .then(function () { toast('已删除'); closeSheet(); loadEnvs(); })
+      .catch(function (e) { toast(e.message, true); });
+    return;
+  }
+
+  /* 日志文件 */
+  if (el.dataset.log) {
+    var key = el.dataset.log;
+    if (el.dataset.dir === '1') return loadLogs(S.logs.path.concat([key]));
+    var node = currentLogNodes().filter(function (n) { return n.key === key; })[0];
+    if (node) return openLogFile(node);
+  }
+  if (el.id === 'logUp') return loadLogs(S.logs.path.slice(0, -1));
+  if (el.id === 'btnCopyLog') {
+    var lb = document.querySelector('#shB .logbox');
+    if (lb) copyText(lb.textContent || '');
+    return;
+  }
+  if (el.id === 'btnDelLog') {
+    if (!confirm('确认删除这个日志文件？')) return;
+    api('/api/logs', { method: 'DELETE', body: { filename: el.dataset.file, path: el.dataset.path } })
+      .then(function () { toast('已删除'); closeSheet(); loadLogs(S.logs.path); })
+      .catch(function (e) { toast(e.message, true); });
+    return;
+  }
+
+  /* ---------- 脚本管理 ---------- */
+  /* 先判 data-sact：菜单项和行内「⋯」都同时带 data-scr，反了会误当成「打开文件」 */
+  if (el.dataset.sact) {
+    var sf = el.dataset.scr;
+    /* data-path 是「这个条目所在的文件夹」。顶栏「+」菜单里的项没有 data-path，
+       落到 scriptDir()（树形模式恒为空串 = 根目录）；文件夹的 ⋯ 菜单里则带着那个文件夹。
+       两种情况共用下面同一段逻辑。 */
+    var sd = el.dataset.path != null ? el.dataset.path : scriptDir();
+    var act = el.dataset.sact;
+
+    /* 「+」菜单：上传 / 新建脚本 / 新建文件夹 */
+    if (act === 'upload') {
+      closeSheet();
+      $('#scrAddMenu').classList.add('hidden');
+      S.scripts.upDir = sd;
+      var pick = $('#filePick');
+      /* 先清空：同一个文件连选两次时，值没变就不会触发 change */
+      if (pick) { pick.value = ''; pick.click(); }
+      return;
+    }
+    if (act === 'newfile') {
+      $('#scrAddMenu').classList.add('hidden');
+      return openScriptNew(false, sd);
+    }
+    if (act === 'newdir') {
+      $('#scrAddMenu').classList.add('hidden');
+      return openScriptNew(true, sd);
+    }
+
+    if (act === 'more') return openScriptMore(sd, sf, el.dataset.scrtype);
+    if (act === 'edit') {
+      var en = findScriptNode(sd, sf);
+      if (en) openScriptEditor(en, sd);
+      return;
+    }
+    closeSheet();
+    if (act === 'run') return runScript(sd, sf, false);
+    if (act === 'log') return openScriptLog(sd, sf);
+    if (act === 'download') return downloadScript(sd, sf);
+    if (act === 'rename') return openScriptRename(sd, sf);
+    if (act === 'delete') return delScript(sd, sf, el.dataset.scrtype);
+    return;
+  }
+  /* 文件夹右边的「⌄」：只在本机展开/收起 */
+  if (el.dataset.scrtog != null) return toggleScrDir(el.dataset.scrtog);
+  if (el.dataset.scr) {
+    var sdir = el.dataset.path || '';
+    /* 点文件夹整行也当展开/收起 —— 树形界面里这是最不容易点错的行为。
+       要在这个文件夹里新建/上传，走右边的「⋯」。 */
+    if (el.dataset.scrtype === 'directory') return toggleScrDir(scrKey(sdir, el.dataset.scr));
+    var sn = findScriptNode(sdir, el.dataset.scr);
+    if (sn) openScriptEditor(sn, sdir);
+    return;
+  }
+  if (el.id === 'btnNewScriptOk') return createScript(el.dataset.dir === '1', el.dataset.path);
+  if (el.id === 'btnSaveScript') return saveScript(el.dataset.path, el.dataset.file);
+  if (el.id === 'btnRunScript') return runScript(el.dataset.path, el.dataset.file, true);
+  if (el.id === 'btnRenameScript') return openScriptRename(el.dataset.path, el.dataset.file);
+  if (el.id === 'btnDelScript') return delScript(el.dataset.path, el.dataset.file, 'file');
+  if (el.id === 'btnRenameOk') return renameScript(el.dataset.path, el.dataset.file);
+
+  /* ---------- 依赖管理 ---------- */
+  if (el.dataset.depact) {
+    var dact = el.dataset.depact;
+    if (dact === 'log') return openDepLog(el.dataset.id);
+    if (dact === 'more') return openDepMore(el.dataset.id);
+    if (dact === 'edit') { closeSheet(); return openDepEdit(el.dataset.id); }
+    return depAction(el.dataset.id, dact);
+  }
+  if (el.id === 'btnSaveDep') return saveDep(el.dataset.id || null);
+  if (el.id === 'btnDepLogReload') return openDepLog(el.dataset.id);
+
+  /* ---------- 订阅管理 ---------- */
+  if (el.dataset.subact) {
+    var suact = el.dataset.subact;
+    var sx = S.subs.list.filter(function (y) { return y.id === Number(el.dataset.id); })[0];
+    if (suact === 'log') return openSubLog(el.dataset.id);
+    if (suact === 'more') return openSubMore(el.dataset.id);
+    if (suact === 'edit') { closeSheet(); return openSubEdit(el.dataset.id); }
+    if (suact === 'copyurl') { closeSheet(); copyText(sx ? sx.url || '' : ''); return; }
+    if (suact === 'delete') {
+      if (!confirm('确认删除这个订阅？已经拉取到脚本目录的文件会保留。')) return;
+      return subAction(el.dataset.id, 'delete');
+    }
+    if (suact === 'forcedel') {
+      if (!confirm('删除订阅，并把已经拉取到脚本目录的文件一起删掉？此操作不可恢复。')) return;
+      return subAction(el.dataset.id, 'forcedel');
+    }
+    return subAction(el.dataset.id, suact);
+  }
+  if (el.id === 'btnSaveSub') return saveSub(el.dataset.id || null);
+  if (el.id === 'btnSubLogReload') return loadSubLog(el.dataset.id);
+
+  /* ---------- 配置文件 ---------- */
+  if (el.dataset.cfg) return openConfigFile(el.dataset.cfg);
+  if (el.dataset.cfgsample) {
+    var cni = $('#cfgNewName');
+    if (cni) cni.value = el.dataset.cfgsample;
+    return;
+  }
+  if (el.id === 'btnSaveCfg') return saveConfig(el.dataset.name);
+  if (el.id === 'btnNewCfgOk') return createConfig();
+
+  /* 「所有功能」网格里的跳转卡片（依赖 / 配置 / 日志没有底栏 tab，从这里进） */
+  if (el.dataset.goto) return setTab(el.dataset.goto);
+  /* 网格里那两张「不是 tab」的卡片：走弹层 */
+  if (el.id === 'btnAcct') return openAccount();
+  if (el.id === 'btnSettings') return openSettings();
+
+  /* 我的 */
+  if (el.id === 'btnSaveServer') {
+    var v2 = $('#meServer').value.trim();
+    if (!v2) return toast('地址不能为空', true);
+    if (v2 === S.server) return toast('地址没有变化');
+    S.server = v2;
+    sset(K.server, v2);
+    syncTarget();          // 地址变了，原生代理也要跟着改，否则转发到旧地址
+    signOut(true);
+    toast('地址已更新，请重新登录');
+    return;
+  }
+  if (el.id === 'btnLogout') {
+    if (!confirm('确认退出登录？')) return;
+    signOut(false);
+    return;
+  }
+  /* 登录页上的诊断入口。必须放在这里 —— 登录失败时用户进不去「我的」，
+     把诊断只挂在「我的」页等于没有。 */
+  if (el.id === 'btnDiagLogin' || el.id === 'btnDiag') {
+    openSheet('连接诊断', '<div class="f13 t2" style="padding:6px 4px 12px">正在测试，大概几秒钟…</div>');
+    diagnose().then(function (html) { openSheet('连接诊断', html); });
+    return;
+  }
+}
+
+/* ================= 连接诊断 ================= */
+
+/* 原生自检的返回值登记表。原生侧是异步的，做完通过 window.__qlProbe 回调回来。 */
+var _probes = {};
+window.__qlProbe = function (id, res) {
+  var p = _probes[id];
+  if (!p) return;
+  delete _probes[id];
+  clearTimeout(p.timer);
+  p.resolve(res);
+};
+
+/* 让 App 的原生壳用系统 HTTP 栈去请求一次，完全绕开 WebView。
+   这是整个诊断里最有价值的一步：它能把「手机的网络不通」和
+   「页面里的请求被拦」彻底分开 —— 前者改代码没用，后者才有救。 */
+function nativeProbe(url) {
+  return new Promise(function (resolve) {
+    if (!window.QLNative || typeof window.QLNative.probe !== 'function') {
+      resolve(null);
+      return;
+    }
+    var id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    _probes[id] = {
+      resolve: resolve,
+      timer: setTimeout(function () {
+        delete _probes[id];
+        resolve({ ok: false, step: -1, err: '原生自检 15 秒没返回', ms: 15000 });
+      }, 15000)
+    };
+    try {
+      window.QLNative.probe(url, id);
+    } catch (e) {
+      clearTimeout(_probes[id].timer);
+      delete _probes[id];
+      resolve({ ok: false, step: -1, err: '调用原生失败：' + (e && e.message), ms: 0 });
+    }
+  });
+}
+
+async function diagnose() {
+  var L = [];
+  var viaProxy = apiBase() !== base();
+  L.push('运行环境    ' + (!window.__QL_NATIVE__ ? '浏览器'
+    : (window.__QL_NATIVE__ === 'ios' ? 'iOS App' : '安卓 App')));
+  L.push('面板地址    ' + base());
+  L.push('请求发往    ' + apiBase() + (viaProxy ? '   （App 内置代理，同源转发）' : '   （直连）'));
+  L.push('页面地址    ' + location.href);
+  L.push('页面协议    ' + location.protocol);
+  L.push('安全上下文  ' + (window.isSecureContext ? '是' : '否'));
+  L.push('本机打开    ' + (isLocalPage() ? '是' : '否'));
+  L.push('User-Agent  ' + navigator.userAgent);
+  try {
+    sset('__t', '1');
+    var roundTrip = sget('__t') === '1';
+    sdel('__t');
+    L.push('本地存储    ' + (roundTrip ? '可读写' : '写进去了读不回来（登录状态存不住）')
+      + '，后端 ' + (NS ? 'App 私有存储' : 'localStorage'));
+  } catch (e) {
+    L.push('本地存储    不可用（令牌存不下，登录会一直失败）');
+  }
+  L.push('记住密码    ' + (rememberOn() ? '已开启' : '未开启')
+    + (sget(K.pass) ? '，凭据已保存' : ''));
+  L.push('原生桥      ' + (window.QLNative ? '已接上' : '没有'));
+
+  /* ── 第一段：原生自检，绕开 WebView ── */
+  L.push('');
+  L.push('══ 原生自检（绕开 WebView，走系统 HTTP 栈）══');
+  var np = await nativeProbe(base() + '/api/system');
+  var nativeVerdict = null;   // true=网络通 false=网络不通 null=测不了
+  if (!np) {
+    L.push('不可用 —— 当前不是原生 App。');
+  } else if (np.ok) {
+    nativeVerdict = true;
+    L.push('DNS   OK    ' + (np.ip || '') + ':' + np.port);
+    L.push('TCP   OK    已连上');
+    L.push('HTTP  OK    ' + np.status + '     ' + np.ms + 'ms');
+    L.push('响应        ' + String(np.body || '').slice(0, 120).replace(/\s+/g, ' '));
+  } else {
+    nativeVerdict = false;
+    L.push('第 ' + (np.step + 1) + ' 步失败    用了 ' + np.ms + 'ms');
+    L.push('目标        ' + (np.ip || np.host || '?') + ':' + np.port);
+    L.push('原因        ' + np.err);
+  }
+
+  /* ── 第二段：页面实际走的请求 ── */
+  L.push('');
+  L.push('══ 页面请求 GET /api/system ══');
+  var t0 = Date.now();
+  try {
+    var res = await fetch(apiBase() + '/api/system', {
+      cache: 'no-store', headers: { Accept: 'application/json' }
+    });
+    var txt = await res.text();
+    L.push('HTTP ' + res.status + '    ' + (Date.now() - t0) + 'ms');
+    L.push('响应 ' + txt.slice(0, 150).replace(/\s+/g, ' '));
+    var j = null;
+    try { j = JSON.parse(txt); } catch (e) {}
+    L.push('');
+    if (j && j.code === 200 && j.data) {
+      L.push('结论：面板可达，地址和网络都没问题。');
+      L.push('      面板版本 ' + (j.data.version || '?') + '，登录失败的话是账号密码的问题。');
+    } else if (j && j.code === 502) {
+      L.push('结论：App 内置代理转发失败，原因就是上面那句。');
+      L.push('      这不是跨域或页面的问题 —— 是这台手机到面板这一段不通。');
+    } else {
+      L.push('结论：连上了，但返回的不是青龙的响应。');
+      L.push('      地址可能指向了别的服务，检查端口号有没有写错。');
+    }
+    return diagHtml(L);
+  } catch (e) {
+    L.push('失败：' + (e && e.name ? e.name + ' · ' : '') + (e && e.message ? e.message : '网络错误'));
+  }
+
+  /* ── 第三段：结论 ── */
+  L.push('');
+  L.push('══ 结论 ══');
+  if (nativeVerdict === false) {
+    L.push('跟 App、跟页面都没关系 —— 这台手机的网络连不上面板。');
+    L.push('也就是说：换成浏览器、换成电脑，只要在这台手机/这个网络下，一样连不上。');
+    L.push('');
+    L.push('按失败的那一步去查：');
+    if (np.step === 0) L.push('· 地址格式不对，确认写成 http://IP:端口');
+    if (np.step === 1) L.push('· 域名解析不了，换成 IP 地址试试');
+    if (np.step === 2) L.push('· 端口 ' + np.port + ' 不通。三种可能：面板进程没在跑；');
+    if (np.step === 2) L.push('  云服务器安全组没放行这个端口；当前网络（比如公司/校园网）封了它。');
+    if (np.step === 3) L.push('· TCP 通了但 HTTP 没回应。确认这个端口上跑的确实是青龙，');
+    if (np.step === 3) L.push('  以及没被中间的设备拦下来。');
+    L.push('');
+    L.push('最快的验证：用手机浏览器直接打开 ' + base() + ' ，打不开就证实了。');
+  } else if (nativeVerdict === true) {
+    L.push('手机的网络到面板是通的（原生自检拿到了正常响应），');
+    L.push('但页面这一侧的请求失败了。');
+    L.push('');
+    L.push('· 如果「请求发往」写的是 App 内置代理，那说明代理转发环节出了问题，');
+    L.push('  把这份报告发我。');
+    L.push('· 可以先去「我的」页把面板地址重新填一次再试，排除地址里混进了空格。');
+  } else {
+    L.push('请求没能发出去、或没能回来。');
+    L.push('');
+    if (window.__QL_NATIVE__) {
+      L.push('· 在原生 App 里，壳已放开跨域，理论上没有同源限制。');
+      L.push('  既然还是连不上，多半是当前网络到面板不通。');
+    } else if (location.protocol === 'file:') {
+      L.push('· 页面是双击文件用 file:// 打开的。浏览器禁止这种页面发网络请求。');
+      L.push('  要改成 http 地址访问：部署到面板上，或本机起个服务。');
+    } else if (location.protocol === 'https:' && base().indexOf('http://') === 0) {
+      L.push('· 混合内容：https 页面不能请求 http 地址，浏览器会直接拦掉。');
+      L.push('  要么把页面也放 http 上，要么给面板配 HTTPS，要么加一层 https 中转。');
+    } else if (isLocalPage()) {
+      L.push('· 页面在本机、面板在公网，属于跨域请求，可能被浏览器或本机代理拦截。');
+      L.push('  最稳的做法：把页面部署到面板上，用同源地址访问。');
+    } else {
+      L.push('· 地址写错了（确认带 http:// 前缀和端口号）。');
+      L.push('· 当前网络到面板不通（换手机流量试试，确认防火墙放行了该端口）。');
+      L.push('· 面板进程没在运行。');
+    }
+  }
+  L.push('');
+  L.push('完整地址 ' + base() + '/api/system');
+  return diagHtml(L);
+}
+
+function diagHtml(L) {
+  return '<div class="card" style="padding:14px">' +
+    '<pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:12px;' +
+    'line-height:1.75;font-family:ui-monospace,Menlo,Consolas,monospace">' +
+    esc(L.join('\n')) + '</pre></div>' +
+    '<div class="f11 t3" style="margin:12px 4px">把这段内容发给我就能直接定位问题。</div>';
+}
+
+/* ================= 启动 ================= */
+async function boot() {
+  bind();
+  syncTarget();          // 先把面板地址交给原生代理，之后所有 /api 请求才转得出去
+  applyTheme();          // 外观：先把 data-theme 挂上去，避免首屏按系统色闪一下才跟上
+  await detectServer();
+
+  if (!S.token) {
+    /* 没有令牌：第一次用、令牌过期、或存储被清过。
+       存了账号密码就直接自动登一次 —— 用户不该为「App 重开了」这件事买单。
+       失败就静默退回登录页（凭据已填好，点一下就行）。 */
+    showLogin();
+    if (shouldAutoLogin()) {
+      autoRetried = true;
+      if (await doLogin(true)) return;
+    }
+    return;
+  }
+
+  showApp();
+  try {
+    var sys = await api('/api/system');
+    S.sys = sys.data || null;
+  } catch (e) { /* 忽略 */ }
+  setTab(S.tab, true);
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+
+})();
+</script>
+</body>
+</html>

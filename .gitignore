@@ -1,0 +1,12 @@
+# Xcode 生成的工程（由 project.yml 经 XcodeGen 生成，不入库）
+QingLongClient.xcodeproj/
+*.xcworkspace/
+
+# 构建产物
+build/
+DerivedData/
+*.ipa
+Payload/
+
+# 本机
+.DS_Store

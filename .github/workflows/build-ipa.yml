@@ -1,0 +1,100 @@
+name: Build TrollStore IPA
+
+# 手动触发（推荐），或在改动源码后自动触发
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "QingLongClient/**"
+      - "project.yml"
+      - ".github/workflows/build-ipa.yml"
+
+jobs:
+  build:
+    name: Archive and package IPA
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 防呆：页面是作为资源**提交进仓库**的（tools/prepare_web.py 拷进来）。
+      # 改了 PWA 忘了重拷就 push，编出来的包里装的是旧页面 —— 那种 bug 在手机上
+      # 只会表现为「功能还是老的」，根本想不到是打包的问题。
+      - name: Sanity check bundled page
+        run: |
+          set -euo pipefail
+          F="QingLongClient/Resources/index.html"
+          test -f "$F" || { echo "::error::$F 不存在，先跑 python tools/prepare_web.py"; exit 1; }
+          SZ=$(wc -c < "$F" | tr -d ' ')
+          echo "index.html $SZ 字节"
+          test "$SZ" -gt 100000 || { echo "::error::index.html 只有 $SZ 字节，像是没拷全"; exit 1; }
+          VER=$(grep -o "var APP_VER = '[^']*'" "$F" | head -1 | sed "s/.*'\(.*\)'/\1/")
+          PV=$(grep -o 'MARKETING_VERSION: "[^"]*"' project.yml | sed 's/.*"\(.*\)"/\1/')
+          echo "页面版本 $VER / 工程版本 $PV"
+          test "$VER" = "$PV" || { echo "::error::版本对不上（页面 $VER / 工程 $PV）"; exit 1; }
+
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen || brew upgrade xcodegen || true
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      # 不做开发者签名：TrollStore 走的是 CoreTrust 绕过，不需要 Apple 的证书。
+      # 但包**必须有签名结构**（完全没签名的 ipa 巨魔会拒），所以出包后补一个 ad-hoc。
+      - name: Archive without signing
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project QingLongClient.xcodeproj \
+            -scheme QingLongClient \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/QingLongClient.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS=""
+
+      - name: Package into .ipa
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/QingLongClient.xcarchive/Products/Applications/QingLongClient.app"
+          test -d "$APP" || { echo "::error::没找到 .app，archive 失败了"; exit 1; }
+          rm -rf Payload QingLongClient-1.0.9-trollstore.ipa
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+
+          # ad-hoc 签名（identity "-"）：给包一个合法的签名结构。
+          # 没有这一步，完全裸奔的 ipa 在巨魔里会报签名无效。
+          codesign --force --sign - --timestamp=none --generate-entitlement-der \
+            Payload/QingLongClient.app || true
+
+          zip -qry QingLongClient-1.0.9-trollstore.ipa Payload
+
+      - name: Verify IPA
+        run: |
+          set -euo pipefail
+          ls -lh QingLongClient-1.0.9-trollstore.ipa
+          unzip -l QingLongClient-1.0.9-trollstore.ipa | grep -E "Payload/|index.html|QLBootstrap.js" | head -10
+          # 包里的页面和桥脚本必须在，少一个就是「装上了但空白 / 点了没反应」
+          unzip -p QingLongClient-1.0.9-trollstore.ipa \
+            "Payload/QingLongClient.app/index.html" | wc -c
+          unzip -l QingLongClient-1.0.9-trollstore.ipa | grep -c "QLBootstrap.js" \
+            || { echo "::error::包里没有 QLBootstrap.js"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+            Payload/QingLongClient.app/Info.plist
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingLongClient-1.0.9-trollstore
+          path: QingLongClient-1.0.9-trollstore.ipa
+          if-no-files-found: error
+          retention-days: 30

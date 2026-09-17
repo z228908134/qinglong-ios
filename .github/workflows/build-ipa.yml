@@ -23,6 +23,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 版本号**只从 project.yml 取一处**，后面拼文件名/artifact 名全用它。
+      # 以前这里是写死的 "1.0.9"：升到 1.0.10 后包内 Info.plist 是 1.0.10，
+      # 但文件名和 artifact 名还是 1.0.9 —— 下下来根本分不清新旧。
+      - name: Resolve version
+        id: ver
+        run: |
+          set -euo pipefail
+          V=$(grep -o 'MARKETING_VERSION: "[^"]*"' project.yml | sed 's/.*"\(.*\)"/\1/')
+          test -n "$V" || { echo "::error::project.yml 里没找到 MARKETING_VERSION"; exit 1; }
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "版本：$V"
+
       # 防呆：页面是作为资源**提交进仓库**的（tools/prepare_web.py 拷进来）。
       # 改了 PWA 忘了重拷就 push，编出来的包里装的是旧页面 —— 那种 bug 在手机上
       # 只会表现为「功能还是老的」，根本想不到是打包的问题。
@@ -84,11 +96,14 @@ jobs:
             CODE_SIGN_ENTITLEMENTS=""
 
       - name: Package into .ipa
+        env:
+          VER: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
           APP="$RUNNER_TEMP/QingLongClient.xcarchive/Products/Applications/QingLongClient.app"
           test -d "$APP" || { echo "::error::没找到 .app，archive 失败了"; exit 1; }
-          rm -rf Payload QingLongClient-1.0.9-trollstore.ipa
+          IPA="QingLongClient-${VER}-trollstore.ipa"
+          rm -rf Payload "$IPA"
           mkdir -p Payload
           cp -R "$APP" Payload/
 
@@ -97,17 +112,24 @@ jobs:
           codesign --force --sign - --timestamp=none --generate-entitlement-der \
             Payload/QingLongClient.app || true
 
-          zip -qry QingLongClient-1.0.9-trollstore.ipa Payload
+          zip -qry "$IPA" Payload
+          # 出包前最后一道对账：包内 Info.plist 的版本必须等于文件名里的版本。
+          IN=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+                Payload/QingLongClient.app/Info.plist)
+          echo "文件名版本 $VER / 包内版本 $IN"
+          test "$IN" = "$VER" || { echo "::error::包内版本 $IN 与 project.yml 的 $VER 对不上"; exit 1; }
 
       - name: Verify IPA
+        env:
+          VER: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          ls -lh QingLongClient-1.0.9-trollstore.ipa
-          unzip -l QingLongClient-1.0.9-trollstore.ipa | grep -E "Payload/|index.html|QLBootstrap.js" | head -10
+          IPA="QingLongClient-${VER}-trollstore.ipa"
+          ls -lh "$IPA"
+          unzip -l "$IPA" | grep -E "Payload/|index.html|QLBootstrap.js" | head -10
           # 包里的页面和桥脚本必须在，少一个就是「装上了但空白 / 点了没反应」
-          unzip -p QingLongClient-1.0.9-trollstore.ipa \
-            "Payload/QingLongClient.app/index.html" | wc -c
-          unzip -l QingLongClient-1.0.9-trollstore.ipa | grep -c "QLBootstrap.js" \
+          unzip -p "$IPA" "Payload/QingLongClient.app/index.html" | wc -c
+          unzip -l "$IPA" | grep -c "QLBootstrap.js" \
             || { echo "::error::包里没有 QLBootstrap.js"; exit 1; }
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
             Payload/QingLongClient.app/Info.plist
@@ -115,7 +137,7 @@ jobs:
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: QingLongClient-1.0.9-trollstore
-          path: QingLongClient-1.0.9-trollstore.ipa
+          name: QingLongClient-${{ steps.ver.outputs.version }}-trollstore
+          path: QingLongClient-${{ steps.ver.outputs.version }}-trollstore.ipa
           if-no-files-found: error
           retention-days: 30

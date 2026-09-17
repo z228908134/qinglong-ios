@@ -1,6 +1,6 @@
 # 青龙管家 · QingLongClient（iOS）
 
-一个对接 **青龙面板 v2.21.x** 的 iOS 客户端：原生 `WKWebView` 壳 + 与安卓 1.0.9 完全相同的
+一个对接 **青龙面板 v2.21.x** 的 iOS 客户端：原生 `WKWebView` 壳 + 与安卓 1.0.10 完全相同的
 单文件页面（`qinglong-pwa/index.html`），**零第三方依赖**。
 面板地址**留空**，第一次打开自己填（不预填 IP，免得仓库公开后泄露面板地址）。
 
@@ -17,13 +17,31 @@
 | --- | --- |
 | 登录 | 面板地址 + 账号密码；支持两步验证（TOTP）自动识别；token 存钥匙串，冷启动免登录；被踢下线自动回登录页 |
 | 任务列表 | 分页加载、下拉刷新、服务端搜索（名称/命令/标签）；置顶标记、状态徽标、标签、上次执行时间 |
+| 任务筛选 | 工具条四档筛选：**全部 / 运行中 / 未使用 / 已禁用**（按后端 `status` 分档，见下） |
+| 任务批量 | 「编辑」进多选模式：全选、批量启用/禁用/删除（删除有二次确认），编辑时底栏自动让位 |
 | 任务操作 | 左滑运行/停止，右滑启用/禁用/删除，长按菜单置顶、复制命令、编辑 |
 | 任务详情 | 状态、定时规则、**下次执行时间本地推算**、上次执行/开始时间、PID、执行命令；运行/停止/启用/置顶按钮 |
 | 运行日志 | 自动拉取 `crons/{id}/log`，运行中每 3 秒自动刷新（可关），ANSI 颜色码清理，全屏查看 + 复制 + 分享 |
 | 任务编辑 | 新建/编辑任务，常用 cron 规则一键套用，保存前实时预览下次执行时间 |
 | 环境变量 | 列表 + 搜索；**变量值默认打码**、点眼睛临时查看；新建/编辑/删除/启用/禁用；复制值/名称 |
+| 脚本管理 | `GET /api/scripts` 脚本树浏览、搜索、查看内容、新建/编辑/删除 |
+| 订阅管理 | `GET /api/subscriptions` 订阅列表；新建/编辑/删除、手动运行、启用/禁用、查看日志 |
+| 依赖管理 | `GET /api/dependencies` 依赖列表；按类型（nodejs/python/linux）分组、安装/卸载、重新安装 |
+| 面板设置 | `GET /api/configs/files` 配置文件列表，`config.sh` 等文件的内容查看与保存 |
 | 日志文件 | 面板 `log` 目录树浏览（目录可逐级下钻）、文件内容查看、删除日志文件 |
 | 我的 | 账号信息、两步验证状态、面板版本/分支、修改服务器地址、退出登录 |
+| 多账号 | 登录历史（最多 8 条，按「用户名@面板地址」去重）；系统设置里一键切换，**不用重输密码**；显示最后登录时间，可删除单条 |
+| 系统设置 | 外观模式（跟随系统/浅色/深色）、**字号四档**（小/标准/大/超大）、多账号切换 |
+
+### iOS 壳特有的三件事
+
+这三个是「网页壳」跟系统对接的地方，页面本身感知不到：
+
+| 能力 | 怎么做的 |
+| --- | --- |
+| **左边缘右滑返回** | 页面是单视图 SPA、没用 `history` API，系统手势背后是空栈。改由页面通过 `QLNative.setBack(bool)` 声明「现在能不能返回」，原生用 `UIScreenEdgePanGestureRecognizer` 开关，回调 `window.__qlBack()` |
+| **状态栏自适应** | `WKWebView` 必须铺满**整个** `view`（不能顶在 `safeAreaLayoutGuide` 下面，否则页面 `env(safe-area-inset-top)` 恒为 0，顶部露出一条壳的底色）。页面再通过 `QLNative.setTheme()` 把深浅告知原生，控制状态栏文字颜色 |
+| **字号缩放** | 页面里所有字号写成 `calc(Npx * var(--fs))`，**不用 CSS `zoom`** —— `zoom` 会把 `env(safe-area-inset-*)` 一起放大 |
 
 ---
 
@@ -49,7 +67,7 @@ qinglong-ios/
     │   ├── QLNet.swift             # URLSession 发请求（含 multipart 组装）
     │   └── QLBridge.swift          # 消息桥：网络 / 本地存储 / 保存文件
     └── Resources/
-        ├── index.html              # qinglong-pwa 的构建产物（跟安卓 1.0.9 同一份）
+        ├── index.html              # qinglong-pwa 的构建产物（跟安卓 1.0.10 同一份）
         ├── Info.plist              # 含 ATS 明文放行配置
         └── Assets.xcassets/
 ```
@@ -61,8 +79,9 @@ qinglong-ios/
 ### 方式 0：没有 Mac（Windows 用户走这条）
 
 见 **[BUILD-IPA.md](BUILD-IPA.md)**：把代码推到 GitHub，用自带的
-`.github/workflows/build-ipa.yml` 在免费 macOS runner 上自动打出 `QingLongClient-unsigned.ipa`，
-再用 Sideloadly 装到手机。全程不需要 Mac。
+`.github/workflows/build-ipa.yml` 在免费 macOS runner 上自动打出
+`QingLongClient-<版本>-trollstore.ipa`（版本号从 `project.yml` 的 `MARKETING_VERSION` 自动取），
+直接丢进 **TrollStore** 安装。全程不需要 Mac。
 
 ### 方式 A：XcodeGen（推荐，最省事）
 
@@ -124,12 +143,24 @@ open QingLongClient.xcodeproj
 
 ```
 0 = 运行中 (running)
-1 = 空闲   (idle)
+1 = 未使用 (idle)      ← 青龙网页版叫「未使用」，老文档里写「空闲」
 2 = 已禁用 (disabled)
 3 = 排队中 (queued)
 ```
 
 另外任务上还有独立的 `isDisabled` 字段，代码里两个都判断了。
+
+任务页那四档筛选就是按这两个字段分档的（`cronBucket()`）：
+
+| 筛选项 | 命中条件 |
+| --- | --- |
+| 全部 | 不过滤 |
+| 运行中 | `isDisabled !== 1` 且 `status !== 2` 且 `status !== 1`（即 0 和 3） |
+| 未使用 | `status === 1` |
+| 已禁用 | `isDisabled === 1` 或 `status === 2` |
+
+注意 **3（排队中）归进「运行中」** —— 它也是「在用」的任务，单列一档没有意义。
+四档互斥且穷尽：任何一个任务必然落进其中一档，不会漏。
 
 ### 3. Joi 严格校验
 
@@ -166,8 +197,7 @@ open QingLongClient.xcodeproj
 
 - 运行实例列表 `/api/crons/{id}/instances`、单实例停止
 - 任务的历史日志文件列表 `/api/crons/{id}/logs`
-- 订阅管理、脚本管理、依赖管理、面板设置、定时视图（views）
-- 状态筛选（只做了关键词搜索）、任务批量多选
+- 定时视图（views）—— 面板的「定时」聚合页，本客户端用任务页的四档筛选替代
 
 App 图标已生成（`tools/make_icon.py`，纯标准库画的 1024×1024 闪电图标，改配色重跑即可）。
 

@@ -18,6 +18,10 @@
   --sep:rgba(60,60,67,.13); --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.2);
   --accent:#1D9E75; --green:#34c759; --orange:#ff9500; --red:#ff3b30; --blue:#007aff; --gray:#8e8e93;
   --r:14px; --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  /* 字号缩放系数。1 = 标准。JS 改这一个值，下面所有 calc(Npx*var(--fs)) 一起变。
+     之所以不用 CSS zoom：zoom 会把 env(safe-area-inset-*) 一起放大，
+     而那个值和 CSS zoom 的相互作用没法在本机验证，赌错了状态栏内边距会偏。 */
+  --fs:1;
 }
 [data-theme="dark"]{ --bg:#000000; --card:#1c1c1e; --text:#ffffff; --text2:#98989d; --text3:#636366;
     --sep:rgba(84,84,88,.5); --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36); }
@@ -25,7 +29,8 @@
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
 body{
   background:var(--bg);color:var(--text);
-  font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Helvetica Neue",Arial,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Helvetica Neue",Arial,sans-serif;
+  font-size:calc(15px*var(--fs));line-height:1.45;
   -webkit-font-smoothing:antialiased;overscroll-behavior:none;
 }
 button,input,select,textarea{font:inherit;color:inherit}
@@ -47,9 +52,9 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .t2{color:var(--text2)} .t3{color:var(--text3)}
-.f11{font-size:11px} .f12{font-size:12px} .f13{font-size:13px}
+.f11{font-size:calc(11px*var(--fs))} .f12{font-size:calc(12px*var(--fs))} .f13{font-size:calc(13px*var(--fs))}
 .b6{font-weight:600}
-.pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;font-size:calc(11px*var(--fs));font-weight:600;white-space:nowrap}
 .pill.green{color:#1a8a3f;background:rgba(52,199,89,.15)}
 .pill.blue{color:#0066cc;background:rgba(0,122,255,.14)}
 .pill.orange{color:#b26a00;background:rgba(255,149,0,.16)}
@@ -57,7 +62,7 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .pill.red{color:#c0392b;background:rgba(255,59,48,.14)}
 [data-theme="dark"] .pill.green{color:#5ee27f}[data-theme="dark"] .pill.blue{color:#6cb4ff}[data-theme="dark"] .pill.orange{color:#ffb340}[data-theme="dark"] .pill.red{color:#ff8078}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:11px;
-  background:var(--fill);font-weight:600;font-size:15px;transition:opacity .15s}
+  background:var(--fill);font-weight:600;font-size:calc(15px*var(--fs));transition:opacity .15s}
 .btn:active{opacity:.55}
 .btn.pri{background:var(--accent);color:#fff}
 .btn.danger{background:rgba(255,59,48,.13);color:#d92b20}
@@ -68,18 +73,18 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* ---------- 骨架 ---------- */
 #app{display:flex;flex-direction:column;height:100%}
 #topbar{padding:calc(var(--top) + 8px) 16px 8px;background:var(--bg);position:relative;z-index:5}
-#topbar .ttl{font-size:26px;font-weight:700;letter-spacing:-.4px}
-#topbar .sub{font-size:11px;color:var(--text2);margin-top:1px}
+#topbar .ttl{font-size:calc(26px*var(--fs));font-weight:700;letter-spacing:-.4px}
+#topbar .sub{font-size:calc(11px*var(--fs));color:var(--text2);margin-top:1px}
 #topbar .acts{display:flex;gap:14px;align-items:center}
 #topbar .ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:var(--fill);font-size:15px;line-height:1}
+  background:var(--fill);font-size:calc(15px*var(--fs));line-height:1}
 /* overflow-x:hidden 是保险：内容万一还是宽了，也不让整页左右晃（各文本框自带滚动）。 */
 #main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(96px + var(--bot))}
 .view{display:none} .view.on{display:block}
 #ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
-  font-size:12px;color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
+  font-size:calc(12px*var(--fs));color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
 .searchbar{margin-bottom:12px}
-.searchbar input{background:var(--fill);border-radius:10px;padding:9px 12px;font-size:15px}
+.searchbar input{background:var(--fill);border-radius:10px;padding:9px 12px;font-size:calc(15px*var(--fs))}
 #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
   padding:6px 0 calc(var(--bot));background:rgba(249,249,249,.92);
   backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
@@ -88,38 +93,38 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* 底栏 5 个入口（依赖 / 配置 / 日志从「我的」进，不占底栏）。
    min-width:0 + nowrap 留着做保险：以后再加入口也不至于把整条底栏撑破。 */
 #tabbar button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;
-  font-size:10px;line-height:1.15;color:var(--text3);padding:4px 0;white-space:nowrap}
+  font-size:calc(10px*var(--fs));line-height:1.15;color:var(--text3);padding:4px 0;white-space:nowrap}
 #tabbar button.on{color:var(--accent)}
-#tabbar .ti{font-size:19px;line-height:1}
+#tabbar .ti{font-size:calc(19px*var(--fs));line-height:1}
 /* 「我的」这一项用头像代替字形，选中时套一圈高亮环（照参考图）。
    选择器比 #tabbar .ti 多一个类，能稳定盖住上面的 font-size。 */
 #tabbar .ti.av{width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4ED8A8,#12A16F);
+  font-size:calc(10px*var(--fs));font-weight:700;color:#fff;background:linear-gradient(135deg,#4ED8A8,#12A16F);
   transition:box-shadow .18s}
 #tabbar button.on .ti.av{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 
 /* ---------- 分段控件（当单选组用） ---------- */
 .seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
-.seg button{flex:1;min-width:0;padding:7px 4px;border-radius:8px;font-size:12.5px;font-weight:600;
+.seg button{flex:1;min-width:0;padding:7px 4px;border-radius:8px;font-size:calc(12.5px*var(--fs));font-weight:600;
   color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 
 /* ---------- 文件路径面包屑 ---------- */
-.crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--text2);margin:0 4px 10px}
+.crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:calc(12px*var(--fs));color:var(--text2);margin:0 4px 10px}
 /* 目录名可能很长（比如订阅拉下来的 6dylan6_jdpro），不折行会把面包屑撑出屏幕 */
-.crumb button{color:var(--accent);font-weight:600;font-size:12px;max-width:100%;word-break:break-all;text-align:left}
+.crumb button{color:var(--accent);font-weight:600;font-size:calc(12px*var(--fs));max-width:100%;word-break:break-all;text-align:left}
 
 /* ---------- 「所有功能」页（照参考图） ---------- */
 /* 「切换账号」胶囊挂在顶栏、大标题上方，所以它不在 #main 里而是单独一个槽，
    由 setTab 控制显隐（其它 tab 要藏起来）。 */
 #acctBar{margin-bottom:12px}
 .acct{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:5px 13px 5px 5px;
-  border-radius:999px;background:var(--fill);font-size:13px;font-weight:600;color:var(--text)}
+  border-radius:999px;background:var(--fill);font-size:calc(13px*var(--fs));font-weight:600;color:var(--text)}
 .acct .av{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:11px;font-weight:700;color:#fff;
+  justify-content:center;font-size:calc(11px*var(--fs));font-weight:700;color:#fff;
   background:linear-gradient(135deg,#4ED8A8,#12A16F)}
 .acct .un{max-width:92px}
-.acct .sw{flex:none;font-size:11px;font-weight:500;color:var(--text2)}
+.acct .sw{flex:none;font-size:calc(11px*var(--fs));font-weight:500;color:var(--text2)}
 
 /* ---------- 顶栏下拉菜单（脚本页的「+」，照参考图） ---------- */
 /* 挂成 #topbar 的绝对定位子元素：#topbar 自己就是 position:relative;z-index:5，
@@ -129,18 +134,18 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   background:var(--card);border-radius:14px;padding:6px;
   box-shadow:0 14px 34px -10px rgba(0,0,0,.3),0 0 0 .5px rgba(0,0,0,.06);z-index:20}
 .dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;
-  border-radius:10px;font-size:14.5px;font-weight:500;color:var(--text);text-align:left}
+  border-radius:10px;font-size:calc(14.5px*var(--fs));font-weight:500;color:var(--text);text-align:left}
 .dropdown button:active{background:var(--fill)}
 .dropdown .di{flex:none;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;
-  justify-content:center;font-size:14px;line-height:1;background:var(--fill);color:var(--accent)}
-#topbar .ico.pri{background:var(--accent);color:#fff;font-size:20px;font-weight:400}
+  justify-content:center;font-size:calc(14px*var(--fs));line-height:1;background:var(--fill);color:var(--accent)}
+#topbar .ico.pri{background:var(--accent);color:#fff;font-size:calc(20px*var(--fs));font-weight:400}
 
 /* 带图标的搜索框（照参考图：放大镜 + 圆角）。图标绝对定位、不占流，
    所以 input 用 padding-left 给它让位。 */
 .searchbar.wi{position:relative}
 .searchbar.wi .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);
-  font-size:15px;line-height:1;color:var(--text3);pointer-events:none}
-.searchbar.wi input{padding-left:34px;font-size:14px;border-radius:12px}
+  font-size:calc(15px*var(--fs));line-height:1;color:var(--text3);pointer-events:none}
+.searchbar.wi input{padding-left:34px;font-size:calc(14px*var(--fs));border-radius:12px}
 
 /* ---------- 脚本树（照参考图：文件夹可展开收起，不再逐层下钻） ---------- */
 /* 缩进用 padding-left 而不是 margin：卡片背景才跟着一起缩，不会被推窄。
@@ -149,15 +154,15 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
    根级条目（--d:0）会变成 0 内边距，图标直接贴着卡片左边缘。 */
 .stree .ind{padding-left:calc(14px + var(--d,0) * 15px)}
 .stree .tw{flex:none;width:20px;height:20px;display:flex;align-items:center;justify-content:center;
-  font-size:12px;line-height:1;color:var(--text3);transition:transform .15s}
+  font-size:calc(12px*var(--fs));line-height:1;color:var(--text3);transition:transform .15s}
 .stree .tw.on{transform:rotate(180deg)}
-.stree .fi2{flex:none;width:20px;text-align:center;font-size:15px;line-height:1}
+.stree .fi2{flex:none;width:20px;text-align:center;font-size:calc(15px*var(--fs));line-height:1}
 
 /* ---------- 环境变量标签 ---------- */
 /* 颜色按标签名算出来（同一个标签到哪都是同一个色），所以这里只定形状，
    具体的背景/前景色由行内 style 给。 */
 .tag{display:inline-flex;align-items:center;max-width:100%;padding:2px 8px;border-radius:7px;
-  font-size:11px;font-weight:600;line-height:1.55;white-space:nowrap;overflow:hidden;
+  font-size:calc(11px*var(--fs));font-weight:600;line-height:1.55;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;word-break:break-all}
 /* 标签配色：按标签名算 hash 选一个固定色号（同名一定同色 —— 否则同屏出现几个
    一样名字却是不同颜色的标签，看着像 bug）。用类而不是行内 style，才能跟着深色模式换。 */
@@ -171,31 +176,31 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .tag.tg7{background:rgba(120,120,128,.18);color:#5a5a63}
 [data-theme="dark"] .tag.tg0{background:rgba(0,122,255,.26);color:#7ab8ff}[data-theme="dark"] .tag.tg1{background:rgba(52,199,89,.24);color:#5ee27f}[data-theme="dark"] .tag.tg2{background:rgba(255,149,0,.24);color:#ffb340}[data-theme="dark"] .tag.tg3{background:rgba(175,82,222,.28);color:#c88cf0}[data-theme="dark"] .tag.tg4{background:rgba(255,59,48,.26);color:#ff8078}[data-theme="dark"] .tag.tg5{background:rgba(0,190,182,.26);color:#4fd8d2}[data-theme="dark"] .tag.tg6{background:rgba(90,110,255,.28);color:#93a0ff}[data-theme="dark"] .tag.tg7{background:rgba(120,120,128,.3);color:#b0b0b8}
 .tagbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.tagbar button{padding:4px 11px;border-radius:999px;background:var(--fill);font-size:12px;
+.tagbar button{padding:4px 11px;border-radius:999px;background:var(--fill);font-size:calc(12px*var(--fs));
   font-weight:600;color:var(--text2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tagbar button.on{background:var(--accent);color:#fff}
 
 /* ---------- 「我的」页的面板概览（照参考图） ---------- */
-.sec{margin:18px 4px 10px;font-size:13px;font-weight:600;color:var(--text2)}
+.sec{margin:18px 4px 10px;font-size:calc(13px*var(--fs));font-weight:600;color:var(--text2)}
 .ovcard{background:var(--card);border-radius:var(--r);padding:14px}
 .ovcard .dot{flex:none;width:8px;height:8px;border-radius:50%;background:#34c759}
-.ovcard .big{font-size:22px;font-weight:700;letter-spacing:-.3px;margin-top:9px;word-break:break-all}
-.ovcard .meta{font-size:11.5px;color:var(--text2);margin-top:5px;word-break:break-all}
+.ovcard .big{font-size:calc(22px*var(--fs));font-weight:700;letter-spacing:-.3px;margin-top:9px;word-break:break-all}
+.ovcard .meta{font-size:calc(11.5px*var(--fs));color:var(--text2);margin-top:5px;word-break:break-all}
 /* 「正在执行 N 个 / 排队 N 个」高亮：主色 + 数字加粗，跟面板运行时间那段区分开 */
-.ovcard .meta.live{margin-top:9px;font-size:13px;color:var(--text)}
-.ovcard .live-num{color:var(--accent);font-weight:700;font-size:15px;margin:0 2px}
+.ovcard .meta.live{margin-top:9px;font-size:calc(13px*var(--fs));color:var(--text)}
+.ovcard .live-num{color:var(--accent);font-weight:700;font-size:calc(15px*var(--fs));margin:0 2px}
 .ov2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ov2 .ovcard{padding:13px 13px 15px}
 .ov2 .ic{flex:none;width:30px;height:30px;border-radius:10px;display:flex;align-items:center;
-  justify-content:center;font-size:15px;line-height:1;color:#fff}
-.ov2 .pc{margin-left:auto;font-size:15px;font-weight:700}
-.ov2 .lb{font-size:11.5px;color:var(--text2);margin-top:10px;word-break:break-all}
+  justify-content:center;font-size:calc(15px*var(--fs));line-height:1;color:#fff}
+.ov2 .pc{margin-left:auto;font-size:calc(15px*var(--fs));font-weight:700}
+.ov2 .lb{font-size:calc(11.5px*var(--fs));color:var(--text2);margin-top:10px;word-break:break-all}
 /* 进度条：轨道 fill，填充用行内渐变 + 宽度 */
 .meter{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:7px}
 .meter i{display:block;height:100%;border-radius:3px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;text-align:center}
-.stats .n{font-size:20px;font-weight:700;line-height:1.2}
-.stats .l{font-size:11px;color:var(--text2);margin-top:3px}
+.stats .n{font-size:calc(20px*var(--fs));font-weight:700;line-height:1.2}
+.stats .l{font-size:calc(11px*var(--fs));color:var(--text2);margin-top:3px}
 
 /* 2 列卡片网格。 */
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -211,21 +216,21 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .fcard{position:relative;display:block;width:100%;min-height:120px;
   padding:14px 14px 50px;border-radius:18px;background:var(--card);text-align:left}
 /* 标题右侧留出 54px 给图标，再长的标题也不会钻到图标底下 */
-.fcard .ft{font-size:14.5px;font-weight:600;line-height:1.3;word-break:break-all;
+.fcard .ft{font-size:calc(14.5px*var(--fs));font-weight:600;line-height:1.3;word-break:break-all;
   max-width:calc(100% - 54px)}
 /* 图标：贴右边缘、垂直居中（「右中」） */
 .fcard .fi{position:absolute;right:13px;top:50%;transform:translateY(-50%);
   width:42px;height:42px;border-radius:14px;display:flex;align-items:center;
-  justify-content:center;font-size:19px;line-height:1;color:#fff}
+  justify-content:center;font-size:calc(19px*var(--fs));line-height:1;color:#fff}
 /* 圆形进入按钮：钉在左下角，用主色（照参考图那个箭头是绿的；灰色太淡几乎看不见） */
 .fcard .go{position:absolute;left:14px;bottom:14px;
   width:26px;height:26px;border-radius:50%;border:1.5px solid var(--accent);
-  display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;
+  display:flex;align-items:center;justify-content:center;font-size:calc(13px*var(--fs));line-height:1;
   color:var(--accent)}
 /* 窄屏（≤340px）卡片只剩约 138px，留给标题的宽度不够 4 个字 —— 缩字号 + 少给图标留位，
    否则「定时任务」会折成「定时任/务」，很难看。 */
 @media (max-width:340px){
-  .fcard .ft{font-size:13.5px;max-width:calc(100% - 46px)}
+  .fcard .ft{font-size:calc(13.5px*var(--fs));max-width:calc(100% - 46px)}
 }
 
 /* ---------- 文本编辑器 ---------- */
@@ -234,40 +239,42 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
    键盘弹起 / 地址栏变化时会把框顶出屏幕，dvh 跟随实际可视高度。不支持 dvh 时退回 vh。 */
 .editor{width:100%;max-width:100%;min-height:44vh;min-height:44dvh;background:var(--card);
   border-radius:var(--r);padding:12px 13px;
-  font-size:12.5px;line-height:1.65;resize:vertical;white-space:pre-wrap;
+  font-size:calc(12.5px*var(--fs));line-height:1.65;resize:vertical;white-space:pre-wrap;
   overflow-wrap:break-word;overflow-wrap:anywhere;overflow:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 
 /* ---------- 列表 ---------- */
 .list{display:flex;flex-direction:column;gap:10px}
 .item{background:var(--card);border-radius:var(--r);padding:13px 14px}
-.item .nm{font-size:15px;font-weight:600;word-break:break-all}
+.item .nm{font-size:calc(15px*var(--fs));font-weight:600;word-break:break-all}
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
-.tag{font-size:10px;padding:2px 7px;border-radius:6px;background:var(--fill);color:var(--text2);
+.tag{font-size:calc(10px*var(--fs));padding:2px 7px;border-radius:6px;background:var(--fill);color:var(--text2);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .empty{text-align:center;color:var(--text2);padding:56px 20px}
-.empty .ei{font-size:40px;opacity:.35;display:block;margin-bottom:12px}
-.secttl{font-size:12px;font-weight:600;color:var(--text2);margin:18px 4px 8px;text-transform:uppercase;letter-spacing:.4px}
-.kv{display:flex;gap:12px;padding:11px 14px;font-size:14px;align-items:flex-start}
+.empty .ei{font-size:calc(40px*var(--fs));opacity:.35;display:block;margin-bottom:12px}
+.secttl{font-size:calc(12px*var(--fs));font-weight:600;color:var(--text2);margin:18px 4px 8px;text-transform:uppercase;letter-spacing:.4px}
+.kv{display:flex;gap:12px;padding:11px 14px;font-size:calc(14px*var(--fs));align-items:flex-start}
 .kv .k{color:var(--text2);flex:0 0 72px}
 .kv .v{flex:1;text-align:right;word-break:break-all}
 .kv .v.left{text-align:left}
 /* 「外观模式 ›」这种带箭头的设置行。套在 .card 里，整条可点；
    跟 .kv 共享左右边距和字号。 */
 .kvrow{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;
-  font-size:14px;text-align:left}
+  font-size:calc(14px*var(--fs));text-align:left}
 .kvrow .k{color:var(--text2);flex:0 0 72px}
 .kvrow .v{flex:1;text-align:right;color:var(--accent);font-weight:500}
+/* 一张卡里放多行设置时要有分隔线（比如「外观」卡里的外观模式 + 字体大小） */
+.kvrow:not(:last-child){border-bottom:1px solid var(--sep)}
 /* 外观选择弹层里的三个选项（照参考图） */
 .theme-opt{display:flex;align-items:center;justify-content:space-between;width:100%;
-  padding:13px 16px;font-size:15px;border-radius:0}
+  padding:13px 16px;font-size:calc(15px*var(--fs));border-radius:0}
 .theme-opt:not(:last-child){border-bottom:1px solid var(--sep)}
 .theme-opt.on{color:var(--accent);font-weight:600}
-.theme-opt .ck{color:var(--accent);font-size:18px;line-height:1}
-.code{background:var(--fill);border-radius:10px;padding:11px 12px;font-size:12px;line-height:1.5;
+.theme-opt .ck{color:var(--accent);font-size:calc(18px*var(--fs));line-height:1}
+.code{background:var(--fill);border-radius:10px;padding:11px 12px;font-size:calc(12px*var(--fs));line-height:1.5;
   white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.logbox{background:#12161c;color:#d6e2ee;border-radius:11px;padding:11px 12px;font-size:11px;line-height:1.55;
+.logbox{background:#12161c;color:#d6e2ee;border-radius:11px;padding:11px 12px;font-size:calc(11px*var(--fs));line-height:1.55;
   white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;
   max-height:46vh;max-height:46dvh;overflow:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -277,7 +284,7 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .spin{width:16px;height:16px;border:2px solid var(--fill2);border-top-color:var(--accent);
   border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
-.center{display:flex;align-items:center;justify-content:center;gap:8px;padding:36px;color:var(--text2);font-size:13px}
+.center{display:flex;align-items:center;justify-content:center;gap:8px;padding:36px;color:var(--text2);font-size:calc(13px*var(--fs))}
 
 /* ---------- 弹层 ---------- */
 /* z-index 必须高于 #login(30)：登录失败时用户进不去主界面，诊断只能从登录页发起，
@@ -291,12 +298,12 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   transform:translateY(100%);transition:transform .26s cubic-bezier(.32,.72,0,1);overflow:hidden}
 #sheet.on .panel{transform:translateY(0)}
 #sheet .head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--sep)}
-#sheet .head .t{font-size:16px;font-weight:600;flex:1;min-width:0}
+#sheet .head .t{font-size:calc(16px*var(--fs));font-weight:600;flex:1;min-width:0}
 #sheet .body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px 16px calc(20px + var(--bot))}
-#sheet .x{font-size:15px;color:var(--accent);font-weight:600}
+#sheet .x{font-size:calc(15px*var(--fs));color:var(--accent);font-weight:600}
 #toast{position:fixed;left:0;right:0;top:calc(var(--top) + 10px);z-index:50;display:flex;
   justify-content:center;pointer-events:none}
-#toast .t{max-width:86%;padding:9px 15px;border-radius:12px;font-size:13px;font-weight:500;
+#toast .t{max-width:86%;padding:9px 15px;border-radius:12px;font-size:calc(13px*var(--fs));font-weight:500;
   background:rgba(28,28,30,.92);color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.22);
   transform:translateY(-24px);opacity:0;transition:transform .22s,opacity .22s}
 #toast.on .t{transform:translateY(0);opacity:1}
@@ -309,15 +316,15 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
   padding:calc(var(--top) + 8vh) 24px calc(var(--bot) + 24px)}
 #login .logo{width:76px;height:76px;border-radius:20px;margin:0 auto 16px;display:block}
-#login h1{font-size:21px;font-weight:700;text-align:center;margin:0 0 4px}
-#login .sub{text-align:center;color:var(--text2);font-size:13px;margin-bottom:26px}
+#login h1{font-size:calc(21px*var(--fs));font-weight:700;text-align:center;margin:0 0 4px}
+#login .sub{text-align:center;color:var(--text2);font-size:calc(13px*var(--fs));margin-bottom:26px}
 .field{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:10px}
-.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px}
-.field input{font-size:16px}
-.rem{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text2);
+.field label{display:block;font-size:calc(11px*var(--fs));color:var(--text2);margin-bottom:3px}
+.field input{font-size:calc(16px*var(--fs))}
+.rem{display:flex;align-items:center;gap:9px;font-size:calc(12.5px*var(--fs));color:var(--text2);
   margin:14px 4px 2px;line-height:1.5}
 .rem input{width:17px;height:17px;flex:none;margin:0;accent-color:var(--accent)}
-.warn{background:rgba(255,149,0,.12);border-radius:11px;padding:10px 12px;font-size:11.5px;
+.warn{background:rgba(255,149,0,.12);border-radius:11px;padding:10px 12px;font-size:calc(11.5px*var(--fs));
   line-height:1.55;color:#8a5a00;margin-top:16px}
 [data-theme="dark"] .warn{color:#ffc766}
 </style>
@@ -358,7 +365,9 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
       <div class="acts">
         <button class="ico hidden" id="btnBack" title="返回">‹</button>
         <button class="ico" id="btnRefresh" title="刷新">↻</button>
-        <!-- 脚本页的「+」（照参考图：主色实心圆）。其它 tab 藏起来。 -->
+        <!-- 顶栏「+」（照参考图：主色实心圆）。任务 / 环境变量 / 脚本 / 订阅 /
+             依赖 / 配置文件 这几页才出现，其余 tab 藏起来。
+             脚本页点开是下拉菜单，别的页直接进新建表单。 -->
         <button class="ico pri hidden" id="btnScrAdd" title="新建">+</button>
       </div>
     </div>
@@ -502,7 +511,7 @@ function fallbackCopy(text) {
 var K = {
   server: 'ql.server', user: 'ql.user', pass: 'ql.pass',
   token: 'ql.token', tab: 'ql.tab', remember: 'ql.remember', auto: 'ql.auto',
-  theme: 'ql.theme'
+  theme: 'ql.theme', fs: 'ql.fs'
 };
 /* 登录页「面板地址」的默认值。**留空** —— 不预填任何地址：
    这份页面会被打进安卓 / iOS 安装包，也会推到仓库里，写死一个 IP 等于把自己的
@@ -524,12 +533,68 @@ function applyTheme() {
   var html = document.documentElement;
   if (isDark) html.setAttribute('data-theme', 'dark');
   else html.removeAttribute('data-theme');
+  syncNativeTheme(isDark);
+}
+
+/* 把「页面现在是深色还是浅色」告诉原生壳，原生据此决定状态栏文字用白还是黑。
+   不通知的话：手机是深色、但用户在设置里把页面强制成浅色时，
+   状态栏还是白字，压在浅色页面上基本看不见。
+   原生不在（浏览器 / 没注入桥）就直接跳过，不影响页面。 */
+function syncNativeTheme(isDark) {
+  if (!window.QLNative || typeof window.QLNative.setTheme !== 'function') return;
+  try { window.QLNative.setTheme(isDark ? 'dark' : 'light'); } catch (e) { /* 桥挂了不该影响页面 */ }
 }
 
 /* 必须在 boot 里跑一次，否则首屏按系统颜色闪一下才跟上 */
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function () {
   if ((S.theme || 'auto') === 'auto') applyTheme();
 });
+
+/* ================= 字体大小 =================
+   四档，作用在 CSS 变量 --fs 上。页面里所有字号都写成了
+   `calc(Npx*var(--fs))`（由 tools/_apply_fs.py 机械改过），所以改这一个变量
+   整页字号一起变，不用逐个元素设。
+
+   为什么不直接用 CSS `zoom`：zoom 会把 env(safe-area-inset-*) 一起放大，
+   而这两者的相互作用我没法在本机验证（没有 Mac / 模拟器），赌错了状态栏内边距会偏。
+   calc 的行为是完全确定的，浏览器 / 安卓 WebView / iOS WKWebView 表现一致。
+
+   注意这里**只缩放字号**，不缩放图标和间距 —— 这是「字体大小」该有的语义
+   （和微信、系统设置的字体大小一样）。行高用的是行盒的自动高度，
+   字大了行自然变高，不会裁切。 */
+var FS = { s: 0.88, m: 1, l: 1.14, xl: 1.28 };
+
+function fsLabel(f) {
+  return f === 's' ? '小' : f === 'l' ? '大' : (f === 'xl' ? '特大' : '标准');
+}
+
+function applyFontScale() {
+  var v = FS[S.fs];
+  if (!v) v = 1;
+  document.documentElement.style.setProperty('--fs', String(v));
+}
+
+/* 字号选择弹层：跟「外观模式」一样的四个圆角条目 */
+function openFontScale() {
+  var h = '';
+  ['s', 'm', 'l', 'xl'].forEach(function (f) {
+    var on = (S.fs || 'm') === f;
+    h += '<button class="theme-opt' + (on ? ' on' : '') + '" data-fs-set="' + f + '">' +
+      '<span>' + esc(fsLabel(f)) + '</span>' +
+      (on ? '<span class="ck">✓</span>' : '') +
+      '</button>';
+  });
+  h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">' +
+    '只影响文字大小，图标和间距不变。</div>';
+  openSheet('字体大小', h);
+}
+
+function setFontScale(f) {
+  if (!FS[f]) return;
+  S.fs = f;
+  sset(K.fs, f);
+  applyFontScale();
+}
 
 /* ================= 本地存储 =================
    浏览器里直接用 localStorage。
@@ -639,6 +704,8 @@ var S = {
   tab: sget(K.tab) || 'crons',
   /* 'auto'（跟随系统）/ 'light'（浅色）/ 'dark'（深色）。默认 auto —— 不主动覆盖系统选择 */
   theme: sget(K.theme) || 'auto',
+  /* 's' / 'm'（标准，默认）/ 'l' / 'xl'。只缩放字号，见 applyFontScale() */
+  fs: sget(K.fs) || 'm',
   sys: null,
   need2fa: false,
   detailId: null,
@@ -1154,6 +1221,22 @@ var TITLES = {
   subs: '订阅管理', deps: '依赖管理', configs: '配置文件',
   logs: '日志文件', me: '所有功能'
 };
+
+/* 顶栏「+」出现在哪些页面。
+   脚本页比较特殊：它有「上传 / 新建脚本 / 新建文件夹」三个动作，所以走下拉菜单；
+   其余几页都只有「新建一条」这一个动作，点了直接进表单，不必多点一次。 */
+var ADD_TABS = { crons: 1, envs: 1, scripts: 1, subs: 1, deps: 1, configs: 1 };
+
+/* 「+」在非脚本页点下去要做的事。返回 false 表示这页没有新建动作。 */
+function openNewForTab(tab) {
+  if (tab === 'crons') return openCronEdit(null);
+  if (tab === 'envs') return openEnvEdit(null);
+  if (tab === 'subs') return openSubEdit(null);
+  if (tab === 'deps') return openDepEdit(null);
+  if (tab === 'configs') return openConfigNew();
+  return false;
+}
+
 function setTab(tab, force) {
   if (!TITLES[tab]) tab = 'crons';
   /* 头像和「切换账号」胶囊都依赖登录后的用户名，所以放在早退分支之前无条件同步。 */
@@ -1167,14 +1250,17 @@ function setTab(tab, force) {
   $('#ttl').textContent = TITLES[tab];
   /* 日志没有底栏入口（从「我的」进去的），给它一个返回按钮，不然只能靠底栏跳走 */
   $('#btnBack').classList.toggle('hidden', !!$('#tabbar button[data-tab="' + tab + '"]'));
-  /* 脚本页的「+」只在这一页出现；顺手把它的下拉菜单收起来，
-     否则从脚本页切走再切回来，菜单会莫名其妙地开着。 */
-  $('#btnScrAdd').classList.toggle('hidden', tab !== 'scripts');
+  /* 顶栏「+」：脚本页是下拉菜单（上传 / 新建脚本 / 新建文件夹），
+     任务 / 环境变量 / 订阅 / 依赖 / 配置文件 直接进新建表单。
+     顺手把下拉菜单收起来，否则从脚本页切走再切回来，菜单会莫名其妙地开着。 */
+  $('#btnScrAdd').classList.toggle('hidden', !ADD_TABS[tab]);
   $('#scrAddMenu').classList.add('hidden');
+  var addBtn = $('#btnScrAdd');
+  if (addBtn) addBtn.title = tab === 'scripts' ? '新建 / 上传' : '新建';
   $('#main').scrollTop = 0;
+  syncBack();
   refresh();
 }
-
 async function refresh() {
   if (S.tab === 'crons') return loadCrons(true);
   if (S.tab === 'envs') return loadEnvs();
@@ -1299,7 +1385,7 @@ function renderCronDetail(t) {
   var h = '';
 
   h += '<div class="card" style="padding:14px">';
-  h += '<div class="row"><div class="nm sp" style="font-size:17px">' + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>';
+  h += '<div class="row"><div class="nm sp" style="font-size:calc(17px*var(--fs))">' + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>';
   if ((t.labels || []).length) {
     h += '<div class="tags">' + t.labels.map(function (l) { return '<span class="tag">' + esc(l) + '</span>'; }).join('') + '</div>';
   }
@@ -1408,13 +1494,13 @@ function openCronEdit(id) {
      结果 flex-wrap 没了，预设按钮在窄屏上直接撑出屏幕。 */
   h += '<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">';
   PRESETS.forEach(function (p, i) {
-    h += '<button class="btn" data-preset="' + esc(p[1]) + '" style="padding:6px 10px;font-size:12px">' + esc(p[0]) + '</button>';
+    h += '<button class="btn" data-preset="' + esc(p[1]) + '" style="padding:6px 10px;font-size:calc(12px*var(--fs))">' + esc(p[0]) + '</button>';
   });
   h += '</div>';
   h += '<div class="f12 t2" id="eNext" style="margin:10px 4px"></div>';
 
   h += '<div class="secttl">执行命令</div>';
-  h += '<div class="card" style="padding:4px 14px"><textarea id="eCmd" rows="4" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(t ? t.command || '' : '') + '</textarea></div>';
+  h += '<div class="card" style="padding:4px 14px"><textarea id="eCmd" rows="4" class="mono" style="font-size:calc(13px*var(--fs));padding:9px 0;resize:vertical" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(t ? t.command || '' : '') + '</textarea></div>';
 
   h += '<div class="secttl">标签</div>';
   h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0"><input id="eLabels" placeholder="用英文逗号分隔" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(t ? (t.labels || []).join(',') : '') + '"></div></div>';
@@ -1530,7 +1616,7 @@ function envRow(v) {
   var on = v.status !== 1;
   var ls = envLabels(v);
   return '<div class="item" data-env="' + v.id + '">' +
-    '<div class="row"><div class="nm sp mono" style="font-size:14px">' + esc(v.name) + '</div>' +
+    '<div class="row"><div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + esc(v.name) + '</div>' +
       (v.isPinned ? '<span class="pill blue">置顶</span>' : '') +
       '<span class="pill ' + (on ? 'green' : 'gray') + '">' + (on ? '已启用' : '已禁用') + '</span></div>' +
     /* 标签行：flex-wrap 是必须的 —— 标签数量和长度都不可控，不换行会撑出屏幕。
@@ -1609,7 +1695,7 @@ function openEnvEdit(id) {
   var h = '';
   h += '<div class="card" style="padding:4px 14px">';
   h += '<div style="padding:9px 0"><input id="vName" class="mono" placeholder="变量名，如 JD_COOKIE" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(v ? v.name : '') + '"' + (v ? ' readonly style="opacity:.6"' : '') + '></div><div class="sep"></div>';
-  h += '<div style="padding:9px 0"><textarea id="vValue" rows="5" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" placeholder="变量值" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(v ? v.value || '' : '') + '</textarea></div><div class="sep"></div>';
+  h += '<div style="padding:9px 0"><textarea id="vValue" rows="5" class="mono" style="font-size:calc(13px*var(--fs));padding:9px 0;resize:vertical" placeholder="变量值" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(v ? v.value || '' : '') + '</textarea></div><div class="sep"></div>';
   h += '<div style="padding:9px 0"><input id="vRemarks" placeholder="备注（可选）" value="' + esc(v ? v.remarks || '' : '') + '"></div><div class="sep"></div>';
   /* 标签：用逗号分隔的纯文本输入。手机上没有好用的多选控件，
      而且标签是自由文本（后端只校验非空），输入框反而最省事。 */
@@ -1669,6 +1755,8 @@ function renderLogs() {
   $('#logCrumbs').innerHTML = '<button id="logUp" style="color:var(--accent);font-weight:600">' +
     (S.logs.path.length ? '← 返回上一级' : '') + '</button>' +
     '<span style="margin-left:8px">' + esc(crumbs) + '</span>';
+  /* 放在这里而不是函数末尾：下面两个分支都是提前 return 的 */
+  syncBack();
 
   var nodes = currentLogNodes();
   var box = $('#logList');
@@ -1687,8 +1775,8 @@ function renderLogs() {
     if (n.createTime) meta.push(fmtAbs(new Date(n.createTime)));
     if (isDir) meta.push((n.children || []).length + ' 项');
     return '<div class="item row" data-log="' + esc(n.key) + '" data-dir="' + (isDir ? '1' : '0') + '">' +
-      '<div style="font-size:16px;width:22px;text-align:center">' + (isDir ? '📁' : '📄') + '</div>' +
-      '<div class="sp"><div style="font-size:14px;font-weight:' + (isDir ? 600 : 400) + '" class="ell">' + esc(n.title) + '</div>' +
+      '<div style="font-size:calc(16px*var(--fs));width:22px;text-align:center">' + (isDir ? '📁' : '📄') + '</div>' +
+      '<div class="sp"><div style="font-size:calc(14px*var(--fs));font-weight:' + (isDir ? 600 : 400) + '" class="ell">' + esc(n.title) + '</div>' +
       '<div class="f11 t3">' + esc(meta.join(' · ')) + '</div></div>' +
       '<div class="t3">›</div></div>';
   }).join('');
@@ -1835,11 +1923,11 @@ function scrRow(r) {
     '<div class="fi2">' + (isDir ? '📁' : '📄') + '</div>' +
     '<button class="sp" style="text-align:left;min-width:0" data-scr="' + esc(n.title) +
       '" data-path="' + esc(r.dir) + '" data-scrtype="' + n.type + '">' +
-      '<div class="ell" style="font-size:14px;font-weight:' + (isDir ? 600 : 400) + '">' + esc(n.title) + '</div>' +
+      '<div class="ell" style="font-size:calc(14px*var(--fs));font-weight:' + (isDir ? 600 : 400) + '">' + esc(n.title) + '</div>' +
       (meta.length ? '<div class="f11 t3 ell">' + esc(meta.join(' · ')) + '</div>' : '') +
     '</button>' +
     (isDir ? '<button class="tw' + (open ? ' on' : '') + '" data-scrtog="' + esc(r.key) + '">⌄</button>' : '') +
-    '<button class="t3" style="padding:8px 2px 8px 8px;font-size:17px" data-sact="more" data-scr="' + esc(n.title) +
+    '<button class="t3" style="padding:8px 2px 8px 8px;font-size:calc(17px*var(--fs))" data-sact="more" data-scr="' + esc(n.title) +
       '" data-path="' + esc(r.dir) + '" data-scrtype="' + n.type + '">⋯</button>' +
   '</div>';
 }
@@ -2261,7 +2349,7 @@ function renderDeps() {
     var s = depStatus(x.status);
     var busy = depWorking(x.status);
     return '<div class="item">' +
-      '<div class="row"><div class="nm sp mono" style="font-size:14px">' + esc(x.name) + '</div>' + pill(s) + '</div>' +
+      '<div class="row"><div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + esc(x.name) + '</div>' + pill(s) + '</div>' +
       (x.remark ? '<div class="f11 t3" style="margin-top:5px">' + esc(x.remark) + '</div>' : '') +
       '<div class="f11 t3" style="margin-top:5px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' +
       '<div class="row" style="gap:8px;margin-top:10px">' +
@@ -2349,7 +2437,7 @@ function openDepEdit(id) {
     segHtml('depTypeSeg', DEP_TYPES.map(function (t) { return { v: String(t.num), t: t.label }; }), String(sel));
   h += '<div class="secttl">名称</div>';
   h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
-    '<textarea id="depName" rows="2" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" ' +
+    '<textarea id="depName" rows="2" class="mono" style="font-size:calc(13px*var(--fs));padding:9px 0;resize:vertical" ' +
     'placeholder="如 axios 或 requests==2.31.0" autocapitalize="off" autocorrect="off" spellcheck="false">' +
     esc(x ? x.name : '') + '</textarea></div></div>';
   if (!x) h += '<div class="f12 t3" style="margin:8px 4px">多个依赖可以一行写一个，会逐个提交安装。</div>';
@@ -2577,7 +2665,7 @@ function openSubEdit(id) {
 
   h += '<div class="secttl">基本信息</div><div class="card" style="padding:4px 14px">';
   h += '<div style="padding:9px 0"><input id="suName" placeholder="订阅名称" value="' + esc(x ? x.name || '' : '') + '"></div><div class="sep"></div>';
-  h += '<div style="padding:9px 0"><textarea id="suUrl" rows="2" class="mono" style="font-size:13px;padding:9px 0;resize:vertical" ' +
+  h += '<div style="padding:9px 0"><textarea id="suUrl" rows="2" class="mono" style="font-size:calc(13px*var(--fs));padding:9px 0;resize:vertical" ' +
        'placeholder="https://github.com/user/repo.git" autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(x ? x.url || '' : '') + '</textarea></div><div class="sep"></div>';
   h += '<div style="padding:9px 0"><input id="suAlias" class="mono f13" placeholder="自动生成" readonly style="opacity:.6" value="' + esc(x ? x.alias || '' : '') + '"></div>';
   h += '</div>';
@@ -2592,7 +2680,7 @@ function openSubEdit(id) {
 
   h += '<div class="suPriv"><div class="secttl">拉取方式</div>' + segHtml('suPullSeg', SUB_PULL, pull);
   h += '<div id="suPullKeyOnly"><div class="secttl">私钥</div><div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
-       '<textarea id="suKey" rows="4" class="mono" style="font-size:12px;padding:9px 0;resize:vertical" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" ' +
+       '<textarea id="suKey" rows="4" class="mono" style="font-size:calc(12px*var(--fs));padding:9px 0;resize:vertical" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" ' +
        'autocapitalize="off" autocorrect="off" spellcheck="false">' + esc(po.private_key || '') + '</textarea></div></div></div>';
   h += '<div id="suPullPwdOnly"><div class="secttl">凭据</div><div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
        '<input id="suUser" class="mono" placeholder="用户名" value="' + esc(po.username || '') + '" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="sep"></div>' +
@@ -2737,8 +2825,8 @@ function renderConfigs() {
   }
   box.innerHTML = c.list.map(function (f) {
     return '<div class="item row" data-cfg="' + esc(f.value) + '">' +
-      '<div style="font-size:16px;width:22px;text-align:center">📄</div>' +
-      '<div class="sp"><div style="font-size:14px" class="mono ell">' + esc(f.title) + '</div></div>' +
+      '<div style="font-size:calc(16px*var(--fs));width:22px;text-align:center">📄</div>' +
+      '<div class="sp"><div style="font-size:calc(14px*var(--fs))" class="mono ell">' + esc(f.title) + '</div></div>' +
       '<div class="t3">›</div></div>';
   }).join('');
 }
@@ -2843,7 +2931,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.9';
+var APP_VER = '1.0.10';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3123,17 +3211,22 @@ function openSettings() {
   h += kv('分支', (S.sys && S.sys.branch) || '未知');
   h += '</div>';
 
-  /* 外观：跟在系统里看到的「主题」类设置一样。点整条打开选项弹层。
-     当前值显示在右边（onAction），让人一眼看出现在是什么模式。 */
-  h += '<div class="secttl">外观</div>';
+  /* 外观 / 字体：跟在系统里看到的「显示」类设置一样。点整条打开选项弹层。
+     当前值显示在右边（onAction），让人一眼看出现在是什么档。 */
+  h += '<div class="secttl">显示</div>';
   h += '<div class="card" style="padding:0">' +
     '<button class="kvrow" id="btnTheme">' +
         '<span class="k">外观模式</span>' +
         '<span class="v">' + esc(themeLabel(S.theme)) + ' ›</span>' +
       '</button>' +
+    '<button class="kvrow" id="btnFs">' +
+        '<span class="k">字体大小</span>' +
+        '<span class="v">' + esc(fsLabel(S.fs)) + ' ›</span>' +
+      '</button>' +
     '</div>';
   h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">' +
-    '跟随系统 = 用手机当前的深浅色模式；浅色 / 深色 强制指定。</div>';
+    '外观模式：跟随系统 = 用手机当前的深浅色模式；浅色 / 深色 强制指定。<br>' +
+    '字体大小：只改文字大小，图标和间距不变。</div>';
 
   h += '<div class="secttl">排查</div>';
   h += '<button class="btn" id="btnDiag" style="width:100%">连接诊断</button>';
@@ -3185,12 +3278,52 @@ function openSheet(title, html) {
   sh.style.zIndex = '45';
   sh.classList.add('on');
   requestAnimationFrame(function () { sh.querySelector('.panel').style.transform = 'translateY(0)'; });
+  syncBack();
 }
 function closeSheet() {
   stopDetailPolling();
   S.detailId = null;
   $('#sheet').classList.remove('on');
+  syncBack();
 }
+
+/* ================= 返回上一级 =================
+   页面是单视图 SPA，**完全没用 history API**（底部 tab 切视图 + 弹层），
+   所以浏览器 / 系统的返回手势在这页上没有可用的历史栈。
+
+   安卓有实体返回键、iOS 有左边缘右滑，两边都得靠页面自己说清楚「现在能不能返回」。
+   这里维护一个统一的判断，原生壳通过 QLNative.setBack(bool) 拿到，
+   据此决定要不要让手势生效；手势触发时调 window.__qlBack() 回来执行。
+
+   层级（从外到内）：
+     1. 弹层开着（任务详情 / 各种编辑表单）→ 关弹层
+     2. 日志页下钻了目录 → 回上一级
+     3. 当前不是底栏页面（日志是从「我的」进去的）→ 回「我的」
+     4. 其余情况（就在底栏某页的顶层）→ 没什么可返回的，手势不生效 */
+function canGoBack() {
+  var sh = $('#sheet');
+  if (sh && sh.classList.contains('on')) return true;
+  if (S.tab === 'logs' && S.logs.path.length) return true;
+  if (!$('#tabbar button[data-tab="' + S.tab + '"]')) return true;
+  return false;
+}
+
+function goBack() {
+  var sh = $('#sheet');
+  if (sh && sh.classList.contains('on')) { closeSheet(); return true; }
+  if (S.tab === 'logs' && S.logs.path.length) { loadLogs(S.logs.path.slice(0, -1)); return true; }
+  if (!$('#tabbar button[data-tab="' + S.tab + '"]')) { setTab('me'); return true; }
+  return false;
+}
+
+/* 把「能否返回」告诉原生。原生不在（浏览器 / 没注入桥）就算了，不影响页面本身。 */
+function syncBack() {
+  if (!window.QLNative || typeof window.QLNative.setBack !== 'function') return;
+  try { window.QLNative.setBack(canGoBack()); } catch (e) { /* 桥挂了不该影响页面 */ }
+}
+
+/* 原生侧手势触发时调这个。返回 true 表示确实处理了。 */
+window.__qlBack = function () { return goBack(); };
 
 /* ================= 下拉刷新 ================= */
 var ptrStart = 0, ptrPull = 0;
@@ -3272,6 +3405,12 @@ function bind() {
      stopPropagation 是为了不让这次点击冒泡到下面的「点别处收菜单」监听里。 */
   $('#btnScrAdd').addEventListener('click', function (ev) {
     ev.stopPropagation();
+    /* 脚本页有三个动作（上传 / 新建脚本 / 新建文件夹），开合下拉菜单；
+       其余页面只有「新建一条」这一个动作，直接进表单，不用多点一次。 */
+    if (S.tab !== 'scripts') {
+      $('#scrAddMenu').classList.add('hidden');
+      return openNewForTab(S.tab);
+    }
     var m = $('#scrAddMenu');
     if (m) m.classList.toggle('hidden');
   });
@@ -3319,13 +3458,13 @@ function onClick(ev) {
      「先判 data-sact，再判 data-scr」，顺序反了会把菜单项当成打开文件。 */
   var el = ev.target.closest ? ev.target.closest(
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
-    '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-log],[data-preset],[data-path],' +
+    '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-fs-set],[data-log],[data-preset],[data-path],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnDelLog,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
     '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
     '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
-    '#btnAcct,#btnSettings,#btnTheme'
+    '#btnAcct,#btnSettings,#btnTheme,#btnFs'
   ) : null;
   if (!el) return;
 
@@ -3339,6 +3478,15 @@ function onClick(ev) {
   }
   /* 系统设置 → 点「外观模式」整条 */
   if (el.id === 'btnTheme') return openTheme();
+
+  /* 系统设置 → 字体大小：四档，同样点完重画弹层让 ✓ 跟过去 */
+  if (el.dataset.fsSet != null) {
+    setFontScale(el.dataset.fsSet);
+    openFontScale();
+    return;
+  }
+  /* 系统设置 → 点「字体大小」整条 */
+  if (el.id === 'btnFs') return openFontScale();
 
   /* 任务列表 */
   if (el.dataset.act) {
@@ -3747,7 +3895,7 @@ async function diagnose() {
 
 function diagHtml(L) {
   return '<div class="card" style="padding:14px">' +
-    '<pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:12px;' +
+    '<pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:calc(12px*var(--fs));' +
     'line-height:1.75;font-family:ui-monospace,Menlo,Consolas,monospace">' +
     esc(L.join('\n')) + '</pre></div>' +
     '<div class="f11 t3" style="margin:12px 4px">把这段内容发给我就能直接定位问题。</div>';
@@ -3758,6 +3906,7 @@ async function boot() {
   bind();
   syncTarget();          // 先把面板地址交给原生代理，之后所有 /api 请求才转得出去
   applyTheme();          // 外观：先把 data-theme 挂上去，避免首屏按系统色闪一下才跟上
+  applyFontScale();      // 字体大小：同理，先挂 --fs，免得首屏先按标准字号画一遍再跳
   await detectServer();
 
   if (!S.token) {

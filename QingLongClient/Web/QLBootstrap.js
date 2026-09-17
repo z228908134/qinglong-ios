@@ -32,6 +32,21 @@
     setTarget: function (v) {
       try { window.webkit.messageHandlers.qltarget.postMessage(String(v == null ? '' : v)); } catch (e) {}
     },
+    /* 「现在能不能返回上一页」。页面是单视图 SPA、**完全没用 history API**
+       （底部 tab 切视图 + 弹层），所以系统的返回手势没有历史栈可用 —— 只能由页面
+       自己算，再告诉原生。原生拿到后决定左边缘右滑手势的 isEnabled。
+       传的是**裸布尔**（不是对象），见 QLBridge.swift 里的分派。 */
+    setBack: function (on) {
+      try { window.webkit.messageHandlers.qlback.postMessage(!!on); } catch (e) {}
+    },
+    /* 页面当前是深色还是浅色，原生据此切状态栏文字颜色。
+       不通知的话：手机是深色、用户在设置里把页面强制成浅色时，
+       状态栏还是白字，压在浅色页面上基本看不见。 */
+    setTheme: function (v) {
+      try {
+        window.webkit.messageHandlers.qltheme.postMessage(v === 'dark' ? 'dark' : 'light');
+      } catch (e) {}
+    },
     saveFile: function (name, b64, id) {
       try {
         window.webkit.messageHandlers.qlsave.postMessage({

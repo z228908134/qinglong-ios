@@ -7,6 +7,8 @@ import UIKit
 //   qlstate  —— 登录凭据等本地存储
 //   qltarget —— 当前面板地址（诊断页会用）
 //   qlsave   —— 把下载的文件存下来
+//   qlback   —— 页面现在能不能返回上一页（控制左边缘右滑手势的开关）
+//   qltheme  —— 页面现在是深色还是浅色（控制状态栏文字颜色）
 
 final class QLBridge: NSObject, WKScriptMessageHandler {
 
@@ -15,6 +17,12 @@ final class QLBridge: NSObject, WKScriptMessageHandler {
 
     weak var webView: WKWebView?
     weak var presenter: UIViewController?
+
+    /* 页面两个「告知」型消息的落点。用闭包而不是直接持有 WebViewController：
+       桥不该知道控制器长什么样，而「切手势开关 / 切状态栏样式」本来就该由
+       控制器决定怎么落（页面只说事实，不说怎么做）。 */
+    var onBackEnabled: ((Bool) -> Void)?
+    var onPageDark: ((Bool) -> Void)?
 
     // 页面脚本里出现的字符串都要先过一遍转义，否则一个引号就能把整段脚本带崩
     static func jsString(_ s: String) -> String {
@@ -35,13 +43,21 @@ final class QLBridge: NSObject, WKScriptMessageHandler {
 
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
-        /* 注意：qlnet / qlsave 传的是字典，qlstate / qltarget 传的是**裸字符串**。
-           统一按字典取的话后两个会直接被 guard 挡掉，状态根本存不下来。 */
+        /* 注意：qlnet / qlsave 传的是字典，qlstate / qltarget / qltheme 传的是**裸字符串**，
+           qlback 传的是**裸布尔**。统一按字典取的话后几个会直接被 guard 挡掉，
+           状态根本存不下来 / 手势开关永远不动。 */
         switch message.name {
         case "qlstate":
             if let s = message.body as? String { UserDefaults.standard.set(s, forKey: QLBridge.stateKey) }
         case "qltarget":
             if let s = message.body as? String { UserDefaults.standard.set(s, forKey: QLBridge.targetKey) }
+        case "qlback":
+            /* JS 的 true/false 过桥后是 NSNumber，`as? Bool` 一般能拿到，
+               拿不到就走 NSNumber 兜底 —— 这个值丢了会表现为「右滑完全没反应」。 */
+            let on: Bool? = (message.body as? Bool) ?? (message.body as? NSNumber)?.boolValue
+            if let on = on { onBackEnabled?(on) }
+        case "qltheme":
+            if let s = message.body as? String { onPageDark?(s == "dark") }
         case "qlnet":
             guard let body = message.body as? [String: Any] else { return }
             handleNet(body)

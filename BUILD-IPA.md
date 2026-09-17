@@ -68,10 +68,12 @@ Swift 里取 bundle 资源是 `Bundle.main.url(forResource:withExtension:)`；
 
 ---
 
-## 这个包跟安卓 1.0.10 是什么关系
+## 这个包跟 PWA 是什么关系
 
-**同一个页面。** iOS 壳装的就是 `qinglong-pwa/index.html`（安卓 1.0.10 里也是这一份），
-所以脚本树、变量标签、面板概览、外观模式、上传下载全都一样，不存在「iOS 版功能少一半」。
+**同一个页面。** iOS 壳装的就是 `qinglong-pwa/index.html` 的构建产物
+（`tools/prepare_web.py` 拷进来，CI 会核对页面版本与工程版本一致），
+所以脚本树、变量标签、面板概览、外观模式、面板设置三页（应用设置 / 其他设置 / 登录日志）、
+上传下载全都一样，不存在「iOS 版功能少一半」。
 
 壳本身只有五个文件：
 

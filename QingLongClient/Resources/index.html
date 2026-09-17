@@ -300,6 +300,46 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .theme-opt:not(:last-child){border-bottom:1px solid var(--sep)}
 .theme-opt.on{color:var(--accent);font-weight:600}
 .theme-opt .ck{color:var(--accent);font-size:calc(18px*var(--fs));line-height:1}
+
+/* ---------- 字体大小（拖动调节） ---------- */
+/* 预览区。整页字号都挂在 --fs 上，所以这里**不用做任何特殊处理** ——
+   改 --fs 它自己就跟着变，真正所见即所得。 */
+.fsdemo{background:var(--card);border-radius:var(--r);padding:16px 16px 18px}
+.fsdemo .dt{font-size:calc(17px*var(--fs));font-weight:600;margin-bottom:7px}
+.fsdemo .ds{font-size:calc(13px*var(--fs));color:var(--text2);line-height:1.65}
+
+/* 滑杆那一行：小 A —— 滑杆 —— 大 A */
+.fsrow{display:flex;align-items:center;gap:14px}
+/* 两端的 A 同时是「点一下进一档」的按钮。左边小、右边大，方向一眼看出来。 */
+.fsa{flex:none;width:34px;height:34px;border-radius:10px;background:var(--fill);
+  display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;
+  color:var(--accent);transition:opacity .15s}
+.fsa:active{opacity:.55}
+/* 到两头就置灰（syncFsBtns 管的）。不置灰的话用户会一直点，以为卡住了。 */
+.fsa[disabled]{opacity:.3}
+.fsa.sm{font-size:calc(12px*var(--fs))}
+.fsa.lg{font-size:calc(21px*var(--fs))}
+.fsval{text-align:center;font-size:calc(12px*var(--fs));color:var(--text2);margin-top:12px}
+.fsval b{color:var(--text);font-size:calc(15px*var(--fs))}
+
+/* 滑杆本体。**必须自己画轨道和滑块**：上面那条
+   `input,textarea{appearance:none;background:none}` 会把 range 的原生轨道和滑块
+   一起干掉 —— 不画的话就是一条看不见也点不着的线（页面上不报错，
+   表现是「拖动条没反应」，最难查的那类问题）。 */
+#fsRange{-webkit-appearance:none;appearance:none;flex:1;min-width:0;width:auto;
+  height:30px;background:none}
+#fsRange::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--fill2)}
+#fsRange::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:26px;height:26px;margin-top:-11px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 5px rgba(0,0,0,.3)}
+/* 深色下滑块还是白的（照 iOS），但要给轨道提亮一点，否则整条看不清。
+   ⚠️ 深色规则**必须写成媒体查询**：属性选择器那种形式是构建脚本改写出来的产物，
+   源码里直接写的话，手动/自动两份深色规则会同时存在，以后改一处忘另一处就开始打架。
+   （这里也刻意不把两个选择器写进注释 —— 静态检查是在整段样式上做正则的。） */
+[data-theme="dark"] #fsRange::-webkit-slider-runnable-track{background:rgba(255,255,255,.28)}
+#fsRange::-moz-range-track{height:4px;border-radius:2px;background:var(--fill2)}
+#fsRange::-moz-range-thumb{width:26px;height:26px;border:0;border-radius:50%;background:#fff;
+  box-shadow:0 1px 5px rgba(0,0,0,.3)}
 .code{background:var(--fill);border-radius:10px;padding:11px 12px;font-size:calc(12px*var(--fs));line-height:1.5;
   white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -314,6 +354,66 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .center{display:flex;align-items:center;justify-content:center;gap:8px;padding:36px;color:var(--text2);font-size:calc(13px*var(--fs))}
+
+/* ---------- 面板设置（应用设置 / 其他设置 / 登录日志） ---------- */
+
+/* 凭据行。Client ID 是 32 位十六进制，窄屏 + 最大字号下横着放不下
+   「标签 + 值 + 两个按钮」，所以让标签独占一行（flex:0 0 100% 强制换行），
+   值那一行才有整行宽度给等宽字。 */
+.cred{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:9px}
+.cred .cl{flex:0 0 100%;font-size:calc(11px*var(--fs));color:var(--text2)}
+.cred .cv{flex:1;min-width:0;font-size:calc(11.5px*var(--fs));color:var(--text);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+/* 贴在凭据后面的小按钮。比 .btn 矮一档 —— 一行里要塞两个。 */
+.cpb{flex:none;padding:4px 10px;border-radius:8px;background:var(--fill);
+  font-size:calc(11px*var(--fs));font-weight:600;color:var(--accent)}
+.cpb:active{opacity:.55}
+/* 换密钥后弹出来的那串新密钥：要一眼看清、要好选中，所以放大 + 等宽 + 允许断行，
+   并加 user-select:all 让长按一次选中整串（不然 32 位要点半天）。 */
+.cv2{font-size:calc(14px*var(--fs));line-height:1.6;word-break:break-all;user-select:all;
+  -webkit-user-select:all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* 权限多选：两列。八个权限正好四行，一眼看全，比下拉框少一次点击。
+   手机上原生 <select multiple> 基本没法用，checkbox 又太小点不准。 */
+.scopegrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.scopebtn{padding:11px 8px;border-radius:11px;background:var(--card);
+  font-size:calc(13px*var(--fs));font-weight:600;color:var(--text2);
+  border:1.5px solid transparent;transition:opacity .15s}
+.scopebtn:active{opacity:.55}
+.scopebtn.on{background:rgba(0,122,255,.12);color:var(--accent);border-color:var(--accent)}
+[data-theme="dark"] .scopebtn.on{background:rgba(10,132,255,.2)}
+
+/* 「其他设置」里的字段：标签 + 输入框 + 一个确认按钮，照面板网页版的排法。
+   不做「改完自动保存」—— 这些是会影响面板运行的开关，误触代价比多点一次大。 */
+.fld{padding:9px 0}
+.fld .fl{margin-bottom:4px}
+.fl{font-size:calc(11px*var(--fs));color:var(--text2)}
+/* 确认按钮占满卡片宽度，但比 .btn 矮一档 —— 一屏里要塞六七个字段。
+   margin-bottom 跟卡片的下内边距(4px)凑成 14px，跟左右对齐。 */
+.fldbtn{width:100%;padding:9px;margin-bottom:10px;font-size:calc(14px*var(--fs));background:var(--fill)}
+/* 输入框 + 单位（「天」）同行 */
+.inrow{display:flex;align-items:center;gap:8px}
+.inrow input{flex:1;min-width:0}
+.inrow .unit{flex:none;font-size:calc(13px*var(--fs));color:var(--text2)}
+/* 下拉框：只统一字号/颜色，**不设 appearance:none** —— 保留系统箭头，
+   用户一眼就知道能点（自己画箭头在深色模式下容易糊成一块）。 */
+select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overflow:ellipsis}
+
+/* 备份模块多选：也是两列，但比权限按钮矮（有 10 项，太高要滚很久才看得到「备份」按钮） */
+.modgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modbtn{padding:9px 6px;border-radius:10px;background:var(--fill);
+  font-size:calc(12px*var(--fs));font-weight:600;color:var(--text2);
+  border:1.5px solid transparent;transition:opacity .15s}
+.modbtn:active{opacity:.55}
+.modbtn.on{background:rgba(0,122,255,.12);color:var(--accent);border-color:var(--accent)}
+/* 「基础数据」恒选中且点不动（后端 exportData() 里 base 对应 db + upload，
+   面板网页版里这项也是 disabled 的）。压暗一点表示「选着，但你别碰」。 */
+.modbtn.fixed{opacity:.7}
+[data-theme="dark"] .modbtn.on{background:rgba(10,132,255,.2)}
+
+/* 「面板设置」那三行右边不是「当前值」而是一句说明，走灰色而不是 .kvrow .v 的主色。
+   必须写成 .kvrow .v.desc（三个类）才压得住上面那条 (0,2,0) 的规则。 */
+.kvrow .v.desc{color:var(--text3);font-weight:400;font-size:calc(12px*var(--fs))}
 
 /* ---------- 弹层 ---------- */
 /* z-index 必须高于 #login(30)：登录失败时用户进不去主界面，诊断只能从登录页发起，
@@ -470,6 +570,25 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
       <div class="list" id="logList"></div>
     </section>
 
+    <!-- 应用设置：面板「系统设置 → 应用设置」的移动版。管理开放接口的
+         Client ID / Secret 和权限。入口在「我的 → 系统设置」里的面板设置区块。 -->
+    <section class="view" id="v-apps">
+      <div class="list" id="appList"></div>
+      <div style="margin-top:12px"><button class="btn" id="btnNewApp" style="width:100%">+ 新建应用</button></div>
+    </section>
+
+    <!-- 其他设置：面板「系统设置 → 其他设置」的移动版。 -->
+    <section class="view" id="v-sysconf">
+      <div id="sysconfBody"></div>
+      <!-- 还原数据用的文件选择器：点「还原数据」时由 JS 触发 -->
+      <input type="file" id="fileScImport" accept=".tgz,.tar.gz,application/gzip" class="vh" aria-hidden="true" tabindex="-1">
+    </section>
+
+    <!-- 登录日志：面板「系统设置 → 登录日志」的移动版。 -->
+    <section class="view" id="v-loginlog">
+      <div class="list" id="loginlogList"></div>
+    </section>
+
     <section class="view" id="v-me">
       <div id="meBody"></div>
     </section>
@@ -602,39 +721,137 @@ matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function ()
 
    注意这里**只缩放字号**，不缩放图标和间距 —— 这是「字体大小」该有的语义
    （和微信、系统设置的字体大小一样）。行高用的是行盒的自动高度，
-   字大了行自然变高，不会裁切。 */
-var FS = { s: 0.88, m: 1, l: 1.14, xl: 1.28 };
+   字大了行自然变高，不会裁切。
 
-function fsLabel(f) {
-  return f === 's' ? '小' : f === 'l' ? '大' : (f === 'xl' ? '特大' : '标准');
+   ---- 无级调节 ----
+   调节方式是**拖动条**（两端各一个 A，点一下进一档），不是分档。
+   老版本存的是 's'/'m'/'l'/'xl' 这四个档位键，新版本存的是数字倍数 ——
+   fsValue() 两种都要认，否则老用户升级上来字号会莫名变回标准。 */
+var FS = { s: 0.88, m: 1, l: 1.14, xl: 1.28 };   /* 只用于兼容老数据 + 迁移 */
+var FS_DEF = 1;      /* 默认倍数。必须是 1：1 = 「什么都不缩放」，
+                        写成别的值会让所有没动过设置的用户字号跟着变（静默的观感回归） */
+var FS_MIN = 0.8;
+var FS_MAX = 1.4;
+var FS_STEP = 0.05;  /* 点两端那个 A 时一次走多少 */
+
+/* 把任意输入归一成合法倍数。认不出的值一律回默认 —— **不能放行**，
+   否则 --fs 会被写成 NaN，全站字号（所有 font-size 都乘它）直接崩掉。 */
+function fsClamp(v) {
+  var n = Number(v);
+  if (!isFinite(n) || n <= 0) return FS_DEF;
+  return Math.min(FS_MAX, Math.max(FS_MIN, n));
+}
+
+/* 当前字号倍数。S.fs 可能是数字（新数据）也可能是档位键（老数据）。 */
+function fsValue() {
+  var v = S.fs;
+  if (typeof v === 'number') return fsClamp(v);
+  if (typeof v === 'string') {
+    /* hasOwnProperty 而不是 FS[v] —— FS['constructor'] 之类会命中原型上的东西 */
+    if (Object.prototype.hasOwnProperty.call(FS, v)) return FS[v];
+    var n = parseFloat(v);
+    return isFinite(n) && n > 0 ? fsClamp(n) : FS_DEF;
+  }
+  return FS_DEF;
+}
+
+/* 系统设置那一行右边显示的值。无级调节就直接报百分比。 */
+function fsLabel() {
+  return Math.round(fsValue() * 100) + '%';
 }
 
 function applyFontScale() {
-  var v = FS[S.fs];
-  if (!v) v = 1;
+  document.documentElement.style.setProperty('--fs', String(fsValue()));
+}
+
+/* 拖动中的实时预览：只改 --fs 和百分比文字，**不落盘**。
+   挂的是 input 事件 —— 拖的时候就要看到变化，等松手就太迟了。 */
+function previewFontScale(pct) {
+  var v = fsClamp(Number(pct) / 100);
   document.documentElement.style.setProperty('--fs', String(v));
+  var el = $('#fsPct');
+  if (el) el.textContent = Math.round(v * 100) + '%';
 }
 
-/* 字号选择弹层：跟「外观模式」一样的四个圆角条目 */
-function openFontScale() {
-  var h = '';
-  ['s', 'm', 'l', 'xl'].forEach(function (f) {
-    var on = (S.fs || 'm') === f;
-    h += '<button class="theme-opt' + (on ? ' on' : '') + '" data-fs-set="' + f + '">' +
-      '<span>' + esc(fsLabel(f)) + '</span>' +
-      (on ? '<span class="ck">✓</span>' : '') +
-      '</button>';
-  });
-  h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">' +
-    '只影响文字大小，图标和间距不变。</div>';
-  openSheet('字体大小', h);
-}
-
-function setFontScale(f) {
-  if (!FS[f]) return;
-  S.fs = f;
-  sset(K.fs, f);
+/* 落盘 + 应用。v 是倍数（1.1）或老档位键（'l'）；百分比换算在调用方做
+   （滑杆给的是 80..140 这种整数）。 */
+function setFontScale(v) {
+  var n;
+  if (typeof v === 'number') n = v;
+  else if (typeof v === 'string' && Object.prototype.hasOwnProperty.call(FS, v)) n = FS[v];
+  else n = parseFloat(v);
+  if (!isFinite(n) || !(n > 0)) return;   /* 非法值不动状态（N11 钉的就是这条） */
+  S.fs = fsClamp(n);
+  sset(K.fs, String(S.fs));
   applyFontScale();
+}
+
+/* 点两端的 A：进一档。顺带把滑杆位置和百分比一起跟过去。 */
+function stepFontScale(dir) {
+  var el = $('#fsRange');
+  var cur = el && isFinite(Number(el.value)) && el.value !== ''
+    ? Number(el.value) : Math.round(fsValue() * 100);
+  var next = fsClamp((cur + dir * Math.round(FS_STEP * 100)) / 100);
+  setFontScale(next);
+  if (el) el.value = String(Math.round(next * 100));
+  var p = $('#fsPct');
+  if (p) p.textContent = Math.round(next * 100) + '%';
+  syncFsBtns();
+}
+
+function resetFontScale() {
+  setFontScale(FS_DEF);
+  openFontScale();     /* 重画一次，让滑杆位置和百分比跟过去 */
+}
+
+/* 到两头就把对应的 A 置灰 —— 不置灰的话用户点了没反应，会以为卡住了。 */
+function syncFsBtns() {
+  var el = $('#fsRange');
+  var v = (el && isFinite(Number(el.value)) && el.value !== '')
+    ? Number(el.value) / 100 : fsValue();
+  var d = $('#btnFsDown'), u = $('#btnFsUp');
+  if (d) d.disabled = v <= FS_MIN + 1e-9;
+  if (u) u.disabled = v >= FS_MAX - 1e-9;
+}
+
+/* 滑杆的 input/change 必须**每次开弹层时重新绑**：弹层内容是用 innerHTML 换的，
+   元素每次都是新的 —— 在 boot 里绑一次，绑到的是个早就被丢掉的元素，
+   表现是「拖动条完全没反应」，而且页面上不报任何错。 */
+function bindFsRange() {
+  var el = $('#fsRange');
+  if (!el || !el.addEventListener) return;
+  el.addEventListener('input', function () { previewFontScale(this.value); syncFsBtns(); });
+  el.addEventListener('change', function () { setFontScale(Number(this.value) / 100); });
+}
+
+/* 字号调节弹层：上面一段示例文字（跟着 --fs 实时变，不用特殊处理），
+   下面一条滑杆，两端是 A（小）/ A（大），点一下进一档。 */
+function openFontScale() {
+  var pct = Math.round(fsValue() * 100);
+  var lo = Math.round(FS_MIN * 100), hi = Math.round(FS_MAX * 100);
+  var st = Math.round(FS_STEP * 100);
+  var h = '';
+  h += '<div class="fsdemo">' +
+    '<div class="dt">定时任务</div>' +
+    '<div class="ds">这是一段示例文字。拖动下面的滑杆，全 App 的字都会跟着变，' +
+    '图标和间距不变。</div>' +
+  '</div>';
+  h += '<div class="card" style="padding:16px 14px;margin-top:12px">' +
+    '<div class="fsrow">' +
+      '<button class="fsa sm" id="btnFsDown" aria-label="缩小">A</button>' +
+      '<input type="range" id="fsRange" min="' + lo + '" max="' + hi + '" step="' + st + '"' +
+        ' value="' + pct + '" aria-label="字体大小">' +
+      '<button class="fsa lg" id="btnFsUp" aria-label="放大">A</button>' +
+    '</div>' +
+    '<div class="fsval">当前 <b id="fsPct">' + pct + '%</b></div>' +
+  '</div>';
+  h += '<button class="btn" id="btnFsReset" style="width:100%;margin-top:12px">恢复默认</button>';
+  h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+    '范围 ' + lo + '% – ' + hi + '%，默认 ' + Math.round(FS_DEF * 100) + '%。<br>' +
+    '只影响文字大小，图标和间距不变。设置只存在这台手机上。</div>';
+  openSheet('字体大小', h);
+  bindFsRange();
+  syncFsBtns();
 }
 
 /* ================= 本地存储 =================
@@ -746,7 +963,9 @@ var S = {
   /* 'auto'（跟随系统）/ 'light'（浅色）/ 'dark'（深色）。默认 auto —— 不主动覆盖系统选择 */
   theme: sget(K.theme) || 'auto',
   /* 's' / 'm'（标准，默认）/ 'l' / 'xl'。只缩放字号，见 applyFontScale() */
-  fs: sget(K.fs) || 'm',
+  /* 字号：默认 1（= 不缩放）。老数据里可能是 's'/'m'/'l'/'xl'，
+     fsValue() 会认，所以这里原样读回来就行，不用在启动时改写用户存的值。 */
+  fs: sget(K.fs) || FS_DEF,
   sys: null,
   need2fa: false,
   detailId: null,
@@ -773,6 +992,13 @@ var S = {
   subs: { list: [], q: '', loading: false },
   deps: { list: [], type: 'nodejs', q: '', loading: false },
   configs: { list: [], loading: false },
+  /* 应用设置（面板的开放接口应用）。list 里每项是
+     { id, name, client_id, client_secret, scopes: [], tokens: [] }。 */
+  apps: { list: [], loading: false, err: '' },
+  /* 其他设置：cfg 是 GET /api/system/config 回来的 data.info。
+     mods 是备份时勾选的模块（base 恒为真，见 BACKUP_MODULES）。 */
+  sysconf: { cfg: null, loading: false, err: '', mods: { base: 1 } },
+  loginlog: { list: [], loading: false, err: '' },
   busy: false
 };
 
@@ -902,13 +1128,15 @@ async function api(path, opt) {
 
 /* 下载接口（scripts/download）回的是**文件字节流**，不是 {code,data} 包装，
    所以不能走 api()。出错时后端才回 JSON，所以失败分支里再尝试解析一次原因。 */
-async function apiBlob(path, body) {
+async function apiBlob(path, body, method) {
   var url = apiBase() + path;
   var headers = { Accept: '*/*', 'Content-Type': 'application/json' };
   if (S.token) headers.Authorization = 'Bearer ' + S.token;
   var res;
   try {
-    res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body || {}), cache: 'no-store' });
+    /* method 默认 POST（脚本下载那个接口就是 POST）。数据备份是 PUT，
+       所以要能改 —— 写死 POST 会直接 404。 */
+    res = await fetch(url, { method: method || 'POST', headers: headers, body: JSON.stringify(body || {}), cache: 'no-store' });
   } catch (e) {
     var err = new Error('连不上面板：' + (e && e.message ? e.message : '网络错误'));
     err.network = true;
@@ -1324,13 +1552,16 @@ async function bootAfterLogin() {
 var TITLES = {
   crons: '定时任务', envs: '环境变量', scripts: '脚本管理',
   subs: '订阅管理', deps: '依赖管理', configs: '配置文件',
-  logs: '日志文件', me: '所有功能'
+  logs: '日志文件', me: '所有功能',
+  /* 这三个对应面板网页版「系统设置」里的同名页签，入口在系统设置弹层里。
+     名字照面板的叫法，不要改 —— 用户是照面板的名字找的。 */
+  apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志'
 };
 
 /* 顶栏「+」出现在哪些页面。
    脚本页比较特殊：它有「上传 / 新建脚本 / 新建文件夹」三个动作，所以走下拉菜单；
    其余几页都只有「新建一条」这一个动作，点了直接进表单，不必多点一次。 */
-var ADD_TABS = { crons: 1, envs: 1, scripts: 1, subs: 1, deps: 1, configs: 1 };
+var ADD_TABS = { crons: 1, envs: 1, scripts: 1, subs: 1, deps: 1, configs: 1, apps: 1 };
 
 /* 「+」在非脚本页点下去要做的事。返回 false 表示这页没有新建动作。 */
 function openNewForTab(tab) {
@@ -1339,6 +1570,7 @@ function openNewForTab(tab) {
   if (tab === 'subs') return openSubEdit(null);
   if (tab === 'deps') return openDepEdit(null);
   if (tab === 'configs') return openConfigNew();
+  if (tab === 'apps') return openAppEdit(null);
   return false;
 }
 
@@ -1384,6 +1616,9 @@ async function refresh() {
   if (S.tab === 'deps') return loadDeps();
   if (S.tab === 'configs') return loadConfigs();
   if (S.tab === 'logs') return loadLogs(S.logs.path, true);
+  if (S.tab === 'apps') return loadApps();
+  if (S.tab === 'sysconf') return loadSysconf();
+  if (S.tab === 'loginlog') return loadLoginLog();
   if (S.tab === 'me') return loadDash();
 }
 
@@ -3194,7 +3429,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.10';
+var APP_VER = '1.0.11';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3483,6 +3718,28 @@ function openSettings() {
   h += kv('分支', (S.sys && S.sys.branch) || '未知');
   h += '</div>';
 
+  /* 面板网页版「系统设置」里那几个页签，原样搬进来。
+     名字**跟面板一字不差**（应用设置 / 其他设置 / 登录日志）——
+     用户是照面板上的叫法来找的，改成「API 应用」之类的反而找不到。
+     走 data-goto，跟功能网格进页签是同一条路（onClick 里已有分支）。 */
+  h += '<div class="secttl">面板设置</div>';
+  h += '<div class="card" style="padding:0">' +
+    '<button class="kvrow" data-goto="apps">' +
+        '<span class="k">应用设置</span>' +
+        '<span class="v desc">开放接口的 ID / 密钥 ›</span>' +
+      '</button>' +
+    '<button class="kvrow" data-goto="sysconf">' +
+        '<span class="k">其他设置</span>' +
+        '<span class="v desc">标题 · 时区 · 备份还原 ›</span>' +
+      '</button>' +
+    '<button class="kvrow" data-goto="loginlog">' +
+        '<span class="k">登录日志</span>' +
+        '<span class="v desc">谁在什么时候登录过 ›</span>' +
+      '</button>' +
+    '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">' +
+    '这几项改的是**面板自己**，不是这个 App —— 改完所有连这个面板的地方都会跟着变。</div>';
+
   /* 账号：登录过的账号都在这儿，点一下就切过去。
      跟「我的」页顶部的「切换账号」胶囊进的是同一个弹层。 */
   var accts = acctList();
@@ -3582,6 +3839,644 @@ function setTheme(t) {
   S.theme = t;
   sset(K.theme, t);
   applyTheme();
+}
+
+/* ================= 应用设置（面板的开放接口应用） =================
+   对应面板网页版「系统设置 → 应用设置」。这一页管的是**开放接口**的凭据：
+   每个应用有自己的 client_id / client_secret 和一组权限，外部程序拿它换 token 调面板。
+   跟你在 App 里登录用的账号密码完全是两回事 —— 别把它们搞混。
+
+   面板内部那个名为 system 的应用不会出现在列表里（后端 list() 里过滤掉了），
+   所以这里不用特判。
+
+   接口（v2.21，见 back/api/open.ts）：
+     GET    /api/apps                     → { code, data: [App] }
+     POST   /api/apps    { name, scopes } → 新建，返回带新 client_id/secret 的 App
+     PUT    /api/apps    { id, name, scopes }
+     DELETE /api/apps    [id]             ← body 是 **id 数组**，不是对象
+     PUT    /api/apps/{id}/reset-secret   → 换一对新的 secret（顺带清掉旧 token）
+   App = { id, name, client_id, client_secret, scopes: string[], tokens: [] } */
+
+/* 权限枚举。**值必须和面板一字不差** —— 后端就是按这些字符串鉴权的，
+   拼错了等于给了一个用不了的权限，而且不会有任何报错，只会在用的时候 403。
+   顺序照面板 src/utils/config.ts 里的 scopes。 */
+var APP_SCOPES = [
+  ['crons', '定时任务'], ['envs', '环境变量'], ['subscriptions', '订阅管理'],
+  ['configs', '配置文件'], ['scripts', '脚本管理'], ['logs', '日志管理'],
+  ['dependencies', '依赖管理'], ['system', '系统信息']
+];
+var APP_SCOPE_NAME = {};
+APP_SCOPES.forEach(function (x) { APP_SCOPE_NAME[x[0]] = x[1]; });
+
+/* 面板把 'system' 这个名字留给内部应用，新建时用它会直接被 Joi 挡回来。 */
+var APP_RESERVED = 'system';
+
+async function loadApps(force) {
+  var a = S.apps;
+  if (a.loading) return;
+  if (a.list.length && !force) { renderApps(); return; }
+  a.loading = true;
+  a.err = '';
+  renderApps();
+  try {
+    var r = await api('/api/apps');
+    a.list = (r.data && r.data.length !== undefined) ? r.data : [];
+  } catch (e) {
+    a.err = e.message;
+    a.list = [];
+  }
+  a.loading = false;
+  renderApps();
+}
+
+function findApp(id) {
+  for (var i = 0; i < S.apps.list.length; i++) {
+    if (Number(S.apps.list[i].id) === Number(id)) return S.apps.list[i];
+  }
+  return null;
+}
+
+function appScopeTags(scopes) {
+  var arr = Object.prototype.toString.call(scopes) === '[object Array]' ? scopes : [];
+  if (!arr.length) return '<span class="f11 t3">没有授权任何模块</span>';
+  return arr.map(function (s) {
+    /* 认不出的值也照原样显示：面板以后加了新权限，至少能看到是什么，
+       而不是被悄悄吞掉、以为这个应用没权限。 */
+    return '<span class="tag">' + esc(APP_SCOPE_NAME[s] || s) + '</span>';
+  }).join('');
+}
+
+function renderApps() {
+  var box = $('#appList');
+  if (!box) return;
+  var a = S.apps;
+  /* 顶栏副标题跟别的页签一样报个数。不设的话会留着上一页的「共 N 个变量」，
+     看起来像数据串了。 */
+  $('#sub').textContent = a.list.length ? (a.list.length + ' 个应用') : '';
+  if (a.loading && !a.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>读取应用…</div>';
+    return;
+  }
+  if (a.err) {
+    box.innerHTML = '<div class="empty"><span class="ei">!</span>' + esc(a.err) +
+      '<div style="margin-top:16px"><button class="btn" id="btnAppRetry" style="padding:8px 22px">重试</button></div></div>';
+    return;
+  }
+  if (!a.list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">⚿</span>还没有开放接口应用' +
+      '<div class="f11 t3" style="margin-top:10px;line-height:1.7">' +
+      '应用是给外部程序用的（自己写的脚本、别的客户端等），<br>' +
+      '拿 Client ID / Secret 换 token 来调面板。<br>' +
+      '和你在这里登录用的账号密码不是一回事。</div></div>';
+    return;
+  }
+  box.innerHTML = a.list.map(function (x) {
+    var cid = String(x.client_id || '');
+    var csec = String(x.client_secret || '');
+    return '<div class="item">' +
+      '<div class="row"><div class="nm sp ell">' + esc(x.name || '(未命名)') + '</div></div>' +
+      '<div class="cred"><span class="cl">Client ID</span>' +
+        '<span class="cv ell">' + esc(cid) + '</span>' +
+        '<button class="cpb" data-copy="' + esc(cid) + '">复制</button></div>' +
+      '<div class="cred"><span class="cl">Client Secret</span>' +
+        '<span class="cv ell" data-secret="' + esc(csec) + '">••••••••••</span>' +
+        '<button class="cpb" data-reveal="1">显示</button>' +
+        '<button class="cpb" data-copy="' + esc(csec) + '">复制</button></div>' +
+      '<div class="tags">' + appScopeTags(x.scopes) + '</div>' +
+      '<div class="row" style="gap:8px;margin-top:11px">' +
+        '<button class="btn" style="flex:1;padding:8px" data-appedit="' + esc(x.id) + '">编辑</button>' +
+        '<button class="btn" style="flex:1;padding:8px" data-appsecret="' + esc(x.id) + '">换密钥</button>' +
+        '<button class="btn danger" style="flex:1;padding:8px" data-appdel="' + esc(x.id) + '">删除</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* 编辑 / 新建应用。id 为空表示新建。
+   权限用一排可点的标签做多选 —— 手机上原生多选控件不好用，
+   而且八个权限一眼就能看全，比下拉框少一次点击。 */
+
+/* 当前正在编辑的应用 id（null = 新建）。
+   存成模块变量而不是塞进 DOM：从列表点进来时 id 是字符串，
+   而「新建」时如果写成 data-appid="" 再读出来是空串 —— `'' != null` 为真，
+   会被 saveApp 当成编辑，于是 PUT 一个不存在的 id。 */
+var editingAppId = null;
+
+function openAppEdit(id) {
+  editingAppId = (id == null || id === '') ? null : Number(id);
+  var app = editingAppId == null ? null : findApp(editingAppId);
+  if (editingAppId != null && !app) { toast('这个应用已经不在了，刷新一下', true); return; }
+  var cur = app ? (Object.prototype.toString.call(app.scopes) === '[object Array]' ? app.scopes : []) : [];
+  var h = '';
+  h += '<div class="secttl" style="margin-top:0">名称</div>';
+  h += '<div class="card" style="padding:4px 14px"><div style="padding:9px 0">' +
+    '<input id="appName" placeholder="例如：我的脚本" autocapitalize="off" autocorrect="off" spellcheck="false" value="' +
+    esc(app ? (app.name || '') : '') + '"></div></div>';
+  h += '<div class="secttl">权限</div>';
+  h += '<div class="scopegrid">';
+  APP_SCOPES.forEach(function (x) {
+    var on = cur.indexOf(x[0]) >= 0;
+    h += '<button class="scopebtn' + (on ? ' on' : '') + '" data-scope="' + x[0] + '">' +
+      esc(x[1]) + '</button>';
+  });
+  h += '</div>';
+  h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+    '勾上的模块才允许这个应用访问。至少要选一个 —— 一个权限都不给的话，<br>' +
+    '换来的 token 什么都干不了。</div>';
+  h += '<button class="btn" id="btnAppSave" style="width:100%">' +
+    (app ? '保存修改' : '创建应用') + '</button>';
+  if (app) {
+    h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+      'Client ID 和 Secret 在创建时就定好了，这里改不了。<br>' +
+      '想换密钥回上一页点「换密钥」。</div>';
+  }
+  openSheet(app ? '编辑应用' : '新建应用', h);
+}
+
+/* 把弹层里勾选的权限收集起来。没勾任何一项返回空数组 —— 调用方要挡住。 */
+function appScopesPicked() {
+  return $$('#shB .scopebtn.on').map(function (b) { return b.dataset.scope; });
+}
+
+async function saveApp(id) {
+  var name = ($('#appName') ? $('#appName').value : '').trim();
+  var scopes = appScopesPicked();
+  if (!scopes.length) { toast('至少要选一个权限', true); return; }
+  /* 后端 Joi 里 disallow('system')，本地先挡一道，省一次来回。 */
+  if (name.toLowerCase() === APP_RESERVED) { toast('「' + APP_RESERVED + '」是面板保留名，换一个', true); return; }
+  var body = { name: name, scopes: scopes };
+  var url = '/api/apps';
+  var method = 'POST';
+  if (id != null) { body.id = Number(id); method = 'PUT'; }
+  try {
+    await api(url, { method: method, body: body });
+    closeSheet();
+    toast(id != null ? '已保存' : '已创建');
+    await loadApps(true);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 删除是**真删**，面板不会留备份，token 一起没。
+   而且被删应用正在跑的外部程序会立刻全部 401。 */
+async function deleteApp(id) {
+  var app = findApp(id);
+  var nm = app ? (app.name || '(未命名)') : String(id);
+  if (!confirm('删除应用「' + nm + '」？\n\n这个应用的 Client ID / Secret 会立刻失效，' +
+    '正在用它的程序会全部认证失败。删了不能恢复。')) return;
+  try {
+    /* body 是 id 数组，不是 { id }。写成对象后端会 400。 */
+    await api('/api/apps', { method: 'DELETE', body: [Number(id)] });
+    toast('已删除');
+    await loadApps(true);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 换完密钥直接把新值摆出来让人复制 —— 这是唯一一次「主动给」的机会，
+   之后就只能回列表里点「显示」了。 */
+var lastNewSecret = '';
+async function resetAppSecret(id) {
+  var app = findApp(id);
+  var nm = app ? (app.name || '(未命名)') : String(id);
+  if (!confirm('给「' + nm + '」换一对新密钥？\n\n' +
+    '旧的 Client Secret 和它换出来的所有 token 会立刻失效，' +
+    '正在用它的程序需要改成新密钥。')) return;
+  try {
+    var r = await api('/api/apps/' + Number(id) + '/reset-secret', { method: 'PUT' });
+    lastNewSecret = (r.data && r.data.client_secret) ? String(r.data.client_secret) : '';
+    await loadApps(true);
+    openSheet('新密钥',
+      '<div class="secttl" style="margin-top:0">Client Secret</div>' +
+      '<div class="card"><div class="cv2" id="newSecTxt">' + esc(lastNewSecret) + '</div></div>' +
+      '<button class="btn" id="btnCopyNewSec" style="width:100%;margin-top:14px">复制</button>' +
+      '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+      '旧密钥已经失效了，记得把用到它的地方一起改掉。<br>' +
+      '之后想再看这串，回列表点「显示」就行。</div>');
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* Client Secret 的显示 / 隐藏。默认打码，跟面板网页版一致。
+   明文放在 data-secret 属性里（不在可见文本里），点「显示」才写进 textContent，
+   藏回去时清掉 —— 这样随手截图或者被人扫一眼屏幕，都不会漏密钥。
+   不重画整张列表：重画会让滚动位置跳回顶部。 */
+function toggleAppSecret(btn) {
+  var row = btn.closest ? btn.closest('.cred') : null;
+  var cv = row ? row.querySelector('.cv') : null;
+  if (!cv) return;
+  if (btn.dataset.on === '1') {
+    cv.textContent = '••••••••••';
+    btn.textContent = '显示';
+    btn.dataset.on = '';
+  } else {
+    cv.textContent = cv.dataset.secret || '';
+    btn.textContent = '隐藏';
+    btn.dataset.on = '1';
+  }
+}
+
+/* ================= 其他设置 =================
+   对应面板「系统设置 → 其他设置」。面板网页版是「一个输入框 + 一个确认按钮」，
+   这里照抄 —— 不做「改完自动保存」，因为这些都是会影响面板运行的开关，
+   误触的代价比多点一次大。
+
+   接口（v2.21，见 back/api/system.ts）：
+     GET  /api/system/config                       → data.info 里是全套配置
+     PUT  /api/system/config/panel-title           { panelTitle }        ≤100 字
+     PUT  /api/system/config/log-remove-frequency  { logRemoveFrequency }
+     PUT  /api/system/config/cron-concurrency      { cronConcurrency }
+     PUT  /api/system/config/timezone              { timezone }
+     PUT  /api/system/config/global-ssh-key        { globalSshKey }
+     PUT  /api/system/config/lang                  { lang }   ''=跟随系统 / zh / en
+     PUT  /api/system/data/export                  { type: [] } → tgz 字节流
+     PUT  /api/system/data/import                  multipart 字段 data
+     PUT  /api/system/data  （在 /api/update 下）  还原之后真正生效
+     PUT  /api/system/update-check                 检查更新
+     PUT  /api/update/reload                       重新启动面板
+
+   注意两个容易踩的点：
+   1. 配置全在 **data.info** 里，不是 data 本身。读 data.panelTitle 会永远是 undefined。
+   2. 备份是 PUT + 二进制流，不能走 api()（它只认 {code,data} 的 JSON）。 */
+
+/* 备份可选模块。'base' 是面板的基础数据（db + upload），恒选中且不可取消 ——
+   面板网页版里这一项也是 disabled 的。后端 exportData() 里 base 不当作目录，
+   它对应的是 db 和 upload 两个固定目录。 */
+var BACKUP_MODULES = [
+  ['base', '基础数据', 1], ['config', '配置文件'], ['scripts', '脚本文件'],
+  ['log', '日志文件'], ['deps', '依赖文件'], ['syslog', '系统日志'],
+  ['dep_cache', '依赖缓存'], ['raw', '远程脚本缓存'], ['repo', '远程仓库缓存'],
+  ['ssh.d', 'SSH 文件缓存']
+];
+
+/* 语言只有三个值：空串 = 跟随系统。后端拿它去写 lang_env.sh。 */
+var LANG_OPTIONS = [['', '跟随系统'], ['zh', '简体中文'], ['en', 'English']];
+
+/* 常用时区。面板网页版是一长串，这里给常用的；不在表里的值也会被原样带出来
+   （见 tzOptions），不会因为选项里没有就把面板上的值改掉。 */
+var TZ_COMMON = [
+  'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Taipei', 'Asia/Tokyo', 'Asia/Seoul',
+  'Asia/Singapore', 'Asia/Bangkok', 'Asia/Kolkata', 'Asia/Dubai',
+  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
+  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+  'America/Sao_Paulo', 'Australia/Sydney', 'Pacific/Auckland', 'UTC'
+];
+
+async function loadSysconf(force) {
+  var c = S.sysconf;
+  if (c.loading) return;
+  if (c.cfg && !force) { renderSysconf(); return; }
+  c.loading = true;
+  c.err = '';
+  renderSysconf();
+  try {
+    var r = await api('/api/system/config');
+    /* 配置在 data.info 里。面板自己的前端也是读 data.info 的。 */
+    c.cfg = (r.data && r.data.info) ? r.data.info : (r.data || null);
+    if (!c.cfg) throw new Error('面板没有返回配置内容');
+  } catch (e) {
+    c.err = e.message;
+    c.cfg = null;
+  }
+  c.loading = false;
+  renderSysconf();
+}
+
+/* 时区下拉的选项：常用表 + 当前值（防止面板上是表外的值时被下拉框吞掉）。 */
+function tzOptions(cur) {
+  var list = TZ_COMMON.slice();
+  if (cur && list.indexOf(cur) < 0) list.unshift(cur);
+  return list;
+}
+
+function renderSysconf() {
+  var box = $('#sysconfBody');
+  if (!box) return;
+  var c = S.sysconf;
+  $('#sub').textContent = (S.sys && S.sys.version) ? ('面板 ' + S.sys.version) : '';
+  if (c.loading && !c.cfg) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>读取面板配置…</div>';
+    return;
+  }
+  if (c.err) {
+    box.innerHTML = '<div class="empty"><span class="ei">!</span>' + esc(c.err) +
+      '<div style="margin-top:16px"><button class="btn" id="btnScRetry" style="padding:8px 22px">重试</button></div></div>';
+    return;
+  }
+  var g = c.cfg || {};
+  var h = '';
+
+  h += '<div class="secttl" style="margin-top:0">面板</div>';
+  h += '<div class="card" style="padding:4px 14px">' +
+    '<div class="fld"><div class="fl">面板标题</div>' +
+      '<input id="scTitle" placeholder=\'留空使用默认值"青龙"\' autocapitalize="off" autocorrect="off" spellcheck="false" value="' +
+      esc(g.panelTitle || '') + '"></div>' +
+    '<button class="btn fldbtn" data-scsave="panel-title">确认</button>' +
+  '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
+    '面板左上角显示的名字。留空就回到默认的「青龙」。最多 100 个字。</div>';
+
+  h += '<div class="secttl">运行</div>';
+  h += '<div class="card" style="padding:4px 14px">' +
+    '<div class="fld"><div class="fl">日志删除频率</div>' +
+      '<div class="inrow"><input id="scLogFreq" type="number" inputmode="numeric" min="0" value="' +
+      esc(g.logRemoveFrequency == null ? '' : g.logRemoveFrequency) + '"><span class="unit">天</span></div></div>' +
+    '<button class="btn fldbtn" data-scsave="log-remove-frequency">确认</button>' +
+  '</div>';
+  h += '<div class="card" style="padding:4px 14px">' +
+    '<div class="fld"><div class="fl">定时任务并发数</div>' +
+      '<input id="scConcur" type="number" inputmode="numeric" min="0" value="' +
+      esc(g.cronConcurrency == null ? '' : g.cronConcurrency) + '"></div>' +
+    '<button class="btn fldbtn" data-scsave="cron-concurrency">确认</button>' +
+  '</div>';
+  h += '<div class="card" style="padding:4px 14px">' +
+    '<div class="fld"><div class="fl">时区</div>' +
+      '<select id="scTz">' + tzOptions(g.timezone).map(function (t) {
+        return '<option value="' + esc(t) + '"' + (t === g.timezone ? ' selected' : '') + '>' + esc(t) + '</option>';
+      }).join('') + '</select></div>' +
+    '<button class="btn fldbtn" data-scsave="timezone">确认</button>' +
+  '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
+    '并发数留空或 0 = 不限制。改完立刻生效，正在跑的任务不受影响。</div>';
+
+  h += '<div class="secttl">全局 SSH 密钥</div>';
+  /* 卡片给左右内边距：textarea 和按钮都是 width:100%，
+     卡片不留白的话会紧贴圆角边缘，很难看（而且圆角会把按钮角切掉）。 */
+  h += '<div class="card" style="padding:4px 14px">' +
+    '<textarea id="scSsh" rows="4" class="mono" placeholder="请输入完整的 SSH 私钥内容" ' +
+      'autocapitalize="off" autocorrect="off" spellcheck="false" ' +
+      'style="padding:9px 0;resize:vertical;font-size:calc(12px*var(--fs))">' +
+      esc(g.globalSshKey || '') + '</textarea>' +
+    '<button class="btn fldbtn" data-scsave="global-ssh-key">确认</button>' +
+  '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
+    '面板跑任务时如果脚本要拉私有仓库，就会用这把密钥。<br>' +
+    '必须是完整的私钥（含 BEGIN / END 那两行）。留空 = 不设置。</div>';
+
+  h += '<div class="secttl">语言</div>';
+  h += '<div class="card" style="padding:0">' +
+    '<div class="kvrow" style="padding:11px 14px"><span class="k" style="flex:0 0 60px">界面语言</span>' +
+    '<select id="scLang" style="flex:1;text-align:right">' + LANG_OPTIONS.map(function (o) {
+      return '<option value="' + esc(o[0]) + '"' + ((g.lang || '') === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+    }).join('') + '</select></div>' +
+  '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
+    '改的是**面板自己**的界面语言（网页版和通知里的文案），不影响这个 App。<br>' +
+    '「跟随系统」= 跟浏览器/系统的语言走。</div>';
+
+  h += '<div class="secttl">数据备份还原</div>';
+  h += '<div class="card">' +
+    '<div class="fl" style="margin-bottom:8px">备份内容</div>' +
+    '<div class="modgrid">' + BACKUP_MODULES.map(function (m) {
+      var on = m[2] ? 1 : (c.mods[m[0]] ? 1 : 0);
+      return '<button class="modbtn' + (on ? ' on' : '') + (m[2] ? ' fixed' : '') +
+        '" data-scmod="' + esc(m[0]) + '">' + esc(m[1]) + '</button>';
+    }).join('') + '</div>' +
+    '<button class="btn" id="btnScExport" style="width:100%;margin-top:12px">备份</button>' +
+    '<button class="btn" id="btnScImport" style="width:100%;margin-top:8px">还原数据</button>' +
+  '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
+    '备份会下载一个 data.tgz 到手机（基础数据必选，里面是数据库和上传目录）。<br>' +
+    '还原是**覆盖式**的：选一个 tgz 传上去，面板会用里面的数据盖掉现在的，<br>' +
+    '之后面板会自动重启。这一步做之前建议先备份一份。</div>';
+
+  h += '<div class="secttl">检查更新</div>';
+  h += '<div class="card">' +
+    '<div class="f11 t3" style="line-height:1.7">当前版本 ' +
+      esc((S.sys && S.sys.version) || '未知') + ' · ' + esc((S.sys && S.sys.branch) || '未知') + '</div>' +
+    '<div class="row" style="gap:8px;margin-top:10px">' +
+      '<button class="btn" id="btnScCheck" style="flex:1">检查更新</button>' +
+      '<button class="btn danger" id="btnScReload" style="flex:1">重新启动</button>' +
+    '</div>' +
+  '</div>';
+  h += '<div class="f11 t3" style="margin:8px 4px 20px;line-height:1.7">' +
+    '「重新启动」会重启整个面板，期间几十秒连不上（正在跑的任务会被打断）。<br>' +
+    '只检查不安装：要装新版得去面板网页版点更新。</div>';
+
+  box.innerHTML = h;
+}
+
+/* 保存「其他设置」里的一个字段。
+   path 是接口路径尾段，field 是请求体里的字段名 —— 两者**不一样**
+   （比如 panel-title / panelTitle），混用会被 Joi 挡回来。 */
+async function saveSysconfField(path, field, value, okMsg) {
+  var body = {};
+  body[field] = value;
+  try {
+    await api('/api/system/config/' + path, { method: 'PUT', body: body });
+    toast(okMsg || '已保存');
+    await loadSysconf(true);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 从当前 DOM 里读某个字段并保存。返回 false 表示校验没过。 */
+async function saveSysconfFromDom(path) {
+  var c = S.sysconf;
+  var cur = c.cfg || {};
+  if (path === 'panel-title') {
+    var t = ($('#scTitle') ? $('#scTitle').value : '').trim();
+    if (t.length > 100) { toast('标题最多 100 个字', true); return; }
+    return saveSysconfField(path, 'panelTitle', t, t ? '标题已改' : '已恢复默认标题');
+  }
+  if (path === 'log-remove-frequency') {
+    return saveSysconfField(path, 'logRemoveFrequency', numOrNull($('#scLogFreq')), '日志删除频率已改');
+  }
+  if (path === 'cron-concurrency') {
+    return saveSysconfField(path, 'cronConcurrency', numOrNull($('#scConcur')), '并发数已改');
+  }
+  if (path === 'timezone') {
+    var tz = $('#scTz') ? $('#scTz').value : '';
+    if (!tz) { toast('请选一个时区', true); return; }
+    return saveSysconfField(path, 'timezone', tz, '时区已改');
+  }
+  if (path === 'global-ssh-key') {
+    var k = ($('#scSsh') ? $('#scSsh').value : '').trim();
+    /* 这里不做「像不像私钥」的校验：格式花样太多（RSA / ed25519 / 带注释），
+       本地猜错了会把正确的东西挡在外面。面板认不认由它说了算。 */
+    if (k && !confirm('要覆盖面板上的全局 SSH 密钥？' + (cur.globalSshKey ? '' : '\n\n原来没有设置过。'))) return;
+    return saveSysconfField(path, 'globalSshKey', k, k ? '密钥已保存' : '密钥已清空');
+  }
+}
+
+/* 输入框里的数字：空串和 NaN 都算「不限制」，对应后端的 null。 */
+function numOrNull(el) {
+  if (!el) return null;
+  var v = String(el.value == null ? '' : el.value).trim();
+  if (!v) return null;
+  var n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function sysconfMods() {
+  var out = ['base'];
+  BACKUP_MODULES.forEach(function (m) {
+    if (!m[2] && S.sysconf.mods[m[0]]) out.push(m[0]);
+  });
+  return out;
+}
+
+/* 备份模块的勾选。只改按钮的 class，不重画整个「其他设置」——
+   重画会把上面几个输入框里还没点「确认」的内容一起冲掉。 */
+function toggleBackupMod(btn) {
+  var k = btn.dataset.scmod;
+  /* 「基础数据」固定选中：后端 exportData() 里 base 对应 db + upload，
+     取消掉等于备份了个空壳。面板网页版这项也是 disabled 的。 */
+  if (btn.classList.contains('fixed')) { toast('「基础数据」是必选的，取消不了'); return; }
+  var on = !S.sysconf.mods[k];
+  S.sysconf.mods[k] = on ? 1 : 0;
+  btn.classList.toggle('on', on);
+}
+
+async function exportBackup() {
+  toast('正在打包，数据多的话要等一会儿…');
+  try {
+    /* 备份是 PUT + 二进制流：api() 只认 {code,data} 的 JSON，用不了。 */
+    var blob = await apiBlob('/api/system/data/export', { type: sysconfMods() }, 'PUT');
+    await saveBlobToDevice('data.tgz', blob);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 还原：两步。先把 tgz 传上去解包，再调一次 reload 让面板真正用新数据起来。
+   第二步不能省 —— 只上传的话文件躺在临时目录里，面板还是用旧的。 */
+async function importBackup(file) {
+  if (!file) return;
+  if (!confirm('用「' + file.name + '」覆盖面板现在的数据？\n\n' +
+    '面板上的任务、变量、脚本、配置都会变成备份里的样子，现在的会被盖掉。\n' +
+    '还原后面板会自动重启，几十秒内连不上。')) return;
+  toast('上传中…');
+  try {
+    var fd = new FormData();
+    fd.append('data', file, 'data.tgz');
+    await api('/api/system/data/import', { method: 'PUT', form: fd });
+    toast('已上传，正在让面板重启…');
+    /* 面板会自己退出重启，这个请求很可能等不到正常响应 —— 失败也算成功，
+       因为真正的信号是「面板连不上了，然后又连上了」。 */
+    try { await api('/api/update/data', { method: 'PUT' }); } catch (e) { /* 预期之内 */ }
+    toast('已提交还原，面板重启中，稍后重新登录');
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function checkPanelUpdate() {
+  toast('检查中…');
+  try {
+    var r = await api('/api/system/update-check', { method: 'PUT' });
+    var d = r.data || {};
+    if (d.hasNewVersion) {
+      /* 这里**不能**用 window.open 跳去面板网页版：壳里的 WKUIDelegate 把
+         targetFrame == nil 的请求当成「在当前页打开」，一按 App 页面就被导航走了，
+         而且没有返回入口（只能杀进程重开）。所以改成把地址摆出来让人自己复制。 */
+      openSheet('有新版本',
+        '<div class="secttl" style="margin-top:0">版本</div>' +
+        '<div class="card">' +
+          kv('当前', (S.sys && S.sys.version) || '未知') +
+          kv('最新', d.lastVersion || '未知') +
+        '</div>' +
+        '<div class="secttl">面板地址</div>' +
+        '<div class="card"><div class="cv2">' + esc(base()) + '</div></div>' +
+        '<button class="btn" data-copy="' + esc(base()) + '" style="width:100%;margin-top:14px">复制面板地址</button>' +
+        '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+        '装新版得去面板网页版点更新 —— 这个 App 只能帮你查，装不了。<br>' +
+        '复制地址，用手机浏览器打开就能装。</div>');
+    } else {
+      toast('已是最新版' + (d.lastVersion ? '（' + d.lastVersion + '）' : ''));
+    }
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function reloadPanel() {
+  if (!confirm('重新启动面板？\n\n所有正在跑的任务会被打断，重启期间（几十秒）面板连不上。')) return;
+  try {
+    await api('/api/update/reload', { method: 'PUT' });
+    toast('面板重启中，稍后重新登录');
+  } catch (e) {
+    /* 面板是**自己退出**来重启的，连接被掐断是正常现象 —— 报错反而是成功信号。
+       只有明确的 HTTP 业务错误（api() 抛出来的那种）才当失败。 */
+    if (e && e.network) toast('面板重启中，稍后重新登录');
+    else toast(e.message, true);
+  }
+}
+
+/* ================= 登录日志 =================
+   对应面板「系统设置 → 登录日志」。
+
+   接口：GET /api/user/login-log → { code, data: [ { timestamp, address, ip, platform, status } ] }
+   后端 getLoginLog() 是 `result.map(x => x.info)` —— **返回的对象里没有 id**，
+   所以不能用 id 当 key，用数组下标。而且最多只留 100 条，按时间倒序。
+
+   timestamp 是 **毫秒**（后端写的是 Date.now()）。status：0 = 成功，1 = 失败。 */
+
+/* 登录日志要显示完整日期（面板里也是 YYYY-MM-DD HH:mm:ss）。
+   已有的 fmtAbs() 只给 MM-DD HH:mm:ss，这里单独写一个。 */
+function fmtFull(ms) {
+  if (!ms) return '—';
+  var d = new Date(Number(ms));
+  if (isNaN(d.getTime())) return String(ms);
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+    pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+
+async function loadLoginLog(force) {
+  var l = S.loginlog;
+  if (l.loading) return;
+  if (l.list.length && !force) { renderLoginLog(); return; }
+  l.loading = true;
+  l.err = '';
+  renderLoginLog();
+  try {
+    var r = await api('/api/user/login-log');
+    l.list = (r.data && r.data.length !== undefined) ? r.data : [];
+  } catch (e) {
+    l.err = e.message;
+    l.list = [];
+  }
+  l.loading = false;
+  renderLoginLog();
+}
+
+function renderLoginLog() {
+  var box = $('#loginlogList');
+  if (!box) return;
+  var l = S.loginlog;
+  $('#sub').textContent = l.list.length ? (l.list.length + ' 条记录') : '';
+  if (l.loading && !l.list.length) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>读取登录日志…</div>';
+    return;
+  }
+  if (l.err) {
+    box.innerHTML = '<div class="empty"><span class="ei">!</span>' + esc(l.err) +
+      '<div style="margin-top:16px"><button class="btn" id="btnLogRetry" style="padding:8px 22px">重试</button></div></div>';
+    return;
+  }
+  if (!l.list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">▤</span>还没有登录记录</div>';
+    return;
+  }
+  box.innerHTML = l.list.map(function (x, i) {
+    /* 0 = 成功，1 = 失败。跟面板前端一样按下标取，认不出的值原样显示。 */
+    var ok = Number(x.status) === 0;
+    var st = (x.status === 0 || x.status === 1) ? { t: ok ? '成功' : '失败', c: ok ? 'green' : 'red' }
+                                                : { t: '状态 ' + x.status, c: 'gray' };
+    return '<div class="item">' +
+      '<div class="row"><div class="nm sp">' + esc(fmtFull(x.timestamp)) + '</div>' + pill(st) + '</div>' +
+      '<div class="f11 t3" style="margin-top:6px">第 ' + (i + 1) + ' 条</div>' +
+      '<div class="meta">' +
+        '<div class="kv"><span class="k">登录地址</span><span class="v">' + esc(x.address || '—') + '</span></div>' +
+        '<div class="kv"><span class="k">登录 IP</span><span class="v mono">' + esc(x.ip || '—') + '</span></div>' +
+        '<div class="kv"><span class="k">登录设备</span><span class="v">' + esc(x.platform || '—') + '</span></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 /* ================= 弹层 ================= */
@@ -3741,6 +4636,15 @@ function bind() {
   /* 上传：菜单项只记下目标目录并唤起文件选择器，真正的上传在 change 里做。
      change 必须单独绑 —— 它不在 click 事件委托里。 */
   $('#filePick').addEventListener('change', function () { uploadScript(this, S.scripts.upDir); });
+  /* 还原备份的 tgz：跟上传脚本一样，change 不在 click 委托里，得单独绑。
+     选完立刻把 value 清掉 —— 同一个文件选第二次时浏览器认为值没变、不触发 change，
+     表现就是「点了没反应」（还原失败想重试一次的时候特别容易撞上）。 */
+  var fsImp = $('#fileScImport');
+  if (fsImp) fsImp.addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (f) importBackup(f);
+  });
   /* 脚本搜索：跨整棵树匹配（含收起目录里的文件），所以是本地过滤、不打网络 */
   var tScr = 0;
   $('#scrSearch').addEventListener('input', function (e) {
@@ -3777,14 +4681,20 @@ function onClick(ev) {
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
     '[data-cf],[data-cbatch],' +
     '[data-acct],[data-acctdel],' +
-    '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-fs-set],[data-log],[data-preset],[data-path],' +
+    '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-log],[data-preset],[data-path],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
+    /* 面板设置三页：应用的增删改 / 权限标签 / 复制 / 显隐密钥；
+       其他设置的字段确认 / 备份模块勾选。 */
+    '[data-appedit],[data-appsecret],[data-appdel],[data-reveal],[data-copy],' +
+    '[data-scope],[data-scsave],[data-scmod],' +
     '#btnCronEdit,#btnCronAll,#btnAccts,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnDelLog,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
     '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
     '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
-    '#btnAcct,#btnSettings,#btnTheme,#btnFs'
+    '#btnAcct,#btnSettings,#btnTheme,#btnFs,#btnFsDown,#btnFsUp,#btnFsReset,' +
+    '#btnNewApp,#btnAppSave,#btnAppRetry,#btnScExport,#btnScImport,#btnScCheck,#btnScReload,' +
+    '#btnScRetry,#btnLogRetry,#btnCopyNewSec'
   ) : null;
   if (!el) return;
 
@@ -3799,12 +4709,11 @@ function onClick(ev) {
   /* 系统设置 → 点「外观模式」整条 */
   if (el.id === 'btnTheme') return openTheme();
 
-  /* 系统设置 → 字体大小：四档，同样点完重画弹层让 ✓ 跟过去 */
-  if (el.dataset.fsSet != null) {
-    setFontScale(el.dataset.fsSet);
-    openFontScale();
-    return;
-  }
+  /* 系统设置 → 字体大小：两端那个 A 点一下进一档；「恢复默认」回 100%。
+     滑杆本身走 input/change，不在 click 委托里（见 bindFsRange）。 */
+  if (el.id === 'btnFsDown') return stepFontScale(-1);
+  if (el.id === 'btnFsUp') return stepFontScale(1);
+  if (el.id === 'btnFsReset') return resetFontScale();
   /* 系统设置 → 点「字体大小」整条 */
   if (el.id === 'btnFs') return openFontScale();
 
@@ -3818,6 +4727,43 @@ function onClick(ev) {
     return;
   }
   if (el.dataset.acct != null) return acctSwitch(Number(el.dataset.acct));
+
+  /* ---------- 面板设置 → 应用设置 ----------
+     「换密钥」要排在「编辑」前面判：两者属性名不同（appsecret / appedit），
+     本身不冲突，但破坏性的分支先判是这里的惯例 —— 以后有人把属性名写成
+     data-appedit-secret 之类的前缀重叠形式，也不会误进编辑分支。 */
+  if (el.id === 'btnNewApp') return openAppEdit(null);
+  if (el.id === 'btnAppRetry') return loadApps(true);
+  if (el.dataset.appdel != null) return deleteApp(el.dataset.appdel);
+  if (el.dataset.appsecret != null) return resetAppSecret(el.dataset.appsecret);
+  if (el.dataset.appedit != null) return openAppEdit(el.dataset.appedit);
+  if (el.id === 'btnAppSave') return saveApp(editingAppId);
+  /* 权限标签：只切这一个按钮的选中态，**不重画弹层** ——
+     重画会把名称输入框里已经打的字冲掉。 */
+  if (el.dataset.scope != null) { el.classList.toggle('on'); return; }
+  if (el.dataset.reveal != null) return toggleAppSecret(el);
+  /* 复制。注意跟上面的 data-copycmd 是两个属性（dataset.copy vs dataset.copycmd），
+     互不干扰；空值单独挡一道，否则会「提示已复制但剪贴板是空的」。 */
+  if (el.dataset.copy != null) {
+    if (!el.dataset.copy) { toast('没有内容可复制', true); return; }
+    copyText(el.dataset.copy);
+    return;
+  }
+  if (el.id === 'btnCopyNewSec') return copyText(lastNewSecret);
+
+  /* ---------- 面板设置 → 其他设置 ---------- */
+  if (el.dataset.scsave != null) return saveSysconfFromDom(el.dataset.scsave);
+  if (el.dataset.scmod != null) return toggleBackupMod(el);
+  if (el.id === 'btnScRetry') return loadSysconf(true);
+  if (el.id === 'btnScExport') return exportBackup();
+  /* 还原：点按钮只是去点那个藏起来的 file input。
+     input 不能 display:none —— 部分 WebView 对隐藏的文件选择器不弹选择器。 */
+  if (el.id === 'btnScImport') { var fi = $('#fileScImport'); if (fi) fi.click(); return; }
+  if (el.id === 'btnScCheck') return checkPanelUpdate();
+  if (el.id === 'btnScReload') return reloadPanel();
+
+  /* ---------- 面板设置 → 登录日志 ---------- */
+  if (el.id === 'btnLogRetry') return loadLoginLog(true);
 
   /* 任务页工具条：编辑开关 / 状态筛选 / 底部批量操作栏。
      必须排在下面的「任务列表」分支之前 —— 这些按钮都在任务页里，

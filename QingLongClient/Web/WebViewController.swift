@@ -50,7 +50,7 @@ final class WebViewController: UIViewController {
     }
 
     private func loadApp() {
-        guard let url = Bundle.main.url(forResource: "index", ofType: "html") else {
+        guard let url = Bundle.main.url(forResource: "index", withExtension: "html") else {
             showFatal("没找到内置的 index.html，打包时漏了资源")
             return
         }

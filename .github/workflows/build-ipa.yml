@@ -12,7 +12,11 @@ on:
 jobs:
   build:
     name: Archive and package IPA
-    runs-on: macos-14
+    # macos-14 上是 Xcode 15.4，而 XcodeGen 2.45+ 默认生成 Xcode 16 的工程格式，
+    # 两者对不上会直接报 "future Xcode project file format (77)"。
+    # 工程侧已经把 projectFormat 钉到 xcode15_3 兜底，这里再用 macos-15（Xcode 16.x）
+    # 把「生成的格式」和「读它的 Xcode」都放到新版上，两头都不容易再出问题。
+    runs-on: macos-15
     timeout-minutes: 30
 
     steps:
@@ -45,6 +49,21 @@ jobs:
 
       - name: Xcode version
         run: xcodebuild -version
+
+      # 诊断用：把工程格式和当前 Xcode 都打出来。
+      # 这俩对不上时报的错是 "future Xcode project file format"，光看那句猜不到
+      # 是 XcodeGen 换了默认格式，所以提前把数字亮出来。
+      - name: Check project format
+        run: |
+          set -euo pipefail
+          OV=$(grep -m1 -o 'objectVersion = [0-9]*' QingLongClient.xcodeproj/project.pbxproj | grep -o '[0-9]*')
+          echo "objectVersion = $OV"
+          echo "Xcode: $(xcodebuild -version | head -1)"
+          case "$OV" in
+            56|60) echo "格式为 Xcode 14/15，Xcode 15 与 16 均可打开" ;;
+            70|77) echo "::warning::格式为 Xcode 16（objectVersion $OV），Xcode 15.x 打不开" ;;
+            *) echo "::warning::未知 objectVersion $OV" ;;
+          esac
 
       # 不做开发者签名：TrollStore 走的是 CoreTrust 绕过，不需要 Apple 的证书。
       # 但包**必须有签名结构**（完全没签名的 ipa 巨魔会拒），所以出包后补一个 ad-hoc。

@@ -15,6 +15,18 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
   generateEmptyDirectories: false
+  # 生成的 .xcodeproj 用什么格式（对应 pbxproj 里的 objectVersion）。
+  #
+  # XcodeGen 2.45 起新增这个选项，**默认是 xcode16_0**，也就是 objectVersion 77。
+  # 但 Xcode 15.x 只认到 60，遇到 77 会直接拒绝打开：
+  #   "The project cannot be opened because it is in a future Xcode project
+  #    file format (77)."
+  # ——第一次跑 CI 就是这么挂的（runner 是 macos-14 + Xcode 15.4）。
+  #
+  # 钉在 xcode15_3（objectVersion 60）：Xcode 15.3+ 和 Xcode 16.x 都能读，
+  # 兼容面最宽。这里没用任何 Xcode 16 独有的工程特性（比如 syncedFolder），
+  # 所以降到 15.3 格式没有任何损失。
+  projectFormat: xcode15_3
 
 settings:
   base:

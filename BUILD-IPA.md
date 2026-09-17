@@ -15,16 +15,16 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35228440386`，commit `07083a9`，全部 11 步通过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.10-trollstore.ipa`（123662 字节） |
-| SHA256 | `6e35a572284df8dd6ad897a466d44ef22b32e7b815db13a5c4bed93690562090` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.10-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35239654954`，commit `4a29c69`，全部 13 步通过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.11-trollstore.ipa`（139366 字节） |
+| SHA256 | `78cebd3b2f6818eb266ef4605ca8c6a1b8ab3b26a02da05e1491b7a834037d49` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.11-trollstore`（保留 30 天） |
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.10-trollstore.ipa
-# 应该得到 6e35a572284df8dd6ad897a466d44ef22b32e7b815db13a5c4bed93690562090
+sha256sum QingLongClient-1.0.11-trollstore.ipa
+# 应该得到 78cebd3b2f6818eb266ef4605ca8c6a1b8ab3b26a02da05e1491b7a834037d49
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -194,7 +194,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.10-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.11-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -202,25 +202,35 @@ qinglong-ios/out/QingLongClient-1.0.10-trollstore.ipa
 
 ### 这个包验过什么
 
-在 ipa 上直接解包核对（不是看构建日志，是把包拆开读）：
+在 ipa 上直接解包核对（不是看构建日志，是把包拆开读）。
+**这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
+
+```bash
+python tools/verify_ipa.py out/QingLongClient-1.0.11-trollstore.ipa
+```
 
 | 检查项 | 结果 |
 |---|---|
-| `Payload/QingLongClient.app/` 结构 | ✅ |
+| `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 216905 字节 |
-| 页面 `APP_VER` | ✅ 1.0.10（与 `MARKETING_VERSION` 一致） |
+| `index.html` | ✅ 267537 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.11（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
-| 页面里有无硬编码真实公网 IP | ✅ 无（只有注释里的示例 `1.2.3.4`） |
+| 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
+| 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
+| 其他设置（读 `data.info` / 备份模块表 / 还原字段 `data` / 还原后调 `update/data` / 时区表） | ✅ 5 个锚点全在 |
+| 登录日志（列表加载 / 时间按毫秒） | ✅ 都在 |
+| 字号拖动条（`fsRange` / `btnFsDown` / `fsClamp` / 老档位迁移 / `bindFsRange`） | ✅ 都在 |
+| 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
 | 任务页四档筛选 / 多账号切换代码在包里 | ✅ `cronBucket()` / `acctSwitch()` 都在 |
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.10 (10) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.11 (11) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
-| ATS（允许明文 http 到自建面板） | ✅ `NSAllowsArbitraryLoads: true` |
+| ATS（允许明文 http 到自建面板） | ✅ `NSAllowsArbitraryLoads` + `NSAllowsLocalNetworking` |
 | `NSLocalNetworkUsageDescription` | ✅ 有（内网 IP 面板需要） |
 | 可执行文件 | ✅ arm64 Mach-O（`cputype 0x100000c`），158288 字节 |
 
@@ -351,3 +361,21 @@ git add -A && git commit -m "update web" && git push
 ```
 
 然后重跑一次 Actions，下载新 ipa，巨魔里直接覆盖装就行（数据保留）。
+
+> **忘了跑 `prepare_web.py` 会怎样**：CI 里的 **Sanity check bundled page**
+> 会拿页面里的 `APP_VER` 跟 `project.yml` 的 `MARKETING_VERSION` 对账，不一致直接红。
+> 但**如果两边都忘了改**（都还是旧版本号），这一关是过得去的 —— 包里装的会是旧页面。
+> 所以出包后一定要跑 `verify_ipa.py`：它把包里的 `index.html` 跟**本地构建产物逐字节比**，
+> 比只看版本号可靠得多。
+
+### 升版本号的正确顺序
+
+版本号只有两处，**必须同时改**：
+
+| 文件 | 改什么 |
+|---|---|
+| `qinglong-pwa/src/index.html` | `var APP_VER = 'x.y.z'` |
+| `qinglong-ios/project.yml` | `MARKETING_VERSION: "x.y.z"` + `CURRENT_PROJECT_VERSION: "<递增整数>"` |
+
+顺序：改 `APP_VER` → `python tools/build.py` → 改 `project.yml` →
+`python tools/prepare_web.py`（这一步会对账，两边不一致直接拒绝写入）。

@@ -59,7 +59,8 @@ qinglong-ios/
 │   └── build-ipa.yml               # GitHub Actions：archive → ad-hoc 签名 → ipa
 ├── tools/
 │   ├── make_icon.py                # 生成 1024×1024 App 图标（纯标准库）
-│   └── prepare_web.py              # 把 qinglong-pwa/index.html 拷进来并核对版本
+│   ├── prepare_web.py              # 把 qinglong-pwa/index.html 拷进来并核对版本
+│   └── verify_ipa.py               # 出包后解包逐项核对（含与本地构建产物逐字节对账）
 ├── _legacy-swiftui/                # 早期那版纯 SwiftUI 实现（已不用，不参与编译）
 └── QingLongClient/
     ├── App/

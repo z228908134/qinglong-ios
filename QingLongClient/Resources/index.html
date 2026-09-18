@@ -415,6 +415,10 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .logbox .lv-warn{color:#ffd479}
 .logbox .lv-info{color:#8fd0ff}
 .logbox .lv-debug{color:#93a0ad}
+/* 「只看错误」模式下每行前面的行号。**独立于级别色**（不套在 .lv-error 里），
+   否则行号也会跟着变红。复制走的是原始文本，不带行号。 */
+.logbox .ln{display:inline-block;width:3.4em;text-align:right;margin-right:.7em;
+  color:#5d6b7a;user-select:none}
 .spin{width:16px;height:16px;border:2px solid var(--fill2);border-top-color:var(--accent);
   border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -1081,6 +1085,11 @@ var S = {
   /* logs.q：文件名搜索词。空串 = 正常目录浏览；非空 = 跨目录找整棵树。
      日志树是一次性整棵拉回来的，所以搜索不用再打接口。 */
   logs: { tree: [], path: [], q: '', loading: false },
+  /* 日志文件弹层的状态。**放 S 里而不是 openLogFile 的闭包里**：
+     「复制内容」「只看错误」这两个按钮走的是全局事件委托，委托函数拿不到闭包变量。
+     txt 存**原始文本**（没加行号的那份），复制走它 —— 从 DOM 的 textContent 读的话
+     会把「只看错误」模式下的行号一起复制走。 */
+  logfile: { lines: [], txt: '', onlyErr: false },
   /* scripts.expanded 的键是「从脚本根目录算起的相对路径」（如 dir1/sub），值是真值。
      默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
      path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
@@ -2015,6 +2024,9 @@ async function cronAction(id, act) {
     else if (act === 'unpin') { label = '已取消置顶'; await api('/api/crons/unpin', { method: 'PUT', body: [id] }); }
     else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: [id] }); }
     toast(label);
+    /* 点了「立即运行」的人，下一步一定是看日志 —— 直接把详情页的日志区滚进视野，
+       省得他自己往下找（内容不用管，那块本来就在自动刷新）。 */
+    if (act === 'run' && S.detailId === id) scrollToCronLog();
     setTimeout(function () { loadCrons(true); }, act === 'delete' ? 0 : 600);
   } catch (e) {
     toast(e.message, true);
@@ -2669,7 +2681,7 @@ function renderLogs() {
 
   var nodes = ql ? flattenLogs(S.logs.tree).filter(function (n) {
     return String(n.title == null ? '' : n.title).toLowerCase().indexOf(ql) >= 0;
-  }) : currentLogNodes();
+  }) : sortLogNodes(currentLogNodes());
 
   var box = $('#logList');
   if (S.logs.loading && !S.logs.tree.length) {
@@ -2711,6 +2723,30 @@ function currentLogNodes() {
     nodes = found.children || [];
   }
   return nodes;
+}
+
+/* 浏览日志目录时的排序：**文件按时间倒序（最新的在最上面）**。
+   日志目录里几十个文件是常态，面板返回的是时间正序，最新的那个在最底下 ——
+   手机上要滑很久才够得着，而「看最新那条」恰恰是最常见的动作。
+   目录仍排在文件前面（按名字），否则要在一堆文件里翻子目录。
+   文件名 `2026-09-18-20-15-01-118.log` 的**字典序就是时间序**，倒着排就是最新在前。
+   搜索态不排序：搜索结果跨目录，保持面板给的相关性顺序更自然。 */
+function sortLogNodes(nodes) {
+  var dirs = [], files = [];
+  (nodes || []).forEach(function (n) {
+    (n && n.type === 'directory' ? dirs : files).push(n);
+  });
+  dirs.sort(function (a, b) { return String(a.title) < String(b.title) ? -1 : 1; });
+  files.sort(function (a, b) { return String(a.title) > String(b.title) ? -1 : 1; });
+  return dirs.concat(files);
+}
+
+/* 把详情页的「运行日志」区滚进视野。
+   点了「立即运行」的人，下一步一定是看日志 —— 别让他自己往下找。
+   老 WebView 上 scrollIntoView 可能不存在，挡一道（不该为这个报错）。 */
+function scrollToCronLog() {
+  var box = $('#logBox');
+  if (box && box.scrollIntoView) box.scrollIntoView({ block: 'center' });
 }
 
 /* 退出搜索态。状态字和输入框**必须一起清** —— 只清状态的话框里还留着刚才的关键词，
@@ -2776,14 +2812,29 @@ async function openLogFile(node) {
   try {
     var r = await api('/api/logs/detail', { query: { path: dir.join('/'), file: node.title } });
     var txt = stripAnsi(r.data || '');
-    var lines = txt ? txt.split('\n').length : 0;
+    var lines = txt ? txt.split('\n') : [];
+    /* 末尾换行会切出一个空串，去掉 —— 否则日志框底下永远多一行空白，
+       「N 行」也会多算一行 */
+    if (lines.length && lines[lines.length - 1] === '') lines.pop();
+    var errN = logErrLines(lines).length;
+    /* 存进 S：复制 / 只看错误这两个按钮走**全局事件委托**，拿不到闭包变量 */
+    S.logfile = { lines: lines, txt: txt, onlyErr: false };
     $('#shB').innerHTML =
-      '<div class="f11 t3" style="margin:0 4px 8px">' + esc(fmtSize(node.size)) + ' · ' + lines + ' 行</div>' +
-      '<div class="logbox lg">' + esc(txt || '（空文件）') + '</div>' +
+      '<div class="row" style="margin:0 4px 8px;gap:8px;align-items:center">' +
+        '<div class="f11 t3 sp">' + esc(fmtSize(node.size)) + ' · ' + lines.length + ' 行' +
+          (errN ? ' · <span style="color:#ff8f8f">错误 ' + errN + '</span>' : '') + '</div>' +
+        /* 一行错都没有就不给这个按钮 —— 点了只会看到空框，白让人点一次 */
+        (errN ? '<button class="btn" id="btnLogErr" style="padding:6px 12px;font-size:calc(12px*var(--fs))">只看错误</button>' : '') +
+      '</div>' +
+      '<pre class="logbox lg" id="logPre"></pre>' +
       '<div class="row" style="margin-top:12px;gap:8px">' +
         '<button class="btn" id="btnCopyLog" style="flex:1">复制内容</button>' +
         '<button class="btn danger" id="btnDelLog" style="flex:1" data-path="' + esc(dir.join('/')) + '" data-file="' + esc(node.title) + '">删除文件</button>' +
       '</div>';
+    /* 内容交给 paintLogFile 填（顺带贴到底），和切「只看错误」走同一条路 ——
+       两处各写一遍的话，改了一处忘了另一处就不一致了。 */
+    paintLogFile();
+    if (!lines.length) $('#logPre').innerHTML = '（空文件）';
   } catch (e) {
     $('#shB').innerHTML = '<div class="empty">读取失败：' + esc(e.message) + '</div>';
   }
@@ -3890,7 +3941,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.18';
+var APP_VER = '1.0.19';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -5198,6 +5249,62 @@ function logLv(line) {
   return m ? m[1].toLowerCase() : '';
 }
 
+/* 日志正文里「算错误」的行。**只认级别记号，不认中文「失败」** ——
+   「失败」两个字在正常日志里到处都是（「上次失败原因：无」「失败重试 0 次」），
+   拿它当筛子会把一堆正常行捞进来，用户试一次就不信这个开关了。
+   logLv 认不出级别就返回空串，所以这里天然是「宁缺勿滥」。 */
+function isErrLine(line) {
+  return logLv(line) === 'error';
+}
+/* 从整段日志里挑出错误行，带**原始行号**（面板网页版报错时会报行号，好对上）。 */
+function logErrLines(lines) {
+  var out = [];
+  (lines || []).forEach(function (l, i) {
+    if (isErrLine(l)) out.push({ n: i + 1, t: l });
+  });
+  return out;
+}
+/* 日志框的内容。一行一个 <span>（只拼字符串、不建 DOM 节点 ——
+   几千行的日志逐行 createElement 在手机上会明显卡）。
+   onlyErr=true 时只画错误行，行首带行号；行号是**独立**的 span，
+   不套在 .lv-error 里面，否则行号也会跟着变红。 */
+function logBoxHtml(lines, onlyErr) {
+  var all = lines || [];
+  var list = [];
+  for (var i = 0; i < all.length; i++) {
+    if (onlyErr && !isErrLine(all[i])) continue;
+    list.push({ n: i + 1, t: all[i] });
+  }
+  return list.map(function (x) {
+    var lv = logLv(x.t);
+    return (onlyErr ? '<span class="ln">' + x.n + '</span>' : '') +
+      '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' + esc(x.t) + '\n</span>';
+  }).join('');
+}
+/* 「复制内容」到底复制什么：**按当前显示的那份来** ——
+   开了「只看错误」还复制全文，用户会以为没生效（或者以为复制漏了）。
+   走 S.logfile.txt 而不是读 DOM：DOM 里那份带了行号。 */
+function logCopyText() {
+  var lf = S.logfile;
+  if (lf.onlyErr) return logErrLines(lf.lines).map(function (x) { return x.t; }).join('\n');
+  return lf.txt || '';
+}
+/* 重画日志框（切「只看错误」时用）。**不重新打接口** ——
+   内容已经在 S.logfile.lines 里了，再请求一次纯属浪费，还会闪一下。 */
+function paintLogFile() {
+  var lf = S.logfile;
+  var pre = $('#logPre');
+  if (!pre) return;
+  pre.innerHTML = logBoxHtml(lf.lines, lf.onlyErr);
+  /* 贴到底：新的日志追加在文件末尾，最新在下面。
+     必须等 innerHTML 落地之后再滚，否则 scrollHeight 还是旧值。 */
+  pre.scrollTop = pre.scrollHeight;
+  var eb = $('#btnLogErr');
+  if (eb) eb.textContent = lf.onlyErr ? '看全部' : '只看错误';
+  var cp = $('#btnCopyLog');
+  if (cp) cp.textContent = lf.onlyErr ? '复制错误行' : '复制内容';
+}
+
 function renderSysLog() {
   var box = $('#syslogBody');
   if (!box) return;
@@ -5488,7 +5595,7 @@ function onClick(ev) {
     '[data-appedit],[data-appsecret],[data-appdel],[data-reveal],[data-copy],' +
     '[data-scope],[data-scsave],[data-scmod],' +
     '#btnCronEdit,#btnCronAll,#btnAccts,' +
-    '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnDelLog,' +
+    '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
     '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
     '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
@@ -5685,10 +5792,13 @@ function onClick(ev) {
   }
   /* 返回上一级同样退出搜索态（搜索态下根本不渲染 logUp，能点到这里说明在浏览） */
   if (el.id === 'logUp') { clearLogSearch(); return loadLogs(S.logs.path.slice(0, -1)); }
-  if (el.id === 'btnCopyLog') {
-    var lb = document.querySelector('#shB .logbox');
-    if (lb) copyText(lb.textContent || '');
-    return;
+  /* 复制的是 S.logfile 里的**原始文本**，不是从 DOM 读 ——
+     「只看错误」模式下 DOM 里每行前面带了行号，读 DOM 会把行号一起复制走。 */
+  if (el.id === 'btnCopyLog') return copyText(logCopyText());
+  /* 切「只看错误」：**不重新打接口**，内容已经在 S.logfile 里了 */
+  if (el.id === 'btnLogErr') {
+    S.logfile.onlyErr = !S.logfile.onlyErr;
+    return paintLogFile();
   }
   if (el.id === 'btnDelLog') {
     if (!confirm('确认删除这个日志文件？')) return;

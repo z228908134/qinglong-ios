@@ -103,6 +103,13 @@ FEATURES = [
     # 1.0.18 布局修复：两条都是预览截图里肉眼看到的
     ("布局 长值不挤掉右箭头", r"\.kvrow \.v\{flex:1;min-width:0;"),
     ("布局 按钮文案不换行", r"white-space:nowrap;background:var\(--fill\)"),
+    # 1.0.19 日志查看：长日志里靠肉眼扫找报错不现实
+    ("日志 级别上色重排", r"function logBoxHtml\("),
+    ("日志 只看错误筛选", r'id="btnLogErr"'),
+    ("日志 行号列", r"\.logbox \.ln\{"),
+    ("日志 打开贴到底", r"function paintLogFile\("),
+    ("日志 文件倒序（最新在上）", r"function sortLogNodes\("),
+    ("日志 运行后滚到日志区", r"function scrollToCronLog\("),
     # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),

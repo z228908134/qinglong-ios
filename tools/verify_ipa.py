@@ -46,7 +46,7 @@ FEATURES = [
     ("其他设置 时区表", r"var TZ_COMMON = \["),
     ("登录日志 列表加载", r"function loadLoginLog\("),
     ("登录日志 时间按毫秒", r"new Date\(Number\(ms\)\)"),
-    ("面板设置入口", r'data-goto="sysconf"'),
+    ("百分比夹在 0-100", r"return Math\.max\(0, Math\.min\(100, n\)\)"),
     ("字号 拖动条元素", r'id="fsRange"'),
     ("字号 两端 A", r'id="btnFsDown"'),
     ("字号 夹取防 NaN", r"function fsClamp\("),
@@ -68,9 +68,12 @@ FEATURES = [
     ("我的页 依赖管理入口", r"\{ tab: 'deps',"),
     ("我的页 环境变量入口", r"\{ tab: 'envs',"),
     ("我的页 面板日志入口", r"\{ tab: 'syslog',"),
-    # 这两个是 openSettings() 弹层里写死的，产物里有字面量
-    ("我的页 应用设置入口", r'data-goto="apps"'),
-    ("我的页 其他设置入口", r'data-goto="sysconf"'),
+    # 这三个跟弹层里那份重名，但走的是功能网格：data-goto 由 featCard() 运行时拼，
+    # 产物里搜不到字面量，只能锚 FEATURES 表条目。
+    # （第一版锚成了弹层的 data-goto="apps"，弹层一撤就「缺失 !!」，白惊一场。）
+    ("我的页 应用设置入口", r"\{ tab: 'apps',"),
+    ("我的页 其他设置入口", r"\{ tab: 'sysconf',"),
+    ("我的页 登录日志入口", r"\{ tab: 'loginlog',"),
     ("面板日志 列表加载", r"function loadSysLog\("),
     ("面板日志 纯文本接口", r"/api/system/log"),
     ("面板日志 清空走 DELETE", r"\{ method: 'DELETE' \}"),
@@ -79,6 +82,17 @@ FEATURES = [
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),
     ("时间 文件时间兜底", r"function fmtFileTime\("),
+]
+
+# 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /
+# 单用户面板没有会话管理），撤了就不能再冒出来。
+# 这几个是弹层里**写死**的，产物里有字面量，可以放心锚。
+FORBIDDEN = [
+    ("弹层 无 应用设置 入口", r'data-goto="apps"'),
+    ("弹层 无 其他设置 入口", r'data-goto="sysconf"'),
+    ("弹层 无 登录日志 入口", r'data-goto="loginlog"'),
+    ("弹层 无 面板日志 入口", r'data-goto="syslog"'),
+    ("弹层 无 面板设置 分区", r'<div class="secttl">面板设置</div>'),
 ]
 
 PLIST_KEYS = [
@@ -158,6 +172,9 @@ def main():
 
     # ---------- 4. 不该出现的东西 ----------
     print("\n[4] 不该出现的东西")
+    for label, pat in FORBIDDEN:
+        chk(label, re.search(pat, src) is None)
+
     has_open = re.search(r"window\.open\(", src) is not None
     chk("无 window.open", not has_open)
     if has_open:

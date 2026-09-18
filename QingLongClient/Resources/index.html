@@ -3682,7 +3682,7 @@ function fmtBytes(n) {
 function pctNum(v) {
   var n = parseFloat(v);
   if (!isFinite(n)) return null;
-  return n;
+  return Math.max(0, Math.min(100, n));
 }
 /* 占用率分档配色：<70 绿 / <90 橙 / 其余红 */
 function meterColor(p) { return p < 70 ? '#34C759' : (p < 90 ? '#FF9500' : '#FF3B30'); }

@@ -15,25 +15,32 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35330280755`，commit `965c9d1`，一次过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.16-trollstore.ipa`（148551 字节） |
-| SHA256 | `f97a5fb84d246ba9490283bcb34086ad8dddbfd7886e7df401fbf9f27ca150a7` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.16-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35354103516`，commit `c422601`，一次过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.18-trollstore.ipa`（155611 字节） |
+| SHA256 | `c2b76871382688ed3004fb1b3c0d32b22ce67ad1d8ea1ac89ea3d0ddba952000` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.18-trollstore`（保留 30 天） |
 
-> **1.0.16 是功能版**，底栏从四项变五项：
-> - 最左新增「主页」（面板 / 系统状态 / 任务概况 / **近 7 日任务趋势图**），
->   并且**新装默认就落在主页**
-> - 「我的」页保持 12 个功能卡片不变
-> - 日志文件页加了**文件名搜索**（跨整棵树、不分大小写）
-> - 面板卡右侧加了**用户头像**
+> **1.0.18 是修复版**，修的是「头像和面板对不上」+ 任务详情少三跳：
+> - **头像在真机上终于显示得出来了**：以前把 `/api/static/xxx` 直接塞进 `<img src>`，
+>   iOS 页面是 `file://` 源、安卓页面走 App 内回环服务（那个服务只代理 fetch、不管 `<img>`），
+>   子资源加载都没保证。改成 fetch 取 blob → 转 `data:` URL，和其它请求走同一条路。
+> - 点头像能看**大图**了；弹层里带「刷新」（在面板网页版改了头像，不用重开 App）
+>   和「复制面板地址」。
+> - **任务详情新增三处直达：脚本 / 最新日志 / 日志历史** —— 照面板网页版的任务详情做的。
+>   以前从详情去脚本要过「底栏 → 脚本 → 目录 → 文件」，去日志更绕。
+> - 两处布局修复（都是预览截图里肉眼发现的）：长脚本路径不再把右箭头挤出卡片；
+>   按钮文案不再折成两行。
 >
-> **装 1.0.16，别装 1.0.15 及更早的。**
+> **装 1.0.18，别装 1.0.17 及更早的**（1.0.17 的头像在真机上不显示）。
+>
+> 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
+> 1.0.17 加了头像真图但真机不显示，已作废。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.16-trollstore.ipa
-# 应该得到 f97a5fb84d246ba9490283bcb34086ad8dddbfd7886e7df401fbf9f27ca150a7
+sha256sum QingLongClient-1.0.18-trollstore.ipa
+# 应该得到 c2b76871382688ed3004fb1b3c0d32b22ce67ad1d8ea1ac89ea3d0ddba952000
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -203,7 +210,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.16-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.18-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -215,15 +222,15 @@ qinglong-ios/out/QingLongClient-1.0.16-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.16-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.18-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 292925 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.16（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 312643 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.18（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -236,6 +243,9 @@ python tools/verify_ipa.py out/QingLongClient-1.0.16-trollstore.ipa
 | 1.0.16 新增：趋势柱状图 `class="trend"` / `/api/dashboard/trend` `days: 7` | ✅ |
 | 1.0.16 新增：面板卡头像 `class="hav"` | ✅ |
 | 1.0.16 新增：日志搜索 `id="logSearch"` + `logKeyPath()` | ✅ |
+| 1.0.17 新增：头像走 fetch（`await fetch(avStaticUrl(`）/ `blobToDataUrl` / `paintAvatars` / `class="avbig"` | ✅ 4 个锚点全在 |
+| 1.0.17 新增：任务详情三处直达（`data-goscript=` / `data-gocronlog=` / `data-gocronlogdir=` / `scriptPathOf` / `shortPath` / `ensureLogTree`） | ✅ 6 个锚点全在 |
+| 1.0.18 修复：`.kvrow .v` 的 `min-width:0` / `.btn` 的 `white-space:nowrap` | ✅ 都在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -243,7 +253,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.16-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.16 (16) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.18 (18) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
@@ -338,7 +348,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.16 |
+| 版本 | 1.0.18 |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

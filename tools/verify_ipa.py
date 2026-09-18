@@ -58,9 +58,16 @@ FEATURES = [
     ("定时视图 透传 queryString", r"q\.queryString = JSON\.stringify\("),
     ("定时视图 降级标志", r"viewsFailed"),
     ("定时视图 切 tab", r"function setView\("),
-    # 底栏只剩四项，「订阅」那一格换成了「我的」（用户点名要的改动）。
-    # 锚在 tab 数量上：底栏要是又冒出一个入口，这里会失配。
-    ("底栏 四项", r'data-tab="me"'),
+    # 底栏五项：主页 / 任务 / 变量 / 脚本 / 我的（1.0.16 在最左加了「主页」）。
+    # 主页必须在最左 —— 用户说的是「任务栏左边」。锚在字面量上，顺序由 E2a 那组测。
+    ("底栏 有主页", r'<button data-tab="home"><span class="ti">◰</span>主页</button>'),
+    ("底栏 有我的", r'data-tab="me"'),
+    # 1.0.16 新增：趋势图 / 面板卡头像 / 日志搜索
+    ("趋势 柱状图容器", r'class="trend"'),
+    ("趋势 接口 days=7", r"/api/dashboard/trend'?,? ?\{ days: 7 \}"),
+    ("面板卡 头像", r'class="hav"'),
+    ("日志 搜索框", r'id="logSearch"'),
+    ("日志 key 拆前缀", r"function logKeyPath\("),
     # 功能网格的卡片：data-goto 是 featCard() 运行时拼出来的（`data-goto="' + f.tab + '"`），
     # 产物里搜不到 data-goto="subs" 这种字面量 —— 只能锚 FEATURES 表里的条目。
     # （第一版就锚错了，跑出来「缺失 !!」，白惊一场。）

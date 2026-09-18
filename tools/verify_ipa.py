@@ -110,6 +110,14 @@ FEATURES = [
     ("日志 打开贴到底", r"function paintLogFile\("),
     ("日志 文件倒序（最新在上）", r"function sortLogNodes\("),
     ("日志 运行后滚到日志区", r"function scrollToCronLog\("),
+    # 1.0.20 日志内搜关键字 + 详情页状态实时化
+    ("日志 关键字搜索过滤", r"function logPick\("),
+    ("日志 命中高亮", r"function logHi\("),
+    ("日志 搜索框", r'id="logFind"'),
+    ("日志 复制匹配行", r"复制匹配行"),
+    ("详情 状态徽标就地重画", r"function paintCronState\("),
+    ("详情 主按钮跟着状态变", r'id="cdAct"'),
+    ("详情 运行日志上色", r"box\.innerHTML = lines\.length \? logBoxHtml\("),
     # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),

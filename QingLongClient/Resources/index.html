@@ -419,6 +419,9 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
    否则行号也会跟着变红。复制走的是原始文本，不带行号。 */
 .logbox .ln{display:inline-block;width:3.4em;text-align:right;margin-right:.7em;
   color:#5d6b7a;user-select:none}
+/* 搜索命中的字。同样是**写死的颜色**（.logbox 底色恒为深色）：
+   黄底 + 近黑字，深底上最扎眼，也不跟主题走。 */
+.logbox .hl{background:#ffd479;color:#1a1200;border-radius:2px}
 .spin{width:16px;height:16px;border:2px solid var(--fill2);border-top-color:var(--accent);
   border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -1088,8 +1091,10 @@ var S = {
   /* 日志文件弹层的状态。**放 S 里而不是 openLogFile 的闭包里**：
      「复制内容」「只看错误」这两个按钮走的是全局事件委托，委托函数拿不到闭包变量。
      txt 存**原始文本**（没加行号的那份），复制走它 —— 从 DOM 的 textContent 读的话
-     会把「只看错误」模式下的行号一起复制走。 */
-  logfile: { lines: [], txt: '', onlyErr: false },
+     会把「只看错误」模式下的行号一起复制走。
+     q 是「在这个日志里搜关键字」，和 onlyErr 是**与**的关系（只看错误 + 搜索 =
+     在错误行里找）。 */
+  logfile: { lines: [], txt: '', onlyErr: false, q: '' },
   /* scripts.expanded 的键是「从脚本根目录算起的相对路径」（如 dir1/sub），值是真值。
      默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
      path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
@@ -2027,6 +2032,13 @@ async function cronAction(id, act) {
     /* 点了「立即运行」的人，下一步一定是看日志 —— 直接把详情页的日志区滚进视野，
        省得他自己往下找（内容不用管，那块本来就在自动刷新）。 */
     if (act === 'run' && S.detailId === id) scrollToCronLog();
+    /* 状态徽标和主按钮**当场就换**，不等下一次轮询（3 秒后）——
+       否则这三秒里按钮还写着「立即运行」，用户会以为没点上、再点一次。
+       status 3 = 排队中（面板也是先排队、再转运行中）。 */
+    if ((act === 'run' || act === 'stop') && S.detailId === id) {
+      t.status = act === 'run' ? 3 : 1;
+      paintCronState(t);
+    }
     setTimeout(function () { loadCrons(true); }, act === 'delete' ? 0 : 600);
   } catch (e) {
     toast(e.message, true);
@@ -2265,7 +2277,7 @@ function renderCronDetail(t) {
   var h = '';
 
   h += '<div class="card" style="padding:14px">';
-  h += '<div class="row"><div class="nm sp" style="font-size:calc(17px*var(--fs))">' + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>';
+  h += '<div class="row"><div class="nm sp" style="font-size:calc(17px*var(--fs))">' + esc(t.name || '未命名任务') + '</div><span id="cdPill">' + pill(s) + '</span></div>';
   if ((t.labels || []).length) {
     h += '<div class="tags">' + t.labels.map(function (l) { return '<span class="tag">' + esc(l) + '</span>'; }).join('') + '</div>';
   }
@@ -2308,7 +2320,7 @@ function renderCronDetail(t) {
 
   h += '<div class="secttl">操作</div>';
   h += '<div class="row" style="gap:8px;flex-wrap:wrap">';
-  h += '<button class="btn ' + (isBusy(t) ? '' : 'pri') + '" data-dact="' + (isBusy(t) ? 'stop' : 'run') + '" data-id="' + t.id + '">' + (isBusy(t) ? '停止' : '立即运行') + '</button>';
+  h += '<button class="btn ' + (isBusy(t) ? '' : 'pri') + '" id="cdAct" data-dact="' + (isBusy(t) ? 'stop' : 'run') + '" data-id="' + t.id + '">' + (isBusy(t) ? '停止' : '立即运行') + '</button>';
   h += '<button class="btn" data-dact="' + (t.isDisabled === 1 ? 'enable' : 'disable') + '" data-id="' + t.id + '">' + (t.isDisabled === 1 ? '启用' : '禁用') + '</button>';
   h += '<button class="btn" data-dact="' + (t.isPinned === 1 ? 'unpin' : 'pin') + '" data-id="' + t.id + '">' + (t.isPinned === 1 ? '取消置顶' : '置顶') + '</button>';
   h += '<button class="btn" data-edit="' + t.id + '">编辑</button>';
@@ -2350,13 +2362,19 @@ function kv(k, v) {
   return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>';
 }
 
+/* 详情页的运行日志也按级别上色：跑起来的时候红行（error）能一眼看到，
+   不用在一整屏灰字里扒。这里**不带行号**（保持终端观感）——
+   要行号、要筛错误、要搜关键字，走「日志历史」进日志文件弹层。 */
 async function loadCronLog(id, silent) {
   var box = $('#logBox');
   if (!box) return;
   if (!silent) box.textContent = '加载中…';
   try {
     var r = await api('/api/crons/' + id + '/log');
-    box.textContent = stripAnsi(r.data || '（日志为空）');
+    var txt = stripAnsi(r.data || '');
+    var lines = txt ? txt.split('\n') : [];
+    if (lines.length && lines[lines.length - 1] === '') lines.pop();
+    box.innerHTML = lines.length ? logBoxHtml(lines, false, '') : '（日志为空）';
     box.scrollTop = box.scrollHeight;
     var st = $('#logStat');
     if (st) {
@@ -2368,19 +2386,40 @@ async function loadCronLog(id, silent) {
   }
 }
 
+/* 详情页头部那两处「会变」的东西：状态徽标 + 主操作按钮。
+   **只改这两处，不重渲染整张详情** —— 整张重渲染会把运行日志区清空，
+   还会把「自动刷新」的勾选状态和滚动位置一起丢掉，每 3 秒闪一次没法用。
+   所以徽标和主按钮在 renderCronDetail 里都留了 id（cdPill / cdAct）。 */
+function paintCronState(t) {
+  if (!t) return;
+  var p = $('#cdPill');
+  if (p) p.innerHTML = pill(statusOf(t));
+  var b = $('#cdAct');
+  if (!b) return;
+  var busy = isBusy(t);
+  /* 文案和 data-dact **一起换**：事件委托是点的时候读 dataset 的，
+     只换文案不换 dataset 的话，按钮写着「停止」点下去却在「立即运行」。 */
+  b.textContent = busy ? '停止' : '立即运行';
+  b.dataset.dact = busy ? 'stop' : 'run';
+  b.className = 'btn' + (busy ? '' : ' pri');
+}
+
 function startDetailPolling(id) {
   stopDetailPolling();
   detailTimer = setInterval(async function () {
-    var auto = $('#autoLog');
-    if (!auto || !auto.checked) return;
     try {
       var r = await api('/api/crons/' + id);
       var fresh = r.data;
-      if (fresh) {
-        var old = S.crons.list.filter(function (x) { return x.id === id; })[0];
-        if (old) Object.assign(old, fresh);
-        if (isBusy(fresh)) await loadCronLog(id, true);
-      }
+      /* 等回来时用户可能已经关掉详情、或者换到别的任务了 —— 别去改别人的界面 */
+      if (!fresh || S.detailId !== id) return;
+      var old = S.crons.list.filter(function (x) { return x.id === id; })[0];
+      if (old) Object.assign(old, fresh);
+      /* 状态**不看「自动刷新」的勾选**：那个勾选只管日志正文要不要跟着滚。
+         以前它把状态轮询一起关掉了 —— 取消勾选后任务跑完了，
+         按钮还写着「立即运行」，看着像压根没跑起来。 */
+      paintCronState(fresh);
+      var auto = $('#autoLog');
+      if (auto && auto.checked && isBusy(fresh)) await loadCronLog(id, true);
     } catch (e) { /* 静默 */ }
   }, 3000);
 }
@@ -2818,7 +2857,7 @@ async function openLogFile(node) {
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
     var errN = logErrLines(lines).length;
     /* 存进 S：复制 / 只看错误这两个按钮走**全局事件委托**，拿不到闭包变量 */
-    S.logfile = { lines: lines, txt: txt, onlyErr: false };
+    S.logfile = { lines: lines, txt: txt, onlyErr: false, q: '' };
     $('#shB').innerHTML =
       '<div class="row" style="margin:0 4px 8px;gap:8px;align-items:center">' +
         '<div class="f11 t3 sp">' + esc(fmtSize(node.size)) + ' · ' + lines.length + ' 行' +
@@ -2826,11 +2865,25 @@ async function openLogFile(node) {
         /* 一行错都没有就不给这个按钮 —— 点了只会看到空框，白让人点一次 */
         (errN ? '<button class="btn" id="btnLogErr" style="padding:6px 12px;font-size:calc(12px*var(--fs))">只看错误</button>' : '') +
       '</div>' +
+      /* 几千行的日志靠肉眼扫找关键字是不现实的。只过滤**已经拉到本地**的这一份，
+         不再打接口 —— 和「只看错误」同一个思路。 */
+      '<div class="searchbar" style="margin:0 4px 8px;display:flex;gap:8px;align-items:center">' +
+        '<input id="logFind" type="search" placeholder="在这份日志里搜关键字" style="flex:1">' +
+        '<div class="f11 t3" id="logFindN" style="flex:0 0 auto"></div>' +
+      '</div>' +
       '<pre class="logbox lg" id="logPre"></pre>' +
       '<div class="row" style="margin-top:12px;gap:8px">' +
         '<button class="btn" id="btnCopyLog" style="flex:1">复制内容</button>' +
         '<button class="btn danger" id="btnDelLog" style="flex:1" data-path="' + esc(dir.join('/')) + '" data-file="' + esc(node.title) + '">删除文件</button>' +
       '</div>';
+    /* 搜索框是这次 innerHTML **新建**的，监听得就地挂：全局委托只管 click，
+       input 事件委托不到；而 paintLogFile 只改 #logPre，不会把这个 input 换掉，
+       所以挂一次就够（不用每次重画都重绑）。 */
+    var fin = $('#logFind');
+    if (fin) fin.addEventListener('input', function () {
+      S.logfile.q = fin.value.trim();
+      paintLogFile();
+    });
     /* 内容交给 paintLogFile 填（顺带贴到底），和切「只看错误」走同一条路 ——
        两处各写一遍的话，改了一处忘了另一处就不一致了。 */
     paintLogFile();
@@ -3941,7 +3994,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.19';
+var APP_VER = '1.0.20';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -5256,53 +5309,81 @@ function logLv(line) {
 function isErrLine(line) {
   return logLv(line) === 'error';
 }
-/* 从整段日志里挑出错误行，带**原始行号**（面板网页版报错时会报行号，好对上）。 */
-function logErrLines(lines) {
+/* 从整段日志里挑出要显示的行，带**原始行号**（面板网页版报错时会报行号，好对上）。
+   onlyErr 和 q 是**与**的关系：两个都开着 = 在错误行里再搜关键字。
+   计数、渲染、复制**都走这一个函数** —— 三处各写一遍的话，
+   迟早出现「框里显示 3 行、复制出来 5 行」这种对不上的事。 */
+function logPick(lines, onlyErr, q) {
+  var k = String(q || '').toLowerCase();
   var out = [];
   (lines || []).forEach(function (l, i) {
-    if (isErrLine(l)) out.push({ n: i + 1, t: l });
+    var s = String(l == null ? '' : l);
+    if (onlyErr && !isErrLine(s)) return;
+    if (k && s.toLowerCase().indexOf(k) < 0) return;
+    out.push({ n: i + 1, t: s });
   });
   return out;
 }
+function logErrLines(lines) { return logPick(lines, true, ''); }
+/* 命中处高亮。**先按原文找位置、再分段转义** ——
+   反过来（先 esc 再找）的话，关键字里带 `<` 或 `&` 就永远搜不到了。 */
+function logHi(line, q) {
+  var s = String(line == null ? '' : line);
+  var k = String(q || '');
+  if (!k) return esc(s);
+  var low = s.toLowerCase(), kl = k.toLowerCase();
+  var out = '', i = 0;
+  for (;;) {
+    var p = low.indexOf(kl, i);
+    if (p < 0) break;
+    out += esc(s.slice(i, p)) + '<span class="hl">' + esc(s.slice(p, p + kl.length)) + '</span>';
+    i = p + kl.length;
+  }
+  return out + esc(s.slice(i));
+}
 /* 日志框的内容。一行一个 <span>（只拼字符串、不建 DOM 节点 ——
    几千行的日志逐行 createElement 在手机上会明显卡）。
-   onlyErr=true 时只画错误行，行首带行号；行号是**独立**的 span，
-   不套在 .lv-error 里面，否则行号也会跟着变红。 */
-function logBoxHtml(lines, onlyErr) {
-  var all = lines || [];
-  var list = [];
-  for (var i = 0; i < all.length; i++) {
-    if (onlyErr && !isErrLine(all[i])) continue;
-    list.push({ n: i + 1, t: all[i] });
-  }
+   筛选（只看错误 / 搜索）时行首带行号，行号是**独立**的 span，
+   不套在 .lv-error 里面，否则行号也会跟着变红；
+   不筛选时**不带行号**，保持终端观感。 */
+function logBoxHtml(lines, onlyErr, q) {
+  var list = logPick(lines, onlyErr, q);
+  var num = !!(onlyErr || q);
   return list.map(function (x) {
     var lv = logLv(x.t);
-    return (onlyErr ? '<span class="ln">' + x.n + '</span>' : '') +
-      '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' + esc(x.t) + '\n</span>';
+    return (num ? '<span class="ln">' + x.n + '</span>' : '') +
+      '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' + logHi(x.t, q) + '\n</span>';
   }).join('');
 }
-/* 「复制内容」到底复制什么：**按当前显示的那份来** ——
+/* 「复制」到底复制什么：**按当前显示的那份来** ——
    开了「只看错误」还复制全文，用户会以为没生效（或者以为复制漏了）。
-   走 S.logfile.txt 而不是读 DOM：DOM 里那份带了行号。 */
+   走 S.logfile 里的原文，不读 DOM：DOM 里那份带了行号和高亮标签。 */
 function logCopyText() {
   var lf = S.logfile;
-  if (lf.onlyErr) return logErrLines(lf.lines).map(function (x) { return x.t; }).join('\n');
+  if (lf.onlyErr || lf.q) {
+    return logPick(lf.lines, lf.onlyErr, lf.q).map(function (x) { return x.t; }).join('\n');
+  }
   return lf.txt || '';
 }
-/* 重画日志框（切「只看错误」时用）。**不重新打接口** ——
+/* 重画日志框（切「只看错误」/ 改搜索词时用）。**不重新打接口** ——
    内容已经在 S.logfile.lines 里了，再请求一次纯属浪费，还会闪一下。 */
 function paintLogFile() {
   var lf = S.logfile;
   var pre = $('#logPre');
   if (!pre) return;
-  pre.innerHTML = logBoxHtml(lf.lines, lf.onlyErr);
-  /* 贴到底：新的日志追加在文件末尾，最新在下面。
+  pre.innerHTML = logBoxHtml(lf.lines, lf.onlyErr, lf.q);
+  /* 滚到哪儿：搜索时滚到**第一条匹配**（否则搜完还停在末尾，看着像没搜到）；
+     其它情况贴到底 —— 新的日志追加在文件末尾，最新在下面。
      必须等 innerHTML 落地之后再滚，否则 scrollHeight 还是旧值。 */
-  pre.scrollTop = pre.scrollHeight;
+  pre.scrollTop = lf.q ? 0 : pre.scrollHeight;
   var eb = $('#btnLogErr');
   if (eb) eb.textContent = lf.onlyErr ? '看全部' : '只看错误';
   var cp = $('#btnCopyLog');
-  if (cp) cp.textContent = lf.onlyErr ? '复制错误行' : '复制内容';
+  if (cp) cp.textContent = lf.q ? '复制匹配行' : (lf.onlyErr ? '复制错误行' : '复制内容');
+  var fn = $('#logFindN');
+  if (fn) {
+    fn.textContent = lf.q ? (logPick(lf.lines, lf.onlyErr, lf.q).length + ' 行匹配') : '';
+  }
 }
 
 function renderSysLog() {

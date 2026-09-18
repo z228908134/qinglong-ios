@@ -234,6 +234,10 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   justify-content:center;font-size:calc(20px*var(--fs));font-weight:700;color:#fff;
   background:linear-gradient(135deg,#5AD1E8,#1E9CC0);
   box-shadow:0 6px 14px -6px rgba(30,156,192,.6)}
+/* 面板头像（<img>）。尺寸由**父级**定（主机卡 46px / 账号胶囊 24px / 底栏「我的」21px），
+   图自己只负责铺满并裁成圆。object-fit:cover 不能省 —— 面板「更换头像」上传的是原图，
+   长宽比不一定是 1:1，不裁的话圆头像里的人/图会被拉扁。 */
+.avimg{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
 /* 「正在执行 N 个 / 排队 N 个」高亮：主色 + 数字加粗，跟面板运行时间那段区分开 */
 .ovcard .meta.live{margin-top:9px;font-size:calc(13px*var(--fs));color:var(--text)}
 .ovcard .live-num{color:var(--accent);font-weight:700;font-size:calc(15px*var(--fs));margin:0 2px}
@@ -1030,6 +1034,10 @@ var S = {
      fsValue() 会认，所以这里原样读回来就行，不用在启动时改写用户存的值。 */
   fs: sget(K.fs) || FS_DEF,
   sys: null,
+  /* 面板头像的**文件名**（登录后在 GET /api/user 里取回，形如 'xxxxxxxx.png'）。
+     **只存文件名不存整条 URL** —— 面板地址是用户自己填的，换一台面板就得跟着换，
+     把 URL 存下来会在切账号时串到上一台的头像上。空串 = 没设过头像 → 回退首字母。 */
+  avatar: '',
   need2fa: false,
   detailId: null,
   /* filter: 状态筛选（all / running / unused / disabled），分档规则见 cronBucket()。
@@ -1499,6 +1507,7 @@ function showApp() {
 function signOut(silent) {
   S.token = '';
   S.sys = null;
+  S.avatar = '';      // 换账号时别把上一台的头像带过去
   sdel(K.token);
   S.crons.list = []; S.crons.total = 0; S.crons.page = 1;
   S.envs.list = []; S.logs.tree = []; S.logs.path = []; S.logs.q = '';
@@ -1658,6 +1667,13 @@ async function doLogin(auto, creds) {
 
 async function bootAfterLogin() {
   try { var sys = await api('/api/system'); S.sys = sys.data || null; } catch (e) {}
+  /* 头像：GET /api/user 回 { username, avatar, twoFactorActivated }，
+     avatar 是**文件名**（uuid + 扩展名），真正的图在 /api/static/<文件名>。
+     取不到就置空 → 三处头像自动退回首字母，不能因为一张图把登录卡住。 */
+  try {
+    var me = await api('/api/user');
+    S.avatar = (me.data && me.data.avatar) ? String(me.data.avatar) : '';
+  } catch (e) { S.avatar = ''; }
   setTab(S.tab || 'crons', true);
 }
 
@@ -3687,7 +3703,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.16';
+var APP_VER = '1.0.17';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3732,9 +3748,62 @@ function avChar() {
   var u = String(S.user == null ? '' : S.user).trim();
   return u ? u.charAt(0).toUpperCase() : '◍';
 }
+/* 面板头像的**真实地址**。
+   对的是面板 back/loaders/express.ts：`app.use('/api/static', express.static(uploadPath))`
+   注册在 jwt 中间件**之前**，所以 /api/static/<文件名> **不带鉴权**，可以直接塞进
+   <img src> —— 不需要 token，也就不用为了一张图去开 blob / data URL 那套。
+   头像文件是「更换头像」时用 PUT /api/user/avatar 上传的，落到 /ql/data/upload/，
+   文件名是 uuid + 原扩展名，authInfo.avatar 里只存这个文件名。
+   没有头像时返回空串，调用方退回 avChar() 的首字母。 */
+function avUrl() {
+  var f = String(S.avatar == null ? '' : S.avatar).trim();
+  if (!f) return '';
+  /* 用 base()（面板真实地址）而不是 apiBase()：iOS 上页面是 file:// 加载的，
+     apiBase() 本来就返回 base()，两者一样；安卓上 apiBase() 是回环代理地址，
+     那个本地服务只代理 /api 的 fetch（JS 桥接过去的），<img> 不会被桥接，
+     走回环地址会取不到图。所以**一律用真实地址**。 */
+  return base() + '/api/static/' + encodeURIComponent(f);
+}
+/* 头像的**内部**那段 HTML：有图出图，没图出首字母。
+   图挂了（文件被删 / 面板版本没这个静态挂载）要有退路，所以带 onerror ——
+   不然就是一个破图图标，比首字母还难看。 */
+function avInner() {
+  var u = avUrl();
+  if (!u) return esc(avChar());
+  return '<img class="avimg" src="' + esc(u) + '" alt="">';
+}
+/* 头像图加载失败（文件被删了 / 面板版本没有 /api/static 这个静态挂载 / 地址不通）
+   就**全部**退回首字母。只换掉出问题的那一个没用 —— 三处是同一个文件名，
+   一张取不到就是都取不到，留着另外两个破图更难看。
+   用 textContent 整体覆盖：父级是圆的、带渐变底，只删 <img> 会剩一个空圆。 */
+function avFallbackAll() {
+  S.avatar = '';
+  $$('.hav, .acct .av, #tabAv').forEach(function (box) { box.textContent = avChar(); });
+}
+/* 给刚渲染出来的头像 <img> 挂 error 监听。
+   **必须每次渲染完调一次**：img 是 innerHTML 塞进去的，新元素上没有任何监听，
+   而且这份页面整个包在 IIFE 里（没有全局函数），写 onerror="xxx(this)" 属性
+   是取不到函数的 —— 现有代码里也确实一处内联事件都没有。 */
+function bindAvImgs() {
+  $$('.avimg').forEach(function (im) {
+    if (im.__avb) return;      // 同一个元素别重复挂
+    im.__avb = true;
+    im.addEventListener('error', avFallbackAll);
+  });
+}
+/* 把 avInner() 的结果塞进一个已有元素。
+   **没图的时候走 textContent**：结果就是一个字符，没必要过一遍 HTML 解析 ——
+   用户名里真要有 & < 之类的字符，走 innerHTML 会被当成标签吃掉。
+   有图（含 '<'）时才用 innerHTML。 */
+function setAvInner(el) {
+  if (!el) return;
+  var h = avInner();
+  if (h.indexOf('<') < 0) { el.textContent = h; return; }
+  el.innerHTML = h;
+}
 function syncTabAvatar() {
-  var el = $('#tabAv');
-  if (el) el.textContent = avChar();
+  setAvInner($('#tabAv'));
+  bindAvImgs();
 }
 
 /* ================= 「我的」页：面板概览 ================= */
@@ -3827,8 +3896,9 @@ function dashHost() {
       (s.uptime != null ? '<div class="meta">面板已运行 ' + esc(fmtUptime(s.uptime)) + '</div>' : '') +
       (live.length ? '<div class="meta live">' + live.join(' · ') + '</div>' : '') +
     '</div>' +
-    /* 头像：用户名首字母。未登录时 avChar() 退回一个字形，不是一个空白圆。 */
-    '<span class="hav">' + esc(avChar()) + '</span>' +
+    /* 头像：面板上传过的图优先，没设过才退回首字母。
+       未登录时 avChar() 退回一个字形，不是一个空白圆。 */
+    '<span class="hav">' + avInner() + '</span>' +
     '</div>';
 }
 
@@ -3946,10 +4016,12 @@ function dashCards() {
 function renderDash() {
   $('#sub').textContent = '';
   /* 「切换账号」胶囊渲染进顶栏的槽（在大标题上方），不在 #main 里 */
+  /* 头像同上：有面板头像就出图，没有才用首字母。 */
   $('#acctBar').innerHTML = '<button class="acct" id="btnAcct">' +
-    '<span class="av">' + esc(avChar()) + '</span>' +
+    '<span class="av">' + avInner() + '</span>' +
     '<span class="un ell">' + esc(S.user) + '</span>' +
     '<span class="sw">切换账号</span></button>';
+  bindAvImgs();
 
   /* 概览**不在这里** —— 它搬到「主页」了（renderHome）。这页只留功能网格，
      这样即使统计接口全挂，功能入口也是同步渲染出来的、立刻能点。 */
@@ -3969,6 +4041,8 @@ function renderHome() {
   var el = $('#homeBody');
   if (!el) return;
   el.innerHTML = dashCards() + dashTrend();
+  /* 主机卡里的头像是 innerHTML 塞进去的 <img>，得重新挂一次 error 兜底 */
+  bindAvImgs();
 }
 
 async function loadDash() {

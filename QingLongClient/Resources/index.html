@@ -1021,7 +1021,8 @@ var S = {
   server: sget(K.server) || FALLBACK_SERVER,
   user: sget(K.user) || 'admin',
   token: sget(K.token) || '',
-  tab: sget(K.tab) || 'crons',
+  /* 新装默认落在主页（1.0.16 起）。老用户存过 K.tab，会回到上次那一页，不受影响。 */
+  tab: sget(K.tab) || 'home',
   /* 'auto'（跟随系统）/ 'light'（浅色）/ 'dark'（深色）。默认 auto —— 不主动覆盖系统选择 */
   theme: sget(K.theme) || 'auto',
   /* 's' / 'm'（标准，默认）/ 'l' / 'xl'。只缩放字号，见 applyFontScale() */

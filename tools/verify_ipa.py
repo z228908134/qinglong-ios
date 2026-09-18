@@ -2,7 +2,7 @@
 """解包 ipa 逐项核对 —— 不是看构建日志，是把包拆开读。
 
 用法：
-    python tools/verify_ipa.py out/QingLongClient-1.0.11-trollstore.ipa
+    python tools/verify_ipa.py out/QingLongClient-1.0.13-trollstore.ipa
     python tools/verify_ipa.py <ipa> --pwa ../qinglong-pwa
 
 为什么要单独写一个脚本：CI 日志只证明「打包这一步没报错」，
@@ -12,7 +12,8 @@
 检查项：
   1. 包结构（index.html / QLBootstrap.js / Info.plist / 可执行文件 / 签名）
   2. 内置页面：字节数、与本地构建产物**逐字节一致**、APP_VER、不预填面板地址
-  3. 各功能代码是否真在包里（应用设置 / 其他设置 / 登录日志 / 字号拖动条）
+  3. 各功能代码是否真在包里（应用设置 / 其他设置 / 登录日志 / 字号拖动条 / 定时视图 /
+     底栏四项 / 面板日志 / 三个时间格式化函数）
   4. 不该出现的东西（window.open、真实公网 IP）
   5. Info.plist 关键键（Bundle ID / 版本 / ATS / 本地网络权限）
   6. 可执行文件架构（arm64 Mach-O）
@@ -57,6 +58,20 @@ FEATURES = [
     ("定时视图 透传 queryString", r"q\.queryString = JSON\.stringify\("),
     ("定时视图 降级标志", r"viewsFailed"),
     ("定时视图 切 tab", r"function setView\("),
+    # 底栏只剩四项，「订阅」那一格换成了「我的」（用户点名要的改动）。
+    # 锚在 tab 数量上：底栏要是又冒出一个入口，这里会失配。
+    ("底栏 四项", r'data-tab="me"'),
+    ("我的页 订阅管理入口", r'data-goto="subs"'),
+    ("我的页 应用设置入口", r'data-goto="apps"'),
+    ("我的页 依赖管理入口", r'data-goto="deps"'),
+    ("面板日志 列表加载", r"function loadSysLog\("),
+    ("面板日志 纯文本接口", r"/api/system/log"),
+    ("面板日志 清空走 DELETE", r"\{ method: 'DELETE' \}"),
+    ("面板日志 级别配色", r"\.logbox \.lv-error\{"),
+    # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
+    ("时间 秒级时间戳换算", r"function cronMs\("),
+    ("时间 运行时长格式化", r"function fmtDur\("),
+    ("时间 文件时间兜底", r"function fmtFileTime\("),
 ]
 
 PLIST_KEYS = [

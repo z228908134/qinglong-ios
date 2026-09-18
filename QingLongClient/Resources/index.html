@@ -360,6 +360,12 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* 日志 / 文件正文的加高版本，替代原先 4 处内联高度
    （内联样式会盖住上面这条，而且写死了 vh，键盘弹起会把框顶出屏幕）。 */
 .logbox.lg{max-height:70vh;max-height:70dvh}
+/* 面板日志的级别配色。.logbox 的底色恒为深色（终端观感，不跟主题走），
+   所以这里也写死亮色文字 —— 用主题变量的话浅色主题下会变成深底深字。 */
+.logbox .lv-error{color:#ff8f8f}
+.logbox .lv-warn{color:#ffd479}
+.logbox .lv-info{color:#8fd0ff}
+.logbox .lv-debug{color:#93a0ad}
 .spin{width:16px;height:16px;border:2px solid var(--fill2);border-top-color:var(--accent);
   border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -603,17 +609,25 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div class="list" id="loginlogList"></div>
     </section>
 
+    <!-- 面板日志：面板「系统设置 → 系统日志」的移动版。接口回的是纯文本，
+         所以这里是「分段按钮 + 刷新/清空 + 一个等宽滚动块」，不是列表。 -->
+    <section class="view" id="v-syslog">
+      <div id="syslogBody"></div>
+    </section>
+
     <section class="view" id="v-me">
       <div id="meBody"></div>
     </section>
   </div>
 
+  <!-- 底栏只留四项：订阅原先占的那一格换成「我的」。
+       订阅管理、依赖管理、面板日志、应用设置、其他设置这些全部收进「我的」页，
+       底栏放五个塞不下，而且这些页不是天天用的。 -->
   <nav id="tabbar">
-    <button data-tab="me"><span class="ti av" id="tabAv">◍</span>我的</button>
     <button data-tab="crons"><span class="ti">▤</span>任务</button>
     <button data-tab="envs"><span class="ti">⚿</span>变量</button>
     <button data-tab="scripts"><span class="ti">⌘</span>脚本</button>
-    <button data-tab="subs"><span class="ti">⇅</span>订阅</button>
+    <button data-tab="me"><span class="ti av" id="tabAv">◍</span>我的</button>
   </nav>
   <!-- 任务页批量编辑时的底部操作栏。fixed 贴底，编辑模式下底栏（#tabbar）整体让位
        —— 这样就不用去猜底栏有多高，也不会互相压住。见 renderCronEditBar()。 -->
@@ -1021,6 +1035,11 @@ var S = {
      mods 是备份时勾选的模块（base 恒为真，见 BACKUP_MODULES）。 */
   sysconf: { cfg: null, loading: false, err: '', mods: { base: 1 } },
   loginlog: { list: [], loading: false, err: '' },
+  /* 面板日志（面板「系统设置 → 系统日志」）。GET /api/system/log 回的是把区间内
+     的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
+     apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
+     面板自己也只允许查最近 7 天。 */
+  syslog: { text: '', range: 'today', loading: false, err: '' },
   busy: false
 };
 
@@ -1249,6 +1268,42 @@ function fmtWhen(v) {
   var t = typeof v === 'number' ? v : Date.parse(v);
   if (!t || isNaN(t)) return String(v);
   return fmtRel(t);
+}
+/* 任务的两个时间字段单位都跟直觉相反（面板前端怎么写，这里就怎么对齐）：
+   · last_execution_time 是**秒**级时间戳，不是毫秒。面板前端写的是
+     `dayjs(record.last_execution_time * 1000)`。我们直接 new Date(x) 的话，
+     1.79e9 会被当成毫秒 → 显示成 1970-01-2x（用户看到的就是这个）。
+   · last_running_time **根本不是时间戳**，是「上次运行了多久（秒）」。
+     面板前端用 diffTime(x)（内部 num * 1000）拆成 天/时/分/秒。
+     以前这里写成 new Date(x)，x=1 就显示 1970-01-01 08:00:00。 */
+function cronMs(sec) {
+  var n = Number(sec);
+  return isFinite(n) && n > 0 ? n * 1000 : 0;
+}
+/* 运行时长：秒 → 「X 天 X 时」。只留前两档 ——
+   手机上「1 天 2 时 3 分 4 秒」一屏放不下，也没必要那么精确。 */
+function fmtDur(sec) {
+  var n = Number(sec);
+  if (!isFinite(n) || n <= 0) return '—';
+  var d = Math.floor(n / 86400);
+  var h = Math.floor((n % 86400) / 3600);
+  var m = Math.floor((n % 3600) / 60);
+  var s = Math.round(n % 60);
+  if (d) return d + ' 天 ' + h + ' 时';
+  if (h) return h + ' 时 ' + m + ' 分';
+  if (m) return m + ' 分 ' + s + ' 秒';
+  return s + ' 秒';
+}
+/* 脚本树 / 日志树的 createTime 来自后端 readDirs() 的 stats.birthtime.getTime()，
+   **单位是毫秒，这里没问题**（跟 last_execution_time 那种秒级字段不是一回事）。
+   但 Docker 里挂载卷的 birthtime 有可能是 0 或纪元值 —— 那时 new Date(0) 会老老实实
+   显示成「01-01 08:00:00」，看着就像我们算错了。面板自己的脚本页干脆不显示时间，
+   所以这里也挡一道：不合理就不显示，不编。 */
+function fmtFileTime(v) {
+  var n = Number(v);
+  /* 2000-01-01 之前的一律当无效：脚本不可能比青龙这个项目还老 */
+  if (!isFinite(n) || n < 946684800000) return '';
+  return fmtAbs(new Date(n));
 }
 function stripAnsi(s) {
   return String(s == null ? '' : s)
@@ -1577,7 +1632,7 @@ var TITLES = {
   logs: '日志文件', me: '所有功能',
   /* 这三个对应面板网页版「系统设置」里的同名页签，入口在系统设置弹层里。
      名字照面板的叫法，不要改 —— 用户是照面板的名字找的。 */
-  apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志'
+  apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志', syslog: '面板日志'
 };
 
 /* 顶栏「+」出现在哪些页面。
@@ -1643,6 +1698,7 @@ async function refresh() {
   if (S.tab === 'apps') return loadApps();
   if (S.tab === 'sysconf') return loadSysconf();
   if (S.tab === 'loginlog') return loadLoginLog();
+  if (S.tab === 'syslog') return loadSysLog();
   if (S.tab === 'me') return loadDash();
 }
 
@@ -1812,7 +1868,7 @@ function renderCrons() {
         '<div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>' +
       '<div class="tags">' + tags + '</div>' +
       '<div class="row f11 t3" style="margin-top:8px">' +
-        '<span>上次 ' + esc(fmtRel(t.last_execution_time)) + '</span>' +
+        '<span>上次 ' + esc(fmtRel(cronMs(t.last_execution_time))) + '</span>' +
         (next ? '<span class="sp ell" style="text-align:right">下次 ' + esc(next.split('（')[0]) + '</span>' : '') +
       '</div>' +
       (editing ? '' :
@@ -1993,8 +2049,11 @@ function renderCronDetail(t) {
   h += '<div class="secttl">调度</div><div class="card">';
   h += kv('定时规则', t.schedule || '—');
   if (next) h += kv('下次执行', next);
-  h += kv('上次执行', fmtRel(t.last_execution_time));
-  if (t.last_running_time > 0) h += kv('上次开始', fmtAbs(new Date(t.last_running_time)));
+  /* 这两个字段的单位都跟字段名给人的直觉相反，详见 cronMs / fmtDur 的注释。
+     last_execution_time 是秒级时间戳（要 ×1000）；
+     last_running_time 是「运行了多久」的秒数，不是时间点，只能当时长格式化。 */
+  h += kv('上次执行', fmtRel(cronMs(t.last_execution_time)));
+  if (t.last_running_time > 0) h += kv('上次运行', fmtDur(t.last_running_time));
   if (isBusy(t) && t.pid) h += kv('进程号', t.pid);
   h += '</div>';
 
@@ -2371,7 +2430,8 @@ function renderLogs() {
     var isDir = n.type === 'directory';
     var meta = [];
     if (!isDir && n.size != null) meta.push(fmtSize(n.size));
-    if (n.createTime) meta.push(fmtAbs(new Date(n.createTime)));
+    var ft = fmtFileTime(n.createTime);
+    if (ft) meta.push(ft);
     if (isDir) meta.push((n.children || []).length + ' 项');
     return '<div class="item row" data-log="' + esc(n.key) + '" data-dir="' + (isDir ? '1' : '0') + '">' +
       '<div style="font-size:calc(16px*var(--fs));width:22px;text-align:center">' + (isDir ? '📁' : '📄') + '</div>' +
@@ -2515,7 +2575,8 @@ function scrRow(r) {
   var meta = [];
   if (!isDir && n.size != null) meta.push(fmtSize(n.size));
   if (isDir) meta.push((n.children || []).length + ' 项');
-  if (n.createTime) meta.push(fmtAbs(new Date(n.createTime)));
+  var ft = fmtFileTime(n.createTime);
+  if (ft) meta.push(ft);
   var open = isDir && scrExpanded(r.key);
   /* 缩进用行内 --d 传给 CSS 的 padding-left（卡片背景跟着一起缩，不会被推窄）。 */
   return '<div class="item row ind" style="--d:' + r.depth + ';gap:8px">' +
@@ -3530,19 +3591,25 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.12';
+var APP_VER = '1.0.13';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
-   注意「系统设置」那张不是 tab（TITLES 里没有它），所以走弹层、单独挂 id。 */
+   注意「系统设置」那张不是 tab（TITLES 里没有它），所以走弹层、单独挂 id。
+   底栏只留四个 tab（任务 / 变量 / 脚本 / 我的），其余入口全部收进这一页 ——
+   所以这里必须覆盖**所有**功能，漏一个就等于那个功能在 App 里点不到。 */
 var FEATURES = [
-  { tab: 'crons',   icon: '▤', label: '定时任务', g: ['#5AA9FF', '#2E6BFF'], sh: 'rgba(46,107,255,.38)' },
-  { tab: 'envs',    icon: '⚿', label: '环境变量', g: ['#4ED8A8', '#12A16F'], sh: 'rgba(18,161,111,.38)' },
-  { tab: 'scripts', icon: '⌘', label: '脚本管理', g: ['#B07CFF', '#7A3FF2'], sh: 'rgba(122,63,242,.38)' },
-  { tab: 'subs',    icon: '⇅', label: '订阅管理', g: ['#5AD1E8', '#1E9CC0'], sh: 'rgba(30,156,192,.38)' },
-  { tab: 'deps',    icon: '◈', label: '依赖管理', g: ['#FFB65C', '#F08200'], sh: 'rgba(240,130,0,.38)' },
-  { tab: 'configs', icon: '▣', label: '配置文件', g: ['#8C9EFF', '#4E5BE8'], sh: 'rgba(78,91,232,.38)' },
-  { tab: 'logs',    icon: '▦', label: '日志文件', g: ['#A9B4C4', '#6C7A8C'], sh: 'rgba(108,122,140,.38)' },
+  { tab: 'crons',    icon: '▤', label: '定时任务', g: ['#5AA9FF', '#2E6BFF'], sh: 'rgba(46,107,255,.38)' },
+  { tab: 'envs',     icon: '⚿', label: '环境变量', g: ['#4ED8A8', '#12A16F'], sh: 'rgba(18,161,111,.38)' },
+  { tab: 'scripts',  icon: '⌘', label: '脚本管理', g: ['#B07CFF', '#7A3FF2'], sh: 'rgba(122,63,242,.38)' },
+  { tab: 'subs',     icon: '⇅', label: '订阅管理', g: ['#5AD1E8', '#1E9CC0'], sh: 'rgba(30,156,192,.38)' },
+  { tab: 'deps',     icon: '◈', label: '依赖管理', g: ['#FFB65C', '#F08200'], sh: 'rgba(240,130,0,.38)' },
+  { tab: 'configs',  icon: '▣', label: '配置文件', g: ['#8C9EFF', '#4E5BE8'], sh: 'rgba(78,91,232,.38)' },
+  { tab: 'logs',     icon: '▦', label: '日志文件', g: ['#A9B4C4', '#6C7A8C'], sh: 'rgba(108,122,140,.38)' },
+  { tab: 'syslog',   icon: '⛭', label: '面板日志', g: ['#7ED0A8', '#3E9E78'], sh: 'rgba(62,158,120,.38)' },
+  { tab: 'apps',     icon: '◫', label: '应用设置', g: ['#FFC978', '#E0902A'], sh: 'rgba(224,144,42,.38)' },
+  { tab: 'sysconf',  icon: '⚒', label: '其他设置', g: ['#9FA8FF', '#5A63E0'], sh: 'rgba(90,99,224,.38)' },
+  { tab: 'loginlog', icon: '⏱', label: '登录日志', g: ['#FF9FB0', '#E05070'], sh: 'rgba(224,80,112,.38)' },
   { icon: '⚙', label: '系统设置', g: ['#FF8FA0', '#E8455F'], sh: 'rgba(232,69,95,.38)', id: 'btnSettings' }
 ];
 
@@ -3836,6 +3903,10 @@ function openSettings() {
     '<button class="kvrow" data-goto="loginlog">' +
         '<span class="k">登录日志</span>' +
         '<span class="v desc">谁在什么时候登录过 ›</span>' +
+      '</button>' +
+    '<button class="kvrow" data-goto="syslog">' +
+        '<span class="k">面板日志</span>' +
+        '<span class="v desc">面板进程自己的运行日志 ›</span>' +
       '</button>' +
     '</div>';
   h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">' +
@@ -4578,6 +4649,134 @@ function renderLoginLog() {
       '</div>' +
     '</div>';
   }).join('');
+}
+
+/* ---------- 面板日志（面板「系统设置 → 系统日志」） ---------- */
+/* 接口 GET /api/system/log?startTime=&endTime= 回的是**纯文本**：后端把区间内
+   所有 .log 文件按顺序首尾拼起来直接流回来，没有 {code,data} 包装，所以只能走
+   apiText()。startTime / endTime 传 YYYY-MM-DD 就行 —— 后端自己会
+   dayjs(x).startOf('d') / .endOf('d')，多传时分秒反而不一致。
+   range 只留「今天 / 近 7 天」：手机上没有日期选择器，而且面板自己
+   （setting/systemLog.tsx）也把可选范围卡死在最近 7 天。 */
+function dateYmd(d) {
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function sysLogRange() {
+  var end = new Date();
+  var start = new Date();
+  /* 近 7 天含今天，所以往回退 6 天 */
+  if (S.syslog.range === '7d') start = new Date(end.getTime() - 6 * 86400000);
+  return { startTime: dateYmd(start), endTime: dateYmd(end) };
+}
+
+async function loadSysLog(force) {
+  var g = S.syslog;
+  /* 已经有一轮在飞：直接返回。日志是整段文本，重复打没有意义。 */
+  if (g.loading) return;
+  /* 同一档已经拉到过内容就不重复打接口（从别的 tab 切回来重画即可）。
+     force 是「刷新」按钮和切档位走的。 */
+  if (g.text && !force) { renderSysLog(); return; }
+  g.loading = true;
+  g.err = '';
+  renderSysLog();
+  var seq = (g.seq = (g.seq || 0) + 1);
+  try {
+    var text = await apiText('/api/system/log', sysLogRange());
+    /* 期间又点了一次刷新 / 切了档位：这次的结果已经过期，丢掉 */
+    if (seq !== g.seq) return;
+    g.text = text || '';
+  } catch (e) {
+    if (seq !== g.seq) return;
+    g.err = e.message;
+    g.text = '';
+  }
+  g.loading = false;
+  renderSysLog();
+}
+
+/* 按级别上色。面板日志的行长这样：`2026-09-18 13:00:00 [ℹ️info] ...`，
+   但不同小版本里的记号不一样（有的纯文字 [info]、有的带 emoji 前缀），
+   所以只认行里出现的级别词。**认不出就返回空串保持默认色** ——
+   不能因为认不出就把整行丢掉或标红，那会把普通日志变成一堆假错误。 */
+function logLv(line) {
+  var m = /\[[^\]]{0,10}(debug|info|warn|error)/i.exec(line) ||
+          /\b(debug|info|warn|error)\b/i.exec(line);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function renderSysLog() {
+  var box = $('#syslogBody');
+  if (!box) return;
+  var g = S.syslog;
+  $('#sub').textContent = '';
+
+  var h = segHtml('syslogSeg', [{ v: 'today', t: '今天' }, { v: '7d', t: '近 7 天' }], g.range);
+  h += '<div class="row" style="gap:8px;margin:12px 0">' +
+    '<button class="btn" id="btnSysLogReload" style="flex:1">' + (g.loading ? '刷新中…' : '刷新') + '</button>' +
+    '<button class="btn danger" id="btnSysLogClear" style="flex:1">清空日志</button>' +
+    '</div>';
+
+  var lines = String(g.text || '').split('\n');
+  /* 末尾那个换行会切出一个空串，去掉，否则日志框底下永远多一行空白 */
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+
+  if (g.err) {
+    h += '<div class="empty"><span class="ei">!</span>' + esc(g.err) +
+      '<div style="margin-top:16px"><button class="btn" id="btnSysLogReload2" style="padding:8px 22px">重试</button></div></div>';
+  } else if (g.loading && !lines.length) {
+    h += '<div class="center"><span class="spin"></span>读取面板日志…</div>';
+  } else if (!lines.length) {
+    h += '<div class="empty"><span class="ei">⛭</span>这段时间没有面板日志</div>';
+  } else {
+    /* 一行一个 span 上色。整个日志几千行是常态，这里只做字符串拼接，
+       不建 DOM 节点 —— 逐行 createElement 在手机上会明显卡住。 */
+    h += '<pre class="logbox lg" id="syslogPre">' + lines.map(function (l) {
+      var lv = logLv(l);
+      return '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' +
+        esc(stripAnsi(l)) + '\n</span>';
+    }).join('') + '</pre>';
+    h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">共 ' + lines.length +
+      ' 行。日志是面板进程自己写的，跟任务运行日志不是一回事（任务日志在「日志文件」里）。</div>';
+  }
+  box.innerHTML = h;
+
+  /* 贴到底：新的日志追加在文件末尾，后端又是按时间正序拼的，所以最新在下面。
+     必须等 innerHTML 落地之后再滚，否则 scrollHeight 还是旧值。 */
+  var pre = $('#syslogPre');
+  if (pre) pre.scrollTop = pre.scrollHeight;
+
+  /* 这几个元素是刚被 innerHTML 换掉的，全局委托里没登记它们，就地绑。
+     每次重画都是新元素，旧监听随旧元素一起消失，不会累积。 */
+  bindSeg('#syslogSeg');
+  var seg = $('#syslogSeg');
+  if (seg) seg.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-segval]') : null;
+    if (!b || b.dataset.segval === S.syslog.range) return;
+    S.syslog.range = b.dataset.segval;
+    /* 换档位必须先清空旧内容 —— loadSysLog 里那条「已有内容就只重画、不打接口」
+       的短路会把新档位的结果一直挡在外面，表现是「点了没反应」。 */
+    S.syslog.text = '';
+    loadSysLog(true);
+  });
+  var reload = function () { S.syslog.text = ''; loadSysLog(true); };
+  var rl = $('#btnSysLogReload');
+  if (rl) rl.addEventListener('click', reload);
+  var rl2 = $('#btnSysLogReload2');
+  if (rl2) rl2.addEventListener('click', reload);
+  var cl = $('#btnSysLogClear');
+  if (cl) cl.addEventListener('click', clearSysLog);
+}
+
+async function clearSysLog() {
+  if (!confirm('清空面板日志？\n\n面板会把日志目录里的 .log 文件删掉，此操作不可恢复。')) return;
+  try {
+    await api('/api/system/log', { method: 'DELETE' });
+    toast('已清空');
+  } catch (e) {
+    toast(e.message);
+  }
+  S.syslog.text = '';
+  await loadSysLog(true);
 }
 
 /* ================= 弹层 ================= */

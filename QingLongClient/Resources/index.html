@@ -225,6 +225,15 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .ovcard .dot{flex:none;width:8px;height:8px;border-radius:50%;background:#34c759}
 .ovcard .big{font-size:calc(22px*var(--fs));font-weight:700;letter-spacing:-.3px;margin-top:9px;word-break:break-all}
 .ovcard .meta{font-size:calc(11.5px*var(--fs));color:var(--text2);margin-top:5px;word-break:break-all}
+/* 面板卡：左边文字、右边头像。头像**垂直居中**靠的是父级的 align-items:center
+   （不是 margin 硬凑） —— 左侧文字行数会变（有的面板没有 branch / uptime），
+   写死 margin 的话行一少头像就偏。 */
+.ovcard.ovhost{display:flex;align-items:center;gap:13px}
+.ovcard.ovhost>.sp{min-width:0}
+.hav{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:calc(20px*var(--fs));font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#5AD1E8,#1E9CC0);
+  box-shadow:0 6px 14px -6px rgba(30,156,192,.6)}
 /* 「正在执行 N 个 / 排队 N 个」高亮：主色 + 数字加粗，跟面板运行时间那段区分开 */
 .ovcard .meta.live{margin-top:9px;font-size:calc(13px*var(--fs));color:var(--text)}
 .ovcard .live-num{color:var(--accent);font-weight:700;font-size:calc(15px*var(--fs));margin:0 2px}
@@ -240,6 +249,20 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;text-align:center}
 .stats .n{font-size:calc(20px*var(--fs));font-weight:700;line-height:1.2}
 .stats .l{font-size:calc(11px*var(--fs));color:var(--text2);margin-top:3px}
+/* 近 7 日趋势。每列一根柱：柱高 = 当天执行数 / 七天里最大的那天；
+   柱子里**贴底**那段是成功数（绿），上面一截是失败数（红）。
+   贴底而不是贴顶，是因为柱子是从基线往上长的 —— 反过来会看着像倒挂。 */
+.trend{display:flex;align-items:flex-end;gap:5px}
+.tb{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
+.trend .tv{font-size:calc(11px*var(--fs));color:var(--text2);margin-bottom:4px;font-weight:600}
+.trend .tbar{width:100%;height:92px;display:flex;align-items:flex-end;
+  background:var(--fill);border-radius:5px;overflow:hidden}
+.trend .tbar i{display:block;width:100%;position:relative;background:var(--red);border-radius:5px}
+.trend .tbar i b{position:absolute;left:0;right:0;bottom:0;display:block;
+  background:var(--green);border-radius:5px}
+.trend .td{font-size:calc(10px*var(--fs));color:var(--text3);margin-top:5px;white-space:nowrap}
+.tlg{display:flex;gap:14px;margin-top:11px;font-size:calc(11px*var(--fs));color:var(--text2)}
+.tlg .d{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:-1px}
 
 /* 2 列卡片网格。 */
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -527,6 +550,12 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
   <div id="main">
     <div id="ptr">↓ 下拉刷新</div>
 
+    <!-- 主页：底栏最左。只有面板概览（面板 / 系统状态 / 任务概况 / 近 7 日趋势），
+         功能模块不在这里 —— 留在「我的」。 -->
+    <section class="view" id="v-home">
+      <div id="homeBody"></div>
+    </section>
+
     <section class="view" id="v-crons">
       <!-- 定时视图 tab：对应面板「定时任务」页顶部那排。
            内容是 /api/crons/views 拉回来的**保存好的筛选条件**（不是时间轴）。
@@ -586,6 +615,10 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
     </section>
 
     <section class="view" id="v-logs">
+      <!-- 填了东西就跨目录找文件名（日志树是一次性整棵拉回来的，不用再打接口）；
+           清空就回到正常的目录浏览。 -->
+      <div class="searchbar"><input id="logSearch" type="search" placeholder="搜索日志文件名"
+        autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <div id="logCrumbs" class="f12 t2" style="margin:0 4px 10px"></div>
       <div class="list" id="logList"></div>
     </section>
@@ -624,6 +657,7 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
        订阅管理、依赖管理、面板日志、应用设置、其他设置这些全部收进「我的」页，
        底栏放五个塞不下，而且这些页不是天天用的。 -->
   <nav id="tabbar">
+    <button data-tab="home"><span class="ti">◰</span>主页</button>
     <button data-tab="crons"><span class="ti">▤</span>任务</button>
     <button data-tab="envs"><span class="ti">⚿</span>变量</button>
     <button data-tab="scripts"><span class="ti">⌘</span>脚本</button>
@@ -1011,7 +1045,9 @@ var S = {
            views: [], view: null, viewsFailed: false },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
   envs: { list: [], q: '', tag: '', loading: false },
-  logs: { tree: [], path: [], loading: false },
+  /* logs.q：文件名搜索词。空串 = 正常目录浏览；非空 = 跨目录找整棵树。
+     日志树是一次性整棵拉回来的，所以搜索不用再打接口。 */
+  logs: { tree: [], path: [], q: '', loading: false },
   /* scripts.expanded 的键是「从脚本根目录算起的相对路径」（如 dir1/sub），值是真值。
      默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
      path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
@@ -1022,7 +1058,7 @@ var S = {
   /* seq 是「第几轮请求」：一轮没回来时又点刷新，旧的结果要丢掉，
      否则慢的那次后到，会把新数据覆盖回去。 */
   dash: {
-    sys: null, ov: null, rt: null,
+    sys: null, ov: null, rt: null, trend: null,
     loading: false, err: '', seq: 0
   },
   subs: { list: [], q: '', loading: false },
@@ -1464,12 +1500,12 @@ function signOut(silent) {
   S.sys = null;
   sdel(K.token);
   S.crons.list = []; S.crons.total = 0; S.crons.page = 1;
-  S.envs.list = []; S.logs.tree = []; S.logs.path = [];
+  S.envs.list = []; S.logs.tree = []; S.logs.path = []; S.logs.q = '';
   S.scripts.nodes = []; S.scripts.path = [];
   S.subs.list = []; S.deps.list = []; S.configs.list = [];
   /* 概览也要清干净：换账号后如果还留着上一条面板的数据，会看着像「新面板就是那样」。
      seq 一并自增，让还在飞的那一轮结果作废。 */
-  S.dash.sys = null; S.dash.ov = null; S.dash.rt = null;
+  S.dash.sys = null; S.dash.ov = null; S.dash.rt = null; S.dash.trend = null;
   S.dash.err = '';
   S.dash.seq = (S.dash.seq || 0) + 1; S.dash.loading = false;
   closeSheet();
@@ -1627,6 +1663,9 @@ async function bootAfterLogin() {
 /* ================= 顶栏 / Tab ================= */
 /* 底栏那一项叫「我的」，但页面大标题是「所有功能」（照参考图）。 */
 var TITLES = {
+  /* 主页：底栏最左那一格。只有 面板 / 系统状态 / 任务概况 / 近 7 日趋势 四块，
+     功能模块一个都不搬 —— 全部留在「我的」。 */
+  home: '面板概览',
   crons: '定时任务', envs: '环境变量', scripts: '脚本管理',
   subs: '订阅管理', deps: '依赖管理', configs: '配置文件',
   logs: '日志文件', me: '所有功能',
@@ -1688,6 +1727,7 @@ function setTab(tab, force) {
 async function refresh() {
   /* 进任务页先把视图列表拉一次：面板上可能刚加/删过视图，而且 loadCrons
      要用 c.view 拼查询条件，得先拉完再查。 */
+  if (S.tab === 'home') return loadDash();
   if (S.tab === 'crons') { await loadViews(); return loadCrons(true); }
   if (S.tab === 'envs') return loadEnvs();
   if (S.tab === 'scripts') return loadScripts(S.scripts.path, true);
@@ -2409,21 +2449,32 @@ async function saveEnv(id) {
 
 /* ================= 日志文件 ================= */
 function renderLogs() {
-  var crumbs = S.logs.path.length ? ('根目录 / ' + S.logs.path.join(' / ')) : '根目录';
-  $('#logCrumbs').innerHTML = '<button id="logUp" style="color:var(--accent);font-weight:600">' +
-    (S.logs.path.length ? '← 返回上一级' : '') + '</button>' +
-    '<span style="margin-left:8px">' + esc(crumbs) + '</span>';
+  var q = String(S.logs.q || '').trim();
+  var ql = q.toLowerCase();
+  /* 搜索态下没有「返回上一级」可言（结果是跨目录捞的），面包屑换成搜索词 + 命中数。 */
+  if (ql) {
+    $('#logCrumbs').innerHTML = '<span>搜索「' + esc(q) + '」</span>';
+  } else {
+    var crumbs = S.logs.path.length ? ('根目录 / ' + S.logs.path.join(' / ')) : '根目录';
+    $('#logCrumbs').innerHTML = '<button id="logUp" style="color:var(--accent);font-weight:600">' +
+      (S.logs.path.length ? '← 返回上一级' : '') + '</button>' +
+      '<span style="margin-left:8px">' + esc(crumbs) + '</span>';
+  }
   /* 放在这里而不是函数末尾：下面两个分支都是提前 return 的 */
   syncBack();
 
-  var nodes = currentLogNodes();
+  var nodes = ql ? flattenLogs(S.logs.tree).filter(function (n) {
+    return String(n.title == null ? '' : n.title).toLowerCase().indexOf(ql) >= 0;
+  }) : currentLogNodes();
+
   var box = $('#logList');
   if (S.logs.loading && !S.logs.tree.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
     return;
   }
   if (!nodes.length) {
-    box.innerHTML = '<div class="empty"><span class="ei">▤</span>这里没有日志文件</div>';
+    box.innerHTML = '<div class="empty"><span class="ei">▤</span>' +
+      (ql ? '没有匹配「' + esc(q) + '」的日志' : '这里没有日志文件') + '</div>';
     return;
   }
   box.innerHTML = nodes.map(function (n) {
@@ -2433,6 +2484,12 @@ function renderLogs() {
     var ft = fmtFileTime(n.createTime);
     if (ft) meta.push(ft);
     if (isDir) meta.push((n.children || []).length + ' 项');
+    /* 搜索结果来自不同目录，光看文件名分不清是哪个脚本的 —— 补一行所在目录 */
+    if (ql) {
+      var dir = logKeyPath(n.key);
+      dir.pop();
+      if (dir.length) meta.push(dir[dir.length - 1] + '/');
+    }
     return '<div class="item row" data-log="' + esc(n.key) + '" data-dir="' + (isDir ? '1' : '0') + '">' +
       '<div style="font-size:calc(16px*var(--fs));width:22px;text-align:center">' + (isDir ? '📁' : '📄') + '</div>' +
       '<div class="sp"><div style="font-size:calc(14px*var(--fs));font-weight:' + (isDir ? 600 : 400) + '" class="ell">' + esc(n.title) + '</div>' +
@@ -2450,6 +2507,44 @@ function currentLogNodes() {
     nodes = found.children || [];
   }
   return nodes;
+}
+
+/* 退出搜索态。状态字和输入框**必须一起清** —— 只清状态的话框里还留着刚才的关键词，
+   看着像还在搜，点进去却是目录浏览。 */
+function clearLogSearch() {
+  S.logs.q = '';
+  var el = $('#logSearch');
+  if (el) el.value = '';
+}
+
+/* 日志树里每个节点的 key 是「从根目录算起的完整相对路径」（a/b/c.log），
+   所以点目录时要把它拆成逐级前缀 [a, a/b, a/b/c] 再交给 currentLogNodes 下钻。
+   搜索结果可能来自任意层级，不能拿「当前路径」去拼 key —— 那会把
+   搜索时的当前路径当成父目录拼上去，直接跳错层。 */
+function logKeyPath(key) {
+  var seg = String(key == null ? '' : key).split('/');
+  var out = [];
+  var cur = '';
+  for (var i = 0; i < seg.length; i++) {
+    if (!seg[i]) continue;
+    cur = cur ? cur + '/' + seg[i] : seg[i];
+    out.push(cur);
+  }
+  return out;
+}
+/* 整棵树摊平。搜索要跨目录，currentLogNodes() 只看当前一层，不够。 */
+function flattenLogs(nodes, out) {
+  out = out || [];
+  (nodes || []).forEach(function (n) {
+    out.push(n);
+    if (n.children) flattenLogs(n.children, out);
+  });
+  return out;
+}
+/* 按 key 在整棵树里找节点（搜索结果点开时用）。 */
+function findLogNode(key) {
+  var hit = flattenLogs(S.logs.tree).filter(function (n) { return n.key === key; })[0];
+  return hit || null;
 }
 
 async function loadLogs(path, force) {
@@ -3591,7 +3686,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.15';
+var APP_VER = '1.0.16';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3722,13 +3817,17 @@ function dashHost() {
   if (rt.queuedCount) live.push(
     '<span class="live-num">' + esc(rt.queuedCount) + '</span> 个排队');
 
-  return '<div class="ovcard">' +
-    '<div class="row" style="gap:7px"><span class="dot"></span>' +
-      '<span class="f12 t2">已连接</span></div>' +
-    '<div class="big">' + esc(S.user || '未登录') + '</div>' +
-    (meta.length ? '<div class="meta">' + esc(meta.join(' · ')) + '</div>' : '') +
-    (s.uptime != null ? '<div class="meta">面板已运行 ' + esc(fmtUptime(s.uptime)) + '</div>' : '') +
-    (live.length ? '<div class="meta live">' + live.join(' · ') + '</div>' : '') +
+  return '<div class="ovcard ovhost">' +
+    '<div class="sp">' +
+      '<div class="row" style="gap:7px"><span class="dot"></span>' +
+        '<span class="f12 t2">已连接</span></div>' +
+      '<div class="big">' + esc(S.user || '未登录') + '</div>' +
+      (meta.length ? '<div class="meta">' + esc(meta.join(' · ')) + '</div>' : '') +
+      (s.uptime != null ? '<div class="meta">面板已运行 ' + esc(fmtUptime(s.uptime)) + '</div>' : '') +
+      (live.length ? '<div class="meta live">' + live.join(' · ') + '</div>' : '') +
+    '</div>' +
+    /* 头像：用户名首字母。未登录时 avChar() 退回一个字形，不是一个空白圆。 */
+    '<span class="hav">' + esc(avChar()) + '</span>' +
     '</div>';
 }
 
@@ -3780,6 +3879,51 @@ function dashTasks() {
   return '<div class="sec">任务概览</div><div class="ovcard">' + h + '</div>';
 }
 
+/* 近 7 日执行趋势（/api/dashboard/trend?days=7）。
+   面板回的是 [{date:'MM-DD', total, success, fail}]，固定补齐 days 天、没跑过的日子是 0。
+   **没有数据就整节不画** —— 面板版本老没这个接口时，画一排空柱子只会让人以为
+   「这七天一个任务都没跑」。 */
+function dashTrend() {
+  var t = S.dash.trend;
+  if (!Array.isArray(t)) return '';
+  /* 面板偶尔会塞进 null 项，过滤掉，免得渲染出 undefined */
+  var days = t.filter(function (d) { return d && typeof d === 'object'; });
+  if (!days.length) return '';
+
+  var max = 0;
+  days.forEach(function (d) {
+    var n = Number(d.total);
+    if (isFinite(n) && n > max) max = n;
+  });
+  if (max <= 0) {
+    return '<div class="sec">近 7 日任务趋势</div>' +
+      '<div class="ovcard"><div class="f12 t3">近 7 天没有执行记录</div></div>';
+  }
+
+  var h = '<div class="sec">近 7 日任务趋势</div><div class="ovcard"><div class="trend">';
+  days.forEach(function (d) {
+    var total = Number(d.total);
+    if (!isFinite(total) || total < 0) total = 0;
+    var ok = Number(d.success);
+    if (!isFinite(ok) || ok < 0) ok = 0;
+    if (ok > total) ok = total;
+    /* 柱高按七天最大值归一，最小留 4% —— 总数为 1 的那天也要看得见一根 */
+    var hp = total > 0 ? Math.max(4, Math.round(total / max * 100)) : 0;
+    var op = total > 0 ? (ok / total * 100) : 0;
+    h += '<div class="tb">' +
+      '<div class="tv">' + esc(total) + '</div>' +
+      '<div class="tbar"><i style="height:' + hp + '%">' +
+        '<b style="height:' + op.toFixed(1) + '%"></b></i></div>' +
+      '<div class="td">' + esc(d.date || '') + '</div>' +
+      '</div>';
+  });
+  h += '</div><div class="tlg">' +
+    '<span><span class="d" style="background:var(--green)"></span>成功</span>' +
+    '<span><span class="d" style="background:var(--red)"></span>失败</span>' +
+    '</div></div>';
+  return h;
+}
+
 /* 概览区。加载中只盖住这一块，下面的功能网格立刻就能用。 */
 function dashCards() {
   var d = S.dash;
@@ -3806,8 +3950,9 @@ function renderDash() {
     '<span class="un ell">' + esc(S.user) + '</span>' +
     '<span class="sw">切换账号</span></button>';
 
-  var h = dashCards();
-  h += '<div class="sec">功能</div>';
+  /* 概览**不在这里** —— 它搬到「主页」了（renderHome）。这页只留功能网格，
+     这样即使统计接口全挂，功能入口也是同步渲染出来的、立刻能点。 */
+  var h = '<div class="sec">功能</div>';
   h += '<div class="fgrid">';
   FEATURES.forEach(function (f) { h += featCard(f); });
   h += '</div>';
@@ -3817,19 +3962,28 @@ function renderDash() {
   $('#meBody').innerHTML = h;
 }
 
+/* 主页：面板 / 系统状态 / 任务概况 / 近 7 日趋势。
+   和「我的」页各渲染各的 —— 概览要等网络，功能网格不能跟着一起等。 */
+function renderHome() {
+  var el = $('#homeBody');
+  if (!el) return;
+  el.innerHTML = dashCards() + dashTrend();
+}
+
 async function loadDash() {
   var d = S.dash;
   /* 已经有一轮在飞：只重画一遍（可能刚切回来，DOM 被清过），不重复打接口。
      **不能在这里直接 return** —— 那样切回来会看到空白页。 */
-  if (d.loading) { renderDash(); return; }
+  if (d.loading) { renderDash(); renderHome(); return; }
   d.loading = true;
   d.err = '';
   d.seq = (d.seq || 0) + 1;
   var seq = d.seq;
   renderDash();
+  renderHome();
 
-  /* 三个接口各自 catch：面板小版本不同，可能只装了其中一部分，
-     一个 404 不该把整页拖成空白。 */
+  /* 四个接口各自 catch：面板小版本不同，可能只装了其中一部分，
+     一个 404 不该把整页拖成空白（趋势没有就整节不画）。 */
   var one = function (p, q) {
     return api(p, q ? { query: q } : undefined)
       .then(function (r) { return r.data; })
@@ -3838,20 +3992,22 @@ async function loadDash() {
   var rs = await Promise.all([
     one('/api/dashboard/system'),
     one('/api/dashboard/overview'),
-    one('/api/dashboard/runtime')
+    one('/api/dashboard/runtime'),
+    one('/api/dashboard/trend', { days: 7 })
   ]);
   /* 期间用户又点了一次刷新：这次的结果已经过期，丢掉，别把新数据覆盖回去 */
   if (seq !== d.seq) return;
-  d.sys = rs[0]; d.ov = rs[1]; d.rt = rs[2];
+  d.sys = rs[0]; d.ov = rs[1]; d.rt = rs[2]; d.trend = rs[3];
   d.loading = false;
   if (!rs[0] && !rs[1]) {
     d.err = '这个面板没有统计接口（需要青龙 v2.21 及以上）。功能模块不受影响。';
   }
   renderDash();
+  renderHome();
 }
 
-/* 磁盘 + 执行趋势 + 堆内存已按用户要求移除，相关实现（跑 df 的兜底命令、
-   解析函数、柱状图）一并撤了，不留空壳 —— 死代码只会让人以为还在用。 */
+/* 磁盘 + 堆内存已按用户要求移除（跑 df 的兜底命令、解析函数一并撤了）。
+   执行趋势后来又要回来了 —— 现在在主页，见 dashTrend()。 */
 
 /* 切换账号：账号级的东西都收在这里（地址 / 重新登录 / 退出登录）。
    原来这些直接摊在「我的」页上，占了整整一屏；收进弹层后页面才腾得出位置放功能网格。 */
@@ -4885,6 +5041,11 @@ function bind() {
     clearTimeout(t2);
     t2 = setTimeout(function () { S.envs.q = e.target.value.trim(); loadEnvs(); }, 350);
   });
+  /* 日志搜索不用防抖：树已经在本地了，重画一遍很便宜，打字节流直接跟手。 */
+  $('#logSearch').addEventListener('input', function (e) {
+    S.logs.q = e.target.value.trim();
+    renderLogs();
+  });
   $('#btnNewEnv').addEventListener('click', function () { openEnvEdit(null); });
 
   $('#btnBack').addEventListener('click', function () { setTab('me'); });
@@ -5157,11 +5318,15 @@ function onClick(ev) {
   /* 日志文件 */
   if (el.dataset.log) {
     var key = el.dataset.log;
-    if (el.dataset.dir === '1') return loadLogs(S.logs.path.concat([key]));
-    var node = currentLogNodes().filter(function (n) { return n.key === key; })[0];
+    /* key 是完整相对路径，直接拆成逐级前缀 —— 搜索结果也能正确下钻。
+       进目录就退出搜索态：不然点了之后列表还是那批搜索结果，像没反应。 */
+    if (el.dataset.dir === '1') { clearLogSearch(); return loadLogs(logKeyPath(key)); }
+    /* 搜索结果可能来自任意目录，不能只在当前层找 */
+    var node = findLogNode(key);
     if (node) return openLogFile(node);
   }
-  if (el.id === 'logUp') return loadLogs(S.logs.path.slice(0, -1));
+  /* 返回上一级同样退出搜索态（搜索态下根本不渲染 logUp，能点到这里说明在浏览） */
+  if (el.id === 'logUp') { clearLogSearch(); return loadLogs(S.logs.path.slice(0, -1)); }
   if (el.id === 'btnCopyLog') {
     var lb = document.querySelector('#shB .logbox');
     if (lb) copyText(lb.textContent || '');

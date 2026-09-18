@@ -15,16 +15,22 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35311355863`，commit `ee58e88`，一次过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.13-trollstore.ipa`（145242 字节） |
-| SHA256 | `1042b7cadd7a0371cf9b22bb101dde58d74a1316f332d3617a9fb18efe724c74` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.13-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35312303609`，commit `bdff66d`，一次过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.14-trollstore.ipa`（145530 字节） |
+| SHA256 | `ccd2f1ef222e1ce21c0c68a69b8676ad41db2a002eb626ef87ed2912d7029142` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.14-trollstore`（保留 30 天） |
+
+> **1.0.14 相对 1.0.13 只改了两个图标字形**（面板日志 `⛭`→`☰`、登录日志 `⏱`→`◷`）。
+> 原因是 1.0.13 出包后把「我的」页截图出来看，发现 `⏱`（U+23F1）落在
+> **Miscellaneous Technical** 块里，那些码位带 emoji 属性，在 iOS 上有可能被
+> 当**彩色 emoji** 渲染 —— 压在渐变图标块上就是一块花的。两个都换成了
+> Geometric Shapes / Miscellaneous Symbols 里的字形。**装 1.0.14，别装 1.0.13。**
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.13-trollstore.ipa
-# 应该得到 1042b7cadd7a0371cf9b22bb101dde58d74a1316f332d3617a9fb18efe724c74
+sha256sum QingLongClient-1.0.14-trollstore.ipa
+# 应该得到 ccd2f1ef222e1ce21c0c68a69b8676ad41db2a002eb626ef87ed2912d7029142
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -194,7 +200,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.13-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.14-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -206,15 +212,15 @@ qinglong-ios/out/QingLongClient-1.0.13-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.13-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.14-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 284078 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.13（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 284538 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.14（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -231,7 +237,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.13-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.13 (13) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.14 (14) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
@@ -326,7 +332,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.13 |
+| 版本 | 1.0.14 |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

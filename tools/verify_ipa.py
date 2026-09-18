@@ -2,7 +2,7 @@
 """解包 ipa 逐项核对 —— 不是看构建日志，是把包拆开读。
 
 用法：
-    python tools/verify_ipa.py out/QingLongClient-1.0.13-trollstore.ipa
+    python tools/verify_ipa.py out/QingLongClient-1.0.14-trollstore.ipa
     python tools/verify_ipa.py <ipa> --pwa ../qinglong-pwa
 
 为什么要单独写一个脚本：CI 日志只证明「打包这一步没报错」，

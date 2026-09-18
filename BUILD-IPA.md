@@ -15,30 +15,34 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35359894699`，commit `47ceb9c`，一次过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.19-trollstore.ipa`（158092 字节） |
-| SHA256 | `eeafcfa37e7e08bc3d679f4b65f5150ab3077337939df48ebbe69d1de34e9a14` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.19-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35363118660`，commit `cb0edbc`，一次过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.20-trollstore.ipa`（160038 字节） |
+| SHA256 | `94af84b2e17352c86717ce00fd37a0ae25b1f0466a820b7dde016c7966d2680d` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.20-trollstore`（保留 30 天） |
 
-> **1.0.19 是体验版**，让「翻日志找报错」这件事不用再靠肉眼扫：
-> - **日志文件弹层：按级别上色 + 「只看错误」** —— error 红、warn 黄、info 蓝；
->   有错误的日志一打开就在标题栏告诉你错了几条，点一下只看错误行，
->   **带原始行号**（面板网页版报错报的就是这个行号，能直接对上）。
-> - **「只看错误」时复制的是错误行原文**，不带行号（粘到搜索框 / 群里能直接用）。
-> - **日志目录里的文件倒序**：最新的排最上面，不用滑到底去找刚跑完的那次。
-> - **点「立即运行」后自动滚到运行日志区**，不用自己往下找。
-> - 顺手修了 1.0.18 留下的两处变异测试锚点失配（V32 / L28b），不影响功能。
+> **1.0.20 是顺手版**，补的是「跑任务时看不到状态」和「长日志里找关键字」：
+> - **详情页的状态徽标和主按钮跟着任务实时变**：任务在跑的时候徽标是「运行中」、
+>   主按钮变成「停止」；跑完自动变回来。以前这两个地方只在打开详情那一刻画一次，
+>   任务跑起来了头上还写着「未使用」、按钮还写着「立即运行」，看着像没跑起来。
+> - **「自动刷新」只管日志正文，不再把状态一起关掉**：以前取消勾选后，
+>   任务跑完了按钮还是「立即运行」—— 那个勾选的语义被用歪了。
+> - **点「立即运行」当场就变**，不用等下一次轮询（最多 3 秒）。
+> - **日志文件弹层里能搜关键字**了：输入即筛（大小写不敏感），命中处黄底高亮、
+>   带原始行号，右上角报「N 行匹配」，复制按钮跟着变成「复制匹配行」。
+>   和「只看错误」是**与**的关系 —— 可以「在错误行里搜 Cookie」。
+> - **详情页的运行日志也按级别上色**了：跑起来红行（error）一眼看到，不用在灰字里扒。
 >
-> **装 1.0.19，别装 1.0.18 及更早的**。
+> **装 1.0.20，别装 1.0.19 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
-> 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达。
+> 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
+> 1.0.19 做了日志级别上色 / 只看错误 / 目录倒序。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.19-trollstore.ipa
-# 应该得到 eeafcfa37e7e08bc3d679f4b65f5150ab3077337939df48ebbe69d1de34e9a14
+sha256sum QingLongClient-1.0.20-trollstore.ipa
+# 应该得到 94af84b2e17352c86717ce00fd37a0ae25b1f0466a820b7dde016c7966d2680d
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -208,7 +212,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.19-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.20-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -220,15 +224,15 @@ qinglong-ios/out/QingLongClient-1.0.19-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.19-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.20-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 319183 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.19（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 324200 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.20（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -246,6 +250,8 @@ python tools/verify_ipa.py out/QingLongClient-1.0.19-trollstore.ipa
 | 1.0.18 修复：`.kvrow .v` 的 `min-width:0` / `.btn` 的 `white-space:nowrap` | ✅ 都在 |
 | 1.0.19 新增：日志级别上色 `logBoxHtml` / 「只看错误」`id="btnLogErr"` / 行号列 `.logbox .ln{` | ✅ 都在 |
 | 1.0.19 新增：日志文件倒序 `sortLogNodes` / 运行后滚到日志区 `scrollToCronLog` | ✅ 都在 |
+| 1.0.20 新增：日志内搜索 `logPick` / `logHi` / `id="logFind"` / 「复制匹配行」 | ✅ 都在 |
+| 1.0.20 新增：详情页状态实时化 `paintCronState` / `id="cdAct"` / 运行日志上色 | ✅ 都在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -253,7 +259,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.19-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.19 (19) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.20 (20) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
@@ -348,7 +354,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.19 |
+| 版本 | 1.0.20 |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

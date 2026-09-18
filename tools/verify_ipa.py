@@ -117,7 +117,18 @@ FEATURES = [
     ("日志 复制匹配行", r"复制匹配行"),
     ("详情 状态徽标就地重画", r"function paintCronState\("),
     ("详情 主按钮跟着状态变", r'id="cdAct"'),
-    ("详情 运行日志上色", r"box\.innerHTML = lines\.length \? logBoxHtml\("),
+    # 1.0.21：这行从 loadCronLog 搬进了 paintCronLog，变量名也从 lines 变成 cl.lines。
+    # 锚点绑字面量，搬一次家就要改一次 —— 不改就是出包后验货报一项没过。
+    ("详情 运行日志上色", r"box\.innerHTML = cl\.lines\.length \? logBoxHtml\("),
+    # 1.0.21 概览补六格 + 运行日志筛选 + 贴底策略
+    ("概览 今日成功格", r", '今日成功', "),
+    ("概览 今日失败格", r", '今日失败', "),
+    ("概览 失败标红", r"\.stats \.n\.bad\{color:var\(--red\)\}"),
+    ("详情 运行日志重画", r"function paintCronLog\("),
+    ("详情 运行日志搜索框", r'id="cronLogFind"'),
+    ("详情 只看错误按钮", r'id="btnCronLogErr"'),
+    ("详情 复制走筛选后的原文", r"function logPickText\("),
+    ("详情 只在贴底时贴底", r"if \(bottom < 48\) el\.scrollTop = el\.scrollHeight;"),
     # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),

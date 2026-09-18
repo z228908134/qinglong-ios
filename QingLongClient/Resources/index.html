@@ -3591,7 +3591,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.14';
+var APP_VER = '1.0.15';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3682,7 +3682,7 @@ function fmtBytes(n) {
 function pctNum(v) {
   var n = parseFloat(v);
   if (!isFinite(n)) return null;
-  return Math.max(0, Math.min(100, n));
+  return n;
 }
 /* 占用率分档配色：<70 绿 / <90 橙 / 其余红 */
 function meterColor(p) { return p < 70 ? '#34C759' : (p < 90 ? '#FF9500' : '#FF3B30'); }
@@ -3891,31 +3891,13 @@ function openSettings() {
   h += kv('分支', (S.sys && S.sys.branch) || '未知');
   h += '</div>';
 
-  /* 面板网页版「系统设置」里那几个页签，原样搬进来。
-     名字**跟面板一字不差**（应用设置 / 其他设置 / 登录日志）——
-     用户是照面板上的叫法来找的，改成「API 应用」之类的反而找不到。
-     走 data-goto，跟功能网格进页签是同一条路（onClick 里已有分支）。 */
-  h += '<div class="secttl">面板设置</div>';
-  h += '<div class="card" style="padding:0">' +
-    '<button class="kvrow" data-goto="apps">' +
-        '<span class="k">应用设置</span>' +
-        '<span class="v desc">开放接口的 ID / 密钥 ›</span>' +
-      '</button>' +
-    '<button class="kvrow" data-goto="sysconf">' +
-        '<span class="k">其他设置</span>' +
-        '<span class="v desc">标题 · 时区 · 备份还原 ›</span>' +
-      '</button>' +
-    '<button class="kvrow" data-goto="loginlog">' +
-        '<span class="k">登录日志</span>' +
-        '<span class="v desc">谁在什么时候登录过 ›</span>' +
-      '</button>' +
-    '<button class="kvrow" data-goto="syslog">' +
-        '<span class="k">面板日志</span>' +
-        '<span class="v desc">面板进程自己的运行日志 ›</span>' +
-      '</button>' +
-    '</div>';
-  h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.6">' +
-    '这几项改的是**面板自己**，不是这个 App —— 改完所有连这个面板的地方都会跟着变。</div>';
+  /* 面板网页版「系统设置」里那几个页签（应用设置 / 其他设置 / 登录日志 / 面板日志），
+     1.0.14 之前在这里也放了一份入口，1.0.15 撤掉了 —— 用户反馈「没法用」。
+     真因在下面 data-goto 那条分支：它切页前没关弹层，页面在弹层后面换了、用户看不见
+     （已修）。不过即便修好，也没必要留两份入口 —— 这四项在「我的」页的功能网格里
+     各有一张卡片，从那儿进没有弹层挡着，路径更短。
+     四套代码（loadApps / loadSysconf / loadLoginLog / loadSysLog）都还在，
+     只是入口收敛到「我的」页一处。 */
 
   /* 账号：登录过的账号都在这儿，点一下就切过去。
      跟「我的」页顶部的「切换账号」胶囊进的是同一个弹层。 */
@@ -5296,8 +5278,11 @@ function onClick(ev) {
   if (el.id === 'btnSaveCfg') return saveConfig(el.dataset.name);
   if (el.id === 'btnNewCfgOk') return createConfig();
 
-  /* 「所有功能」网格里的跳转卡片（依赖 / 配置 / 日志没有底栏 tab，从这里进） */
-  if (el.dataset.goto) return setTab(el.dataset.goto);
+  /* 「所有功能」网格里的跳转卡片（依赖 / 配置 / 日志没有底栏 tab，从这里进）。
+     切页之前**必须先关弹层** —— 这几张卡原来也在系统设置弹层里出现过（1.0.15 已撤），
+     而 setTab() 只管换视图、不管弹层。不关的话页面在弹层后面换了，用户看到的是
+     「点了没反应」，不报错、也不进日志，只有真机点一遍才发现。 */
+  if (el.dataset.goto) { closeSheet(); return setTab(el.dataset.goto); }
   /* 网格里那两张「不是 tab」的卡片：走弹层 */
   if (el.id === 'btnAcct') return openAccount();
   if (el.id === 'btnSettings') return openSettings();

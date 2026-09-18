@@ -3591,7 +3591,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.13';
+var APP_VER = '1.0.14';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3606,10 +3606,15 @@ var FEATURES = [
   { tab: 'deps',     icon: '◈', label: '依赖管理', g: ['#FFB65C', '#F08200'], sh: 'rgba(240,130,0,.38)' },
   { tab: 'configs',  icon: '▣', label: '配置文件', g: ['#8C9EFF', '#4E5BE8'], sh: 'rgba(78,91,232,.38)' },
   { tab: 'logs',     icon: '▦', label: '日志文件', g: ['#A9B4C4', '#6C7A8C'], sh: 'rgba(108,122,140,.38)' },
-  { tab: 'syslog',   icon: '⛭', label: '面板日志', g: ['#7ED0A8', '#3E9E78'], sh: 'rgba(62,158,120,.38)' },
+  /* 图标字形只用 Geometric Shapes（U+25A0–U+25FF）和 Miscellaneous Symbols
+     这两个块里的 —— 前者是 ▤▣▦◈◍ 那一批，后者是 ⚿⚙ 那一批，iOS 系统字体都有。
+     别用 Miscellaneous Technical（⏱ U+23F1 那种）：那些码位带 emoji 属性，
+     在 iOS 上有可能被当成彩色 emoji 渲染，压在渐变色块上就是一块花的。
+     ⛭（U+26ED）也偏生僻，换成 ☰。 */
+  { tab: 'syslog',   icon: '☰', label: '面板日志', g: ['#7ED0A8', '#3E9E78'], sh: 'rgba(62,158,120,.38)' },
   { tab: 'apps',     icon: '◫', label: '应用设置', g: ['#FFC978', '#E0902A'], sh: 'rgba(224,144,42,.38)' },
   { tab: 'sysconf',  icon: '⚒', label: '其他设置', g: ['#9FA8FF', '#5A63E0'], sh: 'rgba(90,99,224,.38)' },
-  { tab: 'loginlog', icon: '⏱', label: '登录日志', g: ['#FF9FB0', '#E05070'], sh: 'rgba(224,80,112,.38)' },
+  { tab: 'loginlog', icon: '◷', label: '登录日志', g: ['#FF9FB0', '#E05070'], sh: 'rgba(224,80,112,.38)' },
   { icon: '⚙', label: '系统设置', g: ['#FF8FA0', '#E8455F'], sh: 'rgba(232,69,95,.38)', id: 'btnSettings' }
 ];
 
@@ -4726,7 +4731,7 @@ function renderSysLog() {
   } else if (g.loading && !lines.length) {
     h += '<div class="center"><span class="spin"></span>读取面板日志…</div>';
   } else if (!lines.length) {
-    h += '<div class="empty"><span class="ei">⛭</span>这段时间没有面板日志</div>';
+    h += '<div class="empty"><span class="ei">☰</span>这段时间没有面板日志</div>';
   } else {
     /* 一行一个 span 上色。整个日志几千行是常态，这里只做字符串拼接，
        不建 DOM 节点 —— 逐行 createElement 在手机上会明显卡住。 */

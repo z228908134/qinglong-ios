@@ -61,9 +61,16 @@ FEATURES = [
     # 底栏只剩四项，「订阅」那一格换成了「我的」（用户点名要的改动）。
     # 锚在 tab 数量上：底栏要是又冒出一个入口，这里会失配。
     ("底栏 四项", r'data-tab="me"'),
-    ("我的页 订阅管理入口", r'data-goto="subs"'),
+    # 功能网格的卡片：data-goto 是 featCard() 运行时拼出来的（`data-goto="' + f.tab + '"`），
+    # 产物里搜不到 data-goto="subs" 这种字面量 —— 只能锚 FEATURES 表里的条目。
+    # （第一版就锚错了，跑出来「缺失 !!」，白惊一场。）
+    ("我的页 订阅管理入口", r"\{ tab: 'subs',"),
+    ("我的页 依赖管理入口", r"\{ tab: 'deps',"),
+    ("我的页 环境变量入口", r"\{ tab: 'envs',"),
+    ("我的页 面板日志入口", r"\{ tab: 'syslog',"),
+    # 这两个是 openSettings() 弹层里写死的，产物里有字面量
     ("我的页 应用设置入口", r'data-goto="apps"'),
-    ("我的页 依赖管理入口", r'data-goto="deps"'),
+    ("我的页 其他设置入口", r'data-goto="sysconf"'),
     ("面板日志 列表加载", r"function loadSysLog\("),
     ("面板日志 纯文本接口", r"/api/system/log"),
     ("面板日志 清空走 DELETE", r"\{ method: 'DELETE' \}"),

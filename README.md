@@ -1,6 +1,6 @@
 # 青龙管家 · QingLongClient（iOS）
 
-一个对接 **青龙面板 v2.21.x** 的 iOS 客户端：原生 `WKWebView` 壳 + 与安卓 1.0.18 完全相同的
+一个对接 **青龙面板 v2.21.x** 的 iOS 客户端：原生 `WKWebView` 壳 + 与安卓 1.0.19 完全相同的
 单文件页面（`qinglong-pwa/index.html`），**零第三方依赖**。
 面板地址**留空**，第一次打开自己填（不预填 IP，免得仓库公开后泄露面板地址）。
 
@@ -73,7 +73,7 @@ qinglong-ios/
     │   ├── QLNet.swift             # URLSession 发请求（含 multipart 组装）
     │   └── QLBridge.swift          # 消息桥：网络 / 本地存储 / 保存文件
     └── Resources/
-        ├── index.html              # qinglong-pwa 的构建产物（跟安卓 1.0.18 同一份）
+        ├── index.html              # qinglong-pwa 的构建产物（跟安卓 1.0.19 同一份）
         ├── Info.plist              # 含 ATS 明文放行配置
         └── Assets.xcassets/
 ```

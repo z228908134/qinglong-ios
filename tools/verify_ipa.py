@@ -85,6 +85,24 @@ FEATURES = [
     ("面板日志 纯文本接口", r"/api/system/log"),
     ("面板日志 清空走 DELETE", r"\{ method: 'DELETE' \}"),
     ("面板日志 级别配色", r"\.logbox \.lv-error\{"),
+    # 1.0.17 头像：真机不显示的根因是**把 URL 直接塞进 <img src>**
+    # （iOS 是 file:// 源、安卓走回环代理，子资源加载没保证）。
+    # 改成 fetch 取 blob → 转 data: URL 才显示得出来 —— 锚在这条链上。
+    ("头像 走 fetch 取图", r"await fetch\(avStaticUrl\("),
+    ("头像 转 data: URL", r"function blobToDataUrl\("),
+    ("头像 异步到位后就地换", r"function paintAvatars\("),
+    ("头像 大图弹层", r'class="avbig"'),
+    ("头像 失败三处一起退回", r"\$\$\('\.hav, \.acct \.av, #tabAv'\)"),
+    # 1.0.17 后半：任务详情 → 脚本 / 日志 直达（照面板网页版的任务详情）
+    ("详情 脚本直达", r"data-goscript="),
+    ("详情 最新日志直达", r"data-gocronlog="),
+    ("详情 日志历史直达", r"data-gocronlogdir="),
+    ("详情 命令里抠脚本路径", r"function scriptPathOf\("),
+    ("详情 长路径缩略显示", r"function shortPath\("),
+    ("详情 补日志树不碰 path", r"async function ensureLogTree\("),
+    # 1.0.18 布局修复：两条都是预览截图里肉眼看到的
+    ("布局 长值不挤掉右箭头", r"\.kvrow \.v\{flex:1;min-width:0;"),
+    ("布局 按钮文案不换行", r"white-space:nowrap;background:var\(--fill\)"),
     # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),

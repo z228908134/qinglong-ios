@@ -61,8 +61,11 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .pill.gray{color:var(--text2);background:var(--fill)}
 .pill.red{color:#c0392b;background:rgba(255,59,48,.14)}
 [data-theme="dark"] .pill.green{color:#5ee27f}[data-theme="dark"] .pill.blue{color:#6cb4ff}[data-theme="dark"] .pill.orange{color:#ffb340}[data-theme="dark"] .pill.red{color:#ff8078}
+/* white-space:nowrap：按钮是 inline-flex，里面的文字默认会换行 ——
+   头像弹层里三个按钮平分宽度时，「复制地址」就被折成了两行（预览截图里看到的）。
+   按钮文案一律不换行，放不下就让它撑宽或者由外层 wrap。 */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:11px;
-  background:var(--fill);font-weight:600;font-size:calc(15px*var(--fs));transition:opacity .15s}
+  white-space:nowrap;background:var(--fill);font-weight:600;font-size:calc(15px*var(--fs));transition:opacity .15s}
 .btn:active{opacity:.55}
 .btn.pri{background:var(--accent);color:#fff}
 .btn.danger{background:rgba(255,59,48,.13);color:#d92b20}
@@ -238,6 +241,25 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
    图自己只负责铺满并裁成圆。object-fit:cover 不能省 —— 面板「更换头像」上传的是原图，
    长宽比不一定是 1:1，不裁的话圆头像里的人/图会被拉扁。 */
 .avimg{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+/* 主机卡的头像可点 —— cursor:pointer 给个暗示，-webkit-tap-highlight-color 关掉
+   不然点击会有系统灰底一闪，渐变底+彩图上特别丑。 */
+.hav{cursor:pointer;-webkit-tap-highlight-color:transparent}
+/* 大图弹层。容器居中，下面挨着元信息和按钮。padding 跟普通弹层一致。 */
+.avsheet{display:flex;flex-direction:column;align-items:center;padding:18px 16px 4px}
+.avbig{width:220px;height:220px;border-radius:50%;object-fit:cover;display:block;
+  box-shadow:0 14px 34px -10px rgba(0,0,0,.35)}
+/* 没图就用首字母当占位，**复用**主卡头像的渐变色 —— 用户一眼能认出是同一个圈。 */
+.avbig-fb{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+  font-size:calc(92px*var(--fs));background:linear-gradient(135deg,#5AD1E8,#1E9CC0);
+  box-shadow:0 14px 34px -10px rgba(30,156,192,.6)}
+.avbig-meta{margin-top:14px;font-size:calc(14px*var(--fs));color:var(--text);font-weight:600;
+  text-align:center}
+.avbig-tip{margin-top:8px;font-size:calc(12px*var(--fs));color:var(--text2);text-align:center;
+  line-height:1.5;padding:0 8px}
+/* 头像弹层底部的面板地址：等宽字体，长了就省略 ——
+   这行的作用是「确认现在连的是哪台面板」，截断了也不影响。 */
+.avbig-url{margin-top:10px;max-width:100%;font-size:calc(11px*var(--fs));color:var(--text3);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 /* 「正在执行 N 个 / 排队 N 个」高亮：主色 + 数字加粗，跟面板运行时间那段区分开 */
 .ovcard .meta.live{margin-top:9px;font-size:calc(13px*var(--fs));color:var(--text)}
 .ovcard .live-num{color:var(--accent);font-weight:700;font-size:calc(15px*var(--fs));margin:0 2px}
@@ -328,7 +350,7 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .kvrow{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;
   font-size:calc(14px*var(--fs));text-align:left}
 .kvrow .k{color:var(--text2);flex:0 0 72px}
-.kvrow .v{flex:1;text-align:right;color:var(--accent);font-weight:500}
+.kvrow .v{flex:1;min-width:0;text-align:right;color:var(--accent);font-weight:500}
 /* 一张卡里放多行设置时要有分隔线（比如「外观」卡里的外观模式 + 字体大小） */
 .kvrow:not(:last-child){border-bottom:1px solid var(--sep)}
 /* 外观选择弹层里的三个选项（照参考图） */
@@ -1036,8 +1058,10 @@ var S = {
   sys: null,
   /* 面板头像的**文件名**（登录后在 GET /api/user 里取回，形如 'xxxxxxxx.png'）。
      **只存文件名不存整条 URL** —— 面板地址是用户自己填的，换一台面板就得跟着换，
-     把 URL 存下来会在切账号时串到上一台的头像上。空串 = 没设过头像 → 回退首字母。 */
+     把 URL 存下来会在切账号时串到上一台的头像上。空串 = 没设过头像 → 回退首字母。
+     avatarSrc 才是 <img> 真正用的地址（fetch 回来转的 data: URL），见 loadAvatar()。 */
   avatar: '',
+  avatarSrc: '',
   need2fa: false,
   detailId: null,
   /* filter: 状态筛选（all / running / unused / disabled），分档规则见 cronBucket()。
@@ -1508,6 +1532,7 @@ function signOut(silent) {
   S.token = '';
   S.sys = null;
   S.avatar = '';      // 换账号时别把上一台的头像带过去
+  S.avatarSrc = '';
   sdel(K.token);
   S.crons.list = []; S.crons.total = 0; S.crons.page = 1;
   S.envs.list = []; S.logs.tree = []; S.logs.path = []; S.logs.q = '';
@@ -1667,14 +1692,10 @@ async function doLogin(auto, creds) {
 
 async function bootAfterLogin() {
   try { var sys = await api('/api/system'); S.sys = sys.data || null; } catch (e) {}
-  /* 头像：GET /api/user 回 { username, avatar, twoFactorActivated }，
-     avatar 是**文件名**（uuid + 扩展名），真正的图在 /api/static/<文件名>。
-     取不到就置空 → 三处头像自动退回首字母，不能因为一张图把登录卡住。 */
-  try {
-    var me = await api('/api/user');
-    S.avatar = (me.data && me.data.avatar) ? String(me.data.avatar) : '';
-  } catch (e) { S.avatar = ''; }
   setTab(S.tab || 'crons', true);
+  /* 头像**不 await**：它要下一个 /api/user 再下一次图片，压在这里等于把登录
+     拖慢一拍。先让界面出来（这时候是首字母），拉到了再就地换掉。 */
+  loadAvatar().then(paintAvatars);
 }
 
 /* ================= 顶栏 / Tab ================= */
@@ -2091,6 +2112,141 @@ async function openCron(id) {
   startDetailPolling(id);
 }
 
+/* ================= 任务详情 → 脚本 / 日志 的直达 =================
+   面板网页版的任务详情里，「脚本」「最新日志」「日志历史」三行都能点进去。
+   手机上尤其值：从任务详情去脚本要过「底栏 → 脚本 → 目录 → 文件」，
+   去日志更绕（「底栏 → 我的 → 日志文件 → 目录 → 文件」）。 */
+
+/* 从执行命令里抠出脚本路径。
+   青龙的任务命令就那几种写法：`task <路径>` / `node <路径>` / `python3 <路径>` /
+   `bash <路径>`，路径是**相对面板脚本目录**的（子目录就是 `a/b/c.py`）。
+   抠不出来（比如直接跑一段 shell）就返回空串 —— 那一行干脆不显示，
+   宁可不显示，也别给一个点了没反应的入口。 */
+function scriptPathOf(cmd) {
+  var s = String(cmd == null ? '' : cmd).trim();
+  if (!s) return '';
+  var m = s.match(/^(?:task|node|python3?|bash|sh|ts-node)\s+([^\s;&|]+)/i);
+  if (!m) return '';
+  var p = m[1].replace(/^["']|["']$/g, '');
+  /* 有的命令写的是容器内绝对路径，剥掉脚本目录前缀就还是相对路径 */
+  p = p.replace(/^\/ql\/(?:scripts|data\/scripts)\//, '');
+  /* 以 - 开头的是参数不是路径；剩下的绝对路径 / URL 一律不认 */
+  if (!p || p.charAt(0) === '-' || p.charAt(0) === '/' || /^https?:/i.test(p)) return '';
+  return p;
+}
+
+/* 抠出来的是完整相对路径，可手机上 390px 根本显示不下
+   （`lcmovie_YYB-GO-Script-i_main/wx-script/miqd.py` 一行塞不进），
+   而用户最想看的恰恰是**文件名**。所以显示时只留最后两段：`…/wx-script/miqd.py`。
+   **只影响显示** —— data-goscript 属性里永远是完整路径，跳转不受影响。 */
+function shortPath(p, keep) {
+  var parts = String(p == null ? '' : p).split('/').filter(function (x) { return x; });
+  keep = keep || 2;
+  if (parts.length <= keep) return parts.join('/');
+  return '…/' + parts.slice(-keep).join('/');
+}
+
+/* 日志树单独拉一份，**不动 S.logs.path**。
+   直接调 loadLogs() 会把日志页重置回根目录 —— 用户只是看了一眼任务详情，
+   回头进日志页发现位置没了，很莫名。 */
+async function ensureLogTree() {
+  if (S.logs.tree.length) return;
+  try { var r = await api('/api/logs'); S.logs.tree = r.data || []; } catch (e) { /* 拉不到就是没有 */ }
+}
+function cronById(id) {
+  return S.crons.list.filter(function (x) { return x.id === Number(id); })[0] || null;
+}
+/* 这个任务的日志目录名。面板写日志的目录就是任务的 log_name；
+   没设 log_name 时面板拿任务 id 当目录名，所以两个都试。 */
+function logDirCandidates(t) {
+  var out = [];
+  if (t && t.log_name) out.push(String(t.log_name));
+  if (t && t.id != null) out.push(String(t.id));
+  return out;
+}
+/* 在日志树里找这个任务的日志目录节点。名字可能重名（两个任务用同一个 log_name），
+   那就按「先 log_name 再 id」的顺序取第一个命中的 —— 和面板的行为一致。 */
+function findLogDir(t) {
+  var cands = logDirCandidates(t);
+  var all = flattenLogs(S.logs.tree);
+  for (var c = 0; c < cands.length; c++) {
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].type === 'directory' && String(all[i].title) === cands[c]) return all[i];
+    }
+  }
+  return null;
+}
+/* 目录里最新的那个日志文件。
+   文件名形如 `2026-09-18-20-15-01-118.log` —— **字典序就是时间序**，
+   直接比字符串取最大的那个，比解析日期可靠（不同版本格式还不一样）。 */
+function newestLogFile(dirNode) {
+  var files = (dirNode && dirNode.children) || [];
+  var best = null;
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type === 'directory') continue;
+    if (!best || String(files[i].title) > String(best.title)) best = files[i];
+  }
+  return best;
+}
+/* 详情里「最新日志」那行右侧显示什么。
+   **要分清「还没拉」和「拉了但没有」**：
+     · 日志树还没拉过 → 「查看最新一条」（拉完就地换成真名，见 renderCronDetail 末尾）；
+     · 拉过了、这个任务确实没有日志目录 → 「暂无日志」。
+   两种情况都给同一句话的话，一个从没跑过的任务会一直显示「查看最新一条」，
+   点进去弹「还没有日志」—— 用户白点一次。 */
+function logNewHint(t) {
+  if (!S.logs.tree.length) return '查看最新一条';
+  var f = newestLogFile(findLogDir(t));
+  return f ? String(f.title) : '暂无日志';
+}
+/* 跳到脚本页并打开这个文件。full 是相对面板脚本目录的路径（可能带子目录）。 */
+async function gotoScript(full) {
+  var parts = String(full || '').split('/').filter(function (x) { return x; });
+  if (!parts.length) return;
+  var file = parts.pop();
+  var dir = parts.join('/');
+  closeSheet();
+  /* 先摆好目标目录再切页：setTab 会顺手 refresh，带着对的 path 去拉才不会
+     先渲染一次根目录再跳。 */
+  S.scripts.path = parts.slice();
+  setTab('scripts');
+  await loadScripts(parts, true);
+  var node = findScriptNode(dir, file);
+  if (node) { openScriptEditor(node, dir); return; }
+  /* 文件不在（订阅还没更新 / 面板上被改名或删了）：**退一步停在它该在的目录**，
+     把沿路的目录都展开。用户至少能看到那个目录里有什么，比弹一句
+     「没找到」然后什么都不发生有用得多。 */
+  if (parts.length) {
+    var acc = [];
+    parts.forEach(function (p) {
+      acc.push(p);
+      S.scripts.expanded[acc.join('/')] = 1;
+    });
+    renderScripts();
+    toast('没找到 ' + shortPath(full, 1) + '，已打开所在目录', true);
+  } else {
+    toast('脚本树里没找到 ' + file, true);
+  }
+}
+/* 打开这个任务最新的一条日志。 */
+async function openCronLog(t) {
+  if (!t) return;
+  closeSheet();
+  await ensureLogTree();
+  var f = newestLogFile(findLogDir(t));
+  if (!f) { toast('这个任务还没有日志', true); return; }
+  await openLogFile(f);
+}
+/* 跳到日志页，并停在这个任务的日志目录里。 */
+async function gotoCronLogDir(t) {
+  if (!t) return;
+  closeSheet();
+  await ensureLogTree();
+  var dir = findLogDir(t);
+  setTab('logs');
+  await loadLogs(dir ? logKeyPath(dir.key) : [], false);
+}
+
 function renderCronDetail(t) {
   var s = statusOf(t);
   var next = nextRunText(t.schedule);
@@ -2116,6 +2272,27 @@ function renderCronDetail(t) {
 
   h += '<div class="secttl">执行命令</div>';
   h += '<div class="code">' + esc(t.command || '') + '</div>';
+
+  /* 「脚本 / 最新日志 / 日志历史」三行可点直达（照面板网页版的任务详情）。
+     手机上这三跳能省一大截：脚本要过「底栏 → 脚本 → 目录 → 文件」，
+     日志更绕（「底栏 → 我的 → 日志文件 → 目录 → 文件」）。 */
+  var sp = scriptPathOf(t.command);
+  if (sp) {
+    h += '<div class="secttl">脚本</div><div class="card">' +
+      '<button class="kvrow" data-goscript="' + esc(sp) + '">' +
+        '<span class="k" style="flex:0 0 56px">脚本</span>' +
+        '<span class="v ell">' + esc(shortPath(sp)) + '</span><span class="t3">›</span>' +
+      '</button></div>';
+  }
+  h += '<div class="secttl">日志</div><div class="card">' +
+    '<button class="kvrow" id="cdLogNew" data-gocronlog="' + t.id + '">' +
+      '<span class="k" style="flex:0 0 56px">最新日志</span>' +
+      '<span class="v ell" id="cdLogNewV">' + esc(logNewHint(t)) + '</span><span class="t3">›</span>' +
+    '</button>' +
+    '<button class="kvrow" id="cdLogHis" data-gocronlogdir="' + t.id + '">' +
+      '<span class="k" style="flex:0 0 56px">日志历史</span>' +
+      '<span class="v ell">' + esc(t.log_name || ('任务 ' + t.id)) + '</span><span class="t3">›</span>' +
+    '</button></div>';
 
   h += '<div class="secttl">操作</div>';
   h += '<div class="row" style="gap:8px;flex-wrap:wrap">';
@@ -2145,6 +2322,16 @@ function renderCronDetail(t) {
   h += '</div>';
 
   $('#shB').innerHTML = h;
+
+  /* 「最新日志」那行先把文件名补上。日志树没拉过就拉一次（**不 await**，
+     详情页要立刻能看），回来只改那一个 span，不重渲染整张详情。
+     顺手挡一道 S.detailId：等回来时用户可能已经关掉或换到别的任务了。 */
+  if (!S.logs.tree.length) {
+    ensureLogTree().then(function () {
+      var v = $('#cdLogNewV');
+      if (v && S.detailId === t.id) v.textContent = logNewHint(t);
+    });
+  }
 }
 
 function kv(k, v) {
@@ -3703,7 +3890,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.17';
+var APP_VER = '1.0.18';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -3748,48 +3935,87 @@ function avChar() {
   var u = String(S.user == null ? '' : S.user).trim();
   return u ? u.charAt(0).toUpperCase() : '◍';
 }
-/* 面板头像的**真实地址**。
-   对的是面板 back/loaders/express.ts：`app.use('/api/static', express.static(uploadPath))`
-   注册在 jwt 中间件**之前**，所以 /api/static/<文件名> **不带鉴权**，可以直接塞进
-   <img src> —— 不需要 token，也就不用为了一张图去开 blob / data URL 那套。
-   头像文件是「更换头像」时用 PUT /api/user/avatar 上传的，落到 /ql/data/upload/，
-   文件名是 uuid + 原扩展名，authInfo.avatar 里只存这个文件名。
-   没有头像时返回空串，调用方退回 avChar() 的首字母。 */
-function avUrl() {
-  var f = String(S.avatar == null ? '' : S.avatar).trim();
+/* ================= 面板头像 =================
+   两段式：
+     文件名  GET /api/user → data.avatar（青龙存的是 uuid + 原扩展名，只有文件名）
+     图      /api/static/<文件名>  —— back/loaders/express.ts 里
+             `app.use('/api/static', express.static(uploadPath))` 挂在 jwt **之前**，
+             理论上不带鉴权。
+
+   **但不直连，走 fetch。** 第一版就是直接把 /api/static/xxx 塞进 <img src>，
+   真机上不显示，原因至少有三条：
+     · iOS 的页面是 loadFileURL 加载的（file:// 源），远程子资源能不能加载没保证；
+     · 安卓的页面来自 App 内置回环服务，那个服务只代理**页面发出的 fetch**，
+       <img> 的加载它不管，地址会打到回环服务上直接 404；
+     · 万一某版面板把静态挂载挪到鉴权后面，直连还会 401。
+   走 fetch 就和其它所有请求同一条路（iOS 原生桥 / 安卓本地代理），还能带上 token，
+   拿回 blob 再转成 data: URL 塞进 <img>。代价是图片过一次 base64（只在内存里），
+   换的是「一定能显示」。 */
+function avStaticUrl(file) {
+  var f = String(file == null ? '' : file).trim();
   if (!f) return '';
-  /* 用 base()（面板真实地址）而不是 apiBase()：iOS 上页面是 file:// 加载的，
-     apiBase() 本来就返回 base()，两者一样；安卓上 apiBase() 是回环代理地址，
-     那个本地服务只代理 /api 的 fetch（JS 桥接过去的），<img> 不会被桥接，
-     走回环地址会取不到图。所以**一律用真实地址**。 */
-  return base() + '/api/static/' + encodeURIComponent(f);
+  /* 有的面板/改版把整条 URL 或 data: 直接塞在 avatar 字段里 —— 那就别再拼了 */
+  if (/^(data:|https?:\/\/|\/)/i.test(f)) return f;
+  return apiBase() + '/api/static/' + encodeURIComponent(f);
 }
-/* 头像的**内部**那段 HTML：有图出图，没图出首字母。
-   图挂了（文件被删 / 面板版本没这个静态挂载）要有退路，所以带 onerror ——
-   不然就是一个破图图标，比首字母还难看。 */
+/* <img> 真正用的地址：S.avatarSrc（data: URL，或面板直接给的 URL）。空串 = 没头像 */
+function avUrl() { return String(S.avatarSrc || ''); }
+/* 头像的**内部**那段 HTML：有图出图，没图出首字母。 */
 function avInner() {
   var u = avUrl();
   if (!u) return esc(avChar());
   return '<img class="avimg" src="' + esc(u) + '" alt="">';
 }
-/* 头像图加载失败（文件被删了 / 面板版本没有 /api/static 这个静态挂载 / 地址不通）
-   就**全部**退回首字母。只换掉出问题的那一个没用 —— 三处是同一个文件名，
-   一张取不到就是都取不到，留着另外两个破图更难看。
-   用 textContent 整体覆盖：父级是圆的、带渐变底，只删 <img> 会剩一个空圆。 */
+function blobToDataUrl(blob) {
+  return new Promise(function (res, rej) {
+    var fr = new FileReader();
+    fr.onload = function () { res(String(fr.result || '')); };
+    fr.onerror = function () { rej(new Error('图片读取失败')); };
+    fr.readAsDataURL(blob);
+  });
+}
+/* 拉一次头像。**任何一步失败都只是「没有头像」**，绝不往外抛 ——
+   一张图不该有权力影响登录流程。 */
+async function loadAvatar() {
+  S.avatar = ''; S.avatarSrc = '';
+  try {
+    var me = await api('/api/user');
+    var raw = (me.data && me.data.avatar) ? String(me.data.avatar).trim() : '';
+    if (!raw) return;
+    S.avatar = raw;
+    if (/^(data:|https?:\/\/|\/)/i.test(raw)) { S.avatarSrc = raw; return; }
+    var res = await fetch(avStaticUrl(raw), {
+      headers: S.token ? { Authorization: 'Bearer ' + S.token } : {},
+      cache: 'no-store'
+    });
+    if (!res.ok) return;
+    var blob = await res.blob();
+    if (!blob || !blob.size) return;
+    S.avatarSrc = await blobToDataUrl(blob);
+  } catch (e) { S.avatar = ''; S.avatarSrc = ''; }
+}
+/* 头像没了（取不到 / 解码失败）→ 三处**一起**退回首字母。
+   只换掉出问题的那一个没用：三处用的是同一张图，一张不行就是都不行。 */
 function avFallbackAll() {
-  S.avatar = '';
+  S.avatar = ''; S.avatarSrc = '';
   $$('.hav, .acct .av, #tabAv').forEach(function (box) { box.textContent = avChar(); });
 }
-/* 给刚渲染出来的头像 <img> 挂 error 监听。
-   **必须每次渲染完调一次**：img 是 innerHTML 塞进去的，新元素上没有任何监听，
-   而且这份页面整个包在 IIFE 里（没有全局函数），写 onerror="xxx(this)" 属性
-   是取不到函数的 —— 现有代码里也确实一处内联事件都没有。 */
+/* 给刚渲染出来的头像 <img> 挂 error 监听（data: URL 也可能解不出来）。
+   **必须每次渲染完调一次**：img 是 innerHTML 塞进去的，新元素上没有任何监听；
+   而且整段脚本包在 IIFE 里（没有全局函数），写 onerror="xxx(this)" 取不到函数。 */
 function bindAvImgs() {
   $$('.avimg').forEach(function (im) {
     if (im.__avb) return;      // 同一个元素别重复挂
     im.__avb = true;
     im.addEventListener('error', avFallbackAll);
   });
+}
+/* 头像异步到位之后，把**已经画出来的**三处就地换掉 —— 不整页重渲染，
+   省得用户正看着的内容闪一下。没进 DOM 的（比如没进过「我的」页）自然跳过。 */
+function paintAvatars() {
+  setAvInner($('#tabAv'));
+  $$('.hav, .acct .av').forEach(function (box) { setAvInner(box); });
+  bindAvImgs();
 }
 /* 把 avInner() 的结果塞进一个已有元素。
    **没图的时候走 textContent**：结果就是一个字符，没必要过一遍 HTML 解析 ——
@@ -3804,6 +4030,54 @@ function setAvInner(el) {
 function syncTabAvatar() {
   setAvInner($('#tabAv'));
   bindAvImgs();
+}
+
+/* 点头像弹大图。
+   主机卡里那个 46px 的圆根本看不清面板上传的图是谁，点开才有意义。
+   顺手带个「刷新」：用户在面板网页版改了头像，App 这边要再拉一次 /api/user 才看得到。
+   再带个「复制地址」：发现头像不对时，下一步一定是去面板网页版改，
+   而面板地址是在 App 里手输的、多半记不住，一键复制过去最省事。
+   **没有头像时也照样能进** —— 弹层里就显示首字母 + 一句提示，省得用户点了没反应。 */
+async function openAvSheet() {
+  var u = avUrl();
+  var meta = [];
+  if (S.user) meta.push(esc(S.user));
+  if (S.sys && S.sys.version) meta.push('青龙 ' + esc(S.sys.version));
+  if (S.dash.sys && S.dash.sys.platform) meta.push(esc(S.dash.sys.platform));
+  /* meta.join(' · ') 可能为空数组 → ''，fallback 到「未登录」一眼就能看出来 */
+  var metaTxt = meta.length ? meta.join(' · ') : '未连接面板';
+  var h =
+    '<div class="avsheet">' +
+      (u
+        ? '<img class="avbig" src="' + esc(u) + '" alt="">'
+        : '<div class="avbig avbig-fb">' + esc(avChar()) + '</div>') +
+      '<div class="avbig-meta">' + metaTxt + '</div>' +
+      (u ? '' : '<div class="avbig-tip">面板「系统设置 → 安全设置 → 更换头像」里传一张就有了</div>') +
+      (S.server ? '<div class="avbig-url ell">' + esc(S.server) + '</div>' : '') +
+      '<div class="row" style="gap:8px;margin-top:14px">' +
+        '<button class="btn pri" style="flex:1" id="avSheetReload">刷新</button>' +
+        (S.server ? '<button class="btn" style="flex:1" id="avSheetCopy">复制地址</button>' : '') +
+        '<button class="btn" style="flex:1" id="avSheetClose">关闭</button>' +
+      '</div>' +
+    '</div>';
+  openSheet('头像', h);
+  var sheetEl = $('#sheet');
+  var big = sheetEl.querySelector ? sheetEl.querySelector('.avbig') : null;
+  if (big && big.tagName === 'IMG') bindAvImgs();
+  /* 刷新 = 重新走一遍 loadAvatar（/api/user + 取图）→ 换掉三处头像。
+     拉不到保持原状（不弹错误，免得用户以为 App 坏了）。 */
+  $('#avSheetReload').addEventListener('click', async function () {
+    var old = S.avatar;
+    await loadAvatar();
+    if (!S.avatar && old) toast('没取到新头像', true);
+    paintAvatars();
+    /* 弹层里的大图也要跟着换 —— 只换外面三处的话，用户正盯着看的这张没变，
+       会以为「点了没反应」。整张弹层重开一次最省事。 */
+    openAvSheet();
+  });
+  var cp = $('#avSheetCopy');
+  if (cp) cp.addEventListener('click', function () { copyText(S.server || ''); });
+  $('#avSheetClose').addEventListener('click', closeSheet);
 }
 
 /* ================= 「我的」页：面板概览 ================= */
@@ -3897,8 +4171,10 @@ function dashHost() {
       (live.length ? '<div class="meta live">' + live.join(' · ') + '</div>' : '') +
     '</div>' +
     /* 头像：面板上传过的图优先，没设过才退回首字母。
-       未登录时 avChar() 退回一个字形，不是一个空白圆。 */
-    '<span class="hav">' + avInner() + '</span>' +
+       未登录时 avChar() 退回一个字形，不是一个空白圆。
+       data-viewav 是「点头像弹大图」的钩子 —— 46px 的圆里
+       根本看不清面板上传的图是谁，点开才有意义。 */
+    '<span class="hav" data-viewav>' + avInner() + '</span>' +
     '</div>';
 }
 
@@ -5202,7 +5478,8 @@ function onClick(ev) {
      「先判 data-sact，再判 data-scr」，顺序反了会把菜单项当成打开文件。 */
   var el = ev.target.closest ? ev.target.closest(
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
-    '[data-cf],[data-view],[data-cbatch],' +
+    '[data-cf],[data-view],[data-cbatch],[data-viewav],' +
+    '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-log],[data-preset],[data-path],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
@@ -5298,6 +5575,12 @@ function onClick(ev) {
   if (el.dataset.view != null) return setView(el.dataset.view);
   if (el.id === 'btnCronAll') return cronSelectAll(cronSelCount() !== cronFiltered().length);
   if (el.dataset.cbatch) return cronBatch(el.dataset.cbatch);
+  /* 主机卡的头像：弹大图（带「刷新」按钮）。没设过头像也照样进。 */
+  if (el.dataset.viewav) return openAvSheet();
+  /* 任务详情里的三处直达：脚本 / 最新日志 / 日志历史 */
+  if (el.dataset.goscript) return gotoScript(el.dataset.goscript);
+  if (el.dataset.gocronlog) return openCronLog(cronById(el.dataset.gocronlog));
+  if (el.dataset.gocronlogdir) return gotoCronLogDir(cronById(el.dataset.gocronlogdir));
 
   /* 任务列表 */
   if (el.dataset.act) {

@@ -272,8 +272,11 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* 进度条：轨道 fill，填充用行内渐变 + 宽度 */
 .meter{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:7px}
 .meter i{display:block;height:100%;border-radius:3px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 4px;text-align:center}
 .stats .n{font-size:calc(20px*var(--fs));font-weight:700;line-height:1.2}
+/* 今日失败 > 0 时标红。用 --red（浅色主题下是 iOS 红，深色下也够亮），
+   不另开颜色变量 —— 免得又和主题那套替换机制打架。 */
+.stats .n.bad{color:var(--red)}
 .stats .l{font-size:calc(11px*var(--fs));color:var(--text2);margin-top:3px}
 /* 近 7 日趋势。每列一根柱：柱高 = 当天执行数 / 七天里最大的那天；
    柱子里**贴底**那段是成功数（绿），上面一截是失败数（红）。
@@ -1095,6 +1098,11 @@ var S = {
      q 是「在这个日志里搜关键字」，和 onlyErr 是**与**的关系（只看错误 + 搜索 =
      在错误行里找）。 */
   logfile: { lines: [], txt: '', onlyErr: false, q: '' },
+  /* 详情页「运行日志」那一块的状态。和 logfile 分开存：
+     两处的筛选是各自独立的（在日志文件里筛了错误，不该影响详情页的运行日志）。
+     刷新日志时 lines 换新、onlyErr / q **保留** —— 开着「只看错误」按刷新，
+     结果又被塞回全部，那个开关就白点了。 */
+  cronlog: { lines: [], errN: 0, onlyErr: false, q: '' },
   /* scripts.expanded 的键是「从脚本根目录算起的相对路径」（如 dir1/sub），值是真值。
      默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
      path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
@@ -2130,6 +2138,9 @@ async function openCron(id) {
   var t = S.crons.list.filter(function (x) { return x.id === id; })[0];
   if (!t) return;
   S.detailId = id;
+  /* 换任务就把上一份的筛选清掉 —— 上一个任务开着「只看错误」，
+     新任务的日志一进来就只剩几行，看着像日志是空的。 */
+  S.cronlog = { lines: [], errN: 0, onlyErr: false, q: '' };
   openSheet(t.name || '未命名任务', '<div class="center"><span class="spin"></span>加载中…</div>');
   renderCronDetail(t);
   loadCronLog(id, false);
@@ -2334,7 +2345,15 @@ function renderCronDetail(t) {
   h += '<label class="btn" style="padding:8px 12px"><input type="checkbox" id="autoLog" checked style="width:auto;margin-right:6px">自动刷新</label>';
   h += '<button class="btn" id="btnLogCopy" style="padding:8px 12px">复制</button>';
   h += '</div>';
+  /* 跑失败之后这一屏就是几千行，靠肉眼扫不现实 —— 和日志文件弹层用同一套筛选。
+     「只看错误」按钮先藏起来（这时日志还没到，不知道有没有错误行），
+     由 paintCronLog 按 errN 决定露不露脸，跟弹层的行为保持一致。 */
+  h += '<div class="searchbar" style="margin-bottom:8px;display:flex;gap:8px;align-items:center">' +
+    '<input id="cronLogFind" type="search" placeholder="在这份运行日志里搜关键字" style="flex:1">' +
+    '<button class="btn" id="btnCronLogErr" style="display:none;padding:6px 10px;font-size:calc(12px*var(--fs));flex:0 0 auto">只看错误</button>' +
+    '</div>';
   h += '<div class="logbox" id="logBox">加载中…</div>';
+  h += '<div class="f11 t3" id="cronLogMeta" style="margin:8px 4px;line-height:1.6"></div>';
 
   h += '<div class="secttl">其他</div><div class="card">';
   h += kv('任务 ID', t.id);
@@ -2346,6 +2365,15 @@ function renderCronDetail(t) {
   h += '</div>';
 
   $('#shB').innerHTML = h;
+
+  /* 运行日志的搜索框是这次刚建出来的，input 事件委托不到，就地挂一次。
+     详情页的 HTML 每次打开只渲染一遍（轮询只改徽标和按钮，见 paintCronState），
+     所以挂一次就够。 */
+  var cfin = $('#cronLogFind');
+  if (cfin) cfin.addEventListener('input', function () {
+    S.cronlog.q = cfin.value.trim();
+    paintCronLog();
+  });
 
   /* 「最新日志」那行先把文件名补上。日志树没拉过就拉一次（**不 await**，
      详情页要立刻能看），回来只改那一个 span，不重渲染整张详情。
@@ -2362,9 +2390,46 @@ function kv(k, v) {
   return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>';
 }
 
+/* 「自动贴到底」但**只在用户本来就贴着底部时** —— 任务在跑、自动刷新开着的时候，
+   你往上翻两屏看前面的报错，每 3 秒被拽回底部一次，根本没法读。
+   （阈值 48px 是给「就差一点点」留的余量：手指滚不到绝对底部。）
+   注意 scrollHeight 和 scrollTop 都是取整过的，别指望它们能精确相等。 */
+function stickBottom(el) {
+  var bottom = el.scrollHeight - el.scrollTop - (el.clientHeight || 0);
+  if (bottom < 48) el.scrollTop = el.scrollHeight;
+}
+
+/* 重画详情页的运行日志框。切「只看错误」、改搜索词、刷新回来都走这里 ——
+   一处渲染，三处调用，不会出现「框里 3 行、复制出来 5 行」这种对不上的事。
+   这里的日志**不带行号**，除非开了筛选（那才需要行号定位）。 */
+function paintCronLog() {
+  var box = $('#logBox');
+  if (!box) return;
+  var cl = S.cronlog;
+  box.innerHTML = cl.lines.length ? logBoxHtml(cl.lines, cl.onlyErr, cl.q) : '（日志为空）';
+  /* 搜索时滚到**第一条匹配**（否则搜完还停在末尾，看着像没搜到） */
+  if (cl.q) box.scrollTop = 0;
+  else stickBottom(box);
+  var eb = $('#btnCronLogErr');
+  if (eb) {
+    /* 一行错都没有就不给按钮（点了只会看到空框），跟日志文件弹层一致 */
+    eb.style.display = cl.errN ? '' : 'none';
+    eb.textContent = cl.onlyErr ? '看全部' : '只看错误';
+  }
+  var cp = $('#btnLogCopy');
+  if (cp) cp.textContent = cl.q ? '复制匹配行' : (cl.onlyErr ? '复制错误行' : '复制');
+  var mt = $('#cronLogMeta');
+  if (mt) {
+    var n = logPick(cl.lines, cl.onlyErr, cl.q).length;
+    if (cl.onlyErr || cl.q) mt.textContent = '筛出 ' + n + ' 行（共 ' + cl.lines.length + ' 行）';
+    else if (cl.lines.length) mt.textContent = '共 ' + cl.lines.length + ' 行' + (cl.errN ? ' · 错误 ' + cl.errN : '');
+    else mt.textContent = '';
+  }
+}
+
 /* 详情页的运行日志也按级别上色：跑起来的时候红行（error）能一眼看到，
-   不用在一整屏灰字里扒。这里**不带行号**（保持终端观感）——
-   要行号、要筛错误、要搜关键字，走「日志历史」进日志文件弹层。 */
+   不用在一整屏灰字里扒。要行号 / 只看错误 / 搜关键字，这页现在都有了；
+   想看历史那几次的运行日志，走「日志历史」进日志文件弹层。 */
 async function loadCronLog(id, silent) {
   var box = $('#logBox');
   if (!box) return;
@@ -2374,8 +2439,13 @@ async function loadCronLog(id, silent) {
     var txt = stripAnsi(r.data || '');
     var lines = txt ? txt.split('\n') : [];
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
-    box.innerHTML = lines.length ? logBoxHtml(lines, false, '') : '（日志为空）';
-    box.scrollTop = box.scrollHeight;
+    /* onlyErr / q **保留**：开着「只看错误」按刷新，结果又被塞回全部，
+       那个开关就白点了。lines 和 errN 换新。 */
+    S.cronlog = {
+      lines: lines, errN: logErrLines(lines).length,
+      onlyErr: S.cronlog.onlyErr, q: S.cronlog.q
+    };
+    paintCronLog();
     var st = $('#logStat');
     if (st) {
       var map = { running: '运行中', completed: '已完成', ignored: '已忽略日志', empty: '暂无日志', notFound: '日志不存在' };
@@ -3994,7 +4064,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.20';
+var APP_VER = '1.0.21';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -4316,15 +4386,25 @@ function dashTasks() {
   var o = S.dash.ov;
   if (!o) return '';
   var rate = pctNum(o.successRate);
+  /* 「今日失败」是这六格里**唯一一个会让人立刻去干点什么**的数 ——
+     前面几格都是「跑得怎么样」，只有它回答「有没有事要管」。
+     面板的 overview 一直有 todaySuccess / todayFail，之前只是没画出来。 */
+  var fail = Number(o.todayFail);
+  if (!isFinite(fail) || fail < 0) fail = null;
+  /* 六格三列（原来是四格）。失败 > 0 才标红 —— 0 也标红的话天天红着，
+     真出事那天反而看不出区别。 */
   var cells = [
-    [o.total == null ? '—' : o.total, '总任务'],
-    [o.enabled == null ? '—' : o.enabled, '已启用'],
-    [o.todayRuns == null ? '—' : o.todayRuns, '今日执行'],
-    [rate == null ? '—' : rate.toFixed(1) + '%', '成功率']
+    [o.total == null ? '—' : o.total, '总任务', 0],
+    [o.enabled == null ? '—' : o.enabled, '已启用', 0],
+    [o.todayRuns == null ? '—' : o.todayRuns, '今日执行', 0],
+    [o.todaySuccess == null ? '—' : o.todaySuccess, '今日成功', 0],
+    [fail == null ? '—' : fail, '今日失败', fail > 0 ? 1 : 0],
+    [rate == null ? '—' : rate.toFixed(1) + '%', '成功率', 0]
   ];
   var h = '<div class="stats">';
   cells.forEach(function (c) {
-    h += '<div><div class="n">' + esc(c[0]) + '</div><div class="l">' + esc(c[1]) + '</div></div>';
+    h += '<div><div class="n' + (c[2] ? ' bad' : '') + '">' + esc(c[0]) +
+      '</div><div class="l">' + esc(c[1]) + '</div></div>';
   });
   h += '</div>';
   return '<div class="sec">任务概览</div><div class="ovcard">' + h + '</div>';
@@ -5325,6 +5405,11 @@ function logPick(lines, onlyErr, q) {
   return out;
 }
 function logErrLines(lines) { return logPick(lines, true, ''); }
+/* 按当前筛选拼出**纯文本**（不带行号）—— 复制走它。
+   DOM 里那份带了行号和高亮标签，直接读 textContent 会把行号一起复制走。 */
+function logPickText(lines, onlyErr, q) {
+  return logPick(lines, onlyErr, q).map(function (x) { return x.t; }).join('\n');
+}
 /* 命中处高亮。**先按原文找位置、再分段转义** ——
    反过来（先 esc 再找）的话，关键字里带 `<` 或 `&` 就永远搜不到了。 */
 function logHi(line, q) {
@@ -5361,7 +5446,7 @@ function logBoxHtml(lines, onlyErr, q) {
 function logCopyText() {
   var lf = S.logfile;
   if (lf.onlyErr || lf.q) {
-    return logPick(lf.lines, lf.onlyErr, lf.q).map(function (x) { return x.t; }).join('\n');
+    return logPickText(lf.lines, lf.onlyErr, lf.q);
   }
   return lf.txt || '';
 }
@@ -5677,6 +5762,7 @@ function onClick(ev) {
     '[data-scope],[data-scsave],[data-scmod],' +
     '#btnCronEdit,#btnCronAll,#btnAccts,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
+    '#btnCronLogErr,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
     '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
     '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
@@ -5814,9 +5900,16 @@ function onClick(ev) {
     return;
   }
   if (el.id === 'btnLogCopy') {
-    var box = $('#logBox');
-    if (box) copyText(box.textContent || '');
-    return;
+    /* 复制的是**筛过的那份**（按当前开关），而且走原文 ——
+       读 box.textContent 的话，开了筛选会把行号一起复制走。 */
+    var cl = S.cronlog;
+    return copyText(logPickText(cl.lines, cl.onlyErr, cl.q));
+  }
+  /* 详情页运行日志的「只看错误」：和日志文件弹层同一个开关语义，
+     点一次只看错误、再点一次看全部，**不重新打接口**。 */
+  if (el.id === 'btnCronLogErr') {
+    S.cronlog.onlyErr = !S.cronlog.onlyErr;
+    return paintCronLog();
   }
 
   /* 任务保存 */

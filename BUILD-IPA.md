@@ -46,7 +46,7 @@
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.25-trollstore.ipa
+sha256sum QingLongClient-1.0.29-trollstore.ipa
 # 应该得到 17d8d01ca6d776513112a8fe4a169a8895ec12b02bbfb6ae26a144cff65d743c
 ```
 

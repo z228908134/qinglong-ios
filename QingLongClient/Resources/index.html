@@ -91,7 +91,7 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 #main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(96px + var(--bot))}
 /* 批量操作栏两行、比底栏高一截，列表底部的留白要跟着加，否则最后一张卡片被盖住。
    任务页和变量页的批量栏同高，共用一条。 */
-#main.cronedit,#main.envsedit{padding-bottom:calc(168px + var(--bot))}
+#main.cronedit,#main.envsedit,#main.depsedit{padding-bottom:calc(168px + var(--bot))}
 .view{display:none} .view.on{display:block}
 #ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
   font-size:calc(12px*var(--fs));color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
@@ -144,7 +144,7 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
    ~57px，「取消全选」四个字直接折成两行 —— 拆行比缩字号强。
    任务页和变量页共用这一套样式（两条栏的按钮数不同，但外形、贴底方式、
    安全区处理完全一样，各写一份迟早会不一致）。 */
-#cronEditBar,#envEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
+#cronEditBar,#envEditBar,#depEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
   padding:10px 16px calc(10px + var(--bot));
   background:var(--card);border-top:1px solid var(--sep)}
 /* 「跳到最新」：日志框往上翻过之后（自动跟随已停）才出现的小按钮。
@@ -708,6 +708,12 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
         <button data-segval="linux">Linux</button>
       </div>
       <div class="searchbar" style="margin-top:12px"><input id="depSearch" type="search" placeholder="搜索依赖名" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 工具条：「编辑」进批量模式（全选 / 重装 / 删除 / 强制删除），照任务页那套。
+           1.0.31：脚本换了一批依赖之后常常要「把这几个重装一遍」，
+           逐个点卡片上的「重装」要点 N 次还各等一次接口。 -->
+      <div class="cronbar">
+        <button class="cfbtn" id="btnDepEdit">编辑</button>
+      </div>
       <div class="list" id="depList"></div>
       <div style="margin-top:12px"><button class="btn" id="btnNewDep" style="width:100%">+ 新建依赖</button></div>
     </section>
@@ -771,6 +777,7 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
        变量页同理，见 renderEnvEditBar()。两条栏共用同一套 CSS。 -->
   <div id="cronEditBar" class="hidden"></div>
   <div id="envEditBar" class="hidden"></div>
+  <div id="depEditBar" class="hidden"></div>
   <!-- 「跳到最新」：日志框往上翻过之后（自动跟随已停）才出现，见 syncLogTail()。
        页面级 fixed 元素 —— 弹层 #sheet 是 z-index 40，这条给 46 才压得住它。
        放在日志框上方的工具条里不行：日志框有 70vh 高，翻到中间时工具条早滚出屏幕了。 -->
@@ -1204,7 +1211,9 @@ var S = {
     trendDays: 7, tday: null
   },
   subs: { list: [], q: '', loading: false },
-  deps: { list: [], type: 'nodejs', q: '', loading: false },
+  /* edit / sel：1.0.31 依赖页批量操作，跟任务页 / 变量页同一套
+     open：1.0.31 依赖卡片折叠 —— 按 id 记，默认全折起来（只显示名称 + 状态） */
+  deps: { list: [], type: 'nodejs', q: '', loading: false, edit: false, sel: {}, open: {} },
   configs: { list: [], loading: false },
   /* 应用设置（面板的开放接口应用）。list 里每项是
      { id, name, client_id, client_secret, scopes: [], tokens: [] }。 */
@@ -1980,6 +1989,18 @@ function setTab(tab, force) {
     if (mn) mn.classList.remove('envsedit');
     var b2 = $('#btnEnvEdit');
     if (b2) b2.textContent = '编辑';
+  }
+  if (tab !== 'deps' && S.deps.edit) {
+    S.deps.edit = false;
+    S.deps.sel = {};
+    var eb3 = $('#depEditBar');
+    if (eb3) { eb3.classList.add('hidden'); eb3.innerHTML = ''; }
+    var tbar3 = $('#tabbar');
+    if (tbar3) tbar3.classList.remove('hidden');
+    var mn3 = $('#main');
+    if (mn3) mn3.classList.remove('depsedit');
+    var b3 = $('#btnDepEdit');
+    if (b3) b3.textContent = '编辑';
   }
   $('#main').scrollTop = 0;
   syncBack();
@@ -3995,32 +4016,146 @@ function depStatus(s) { return DEP_STATUS[s] || { t: '未知(' + s + ')', c: 'gr
 /* 正在装 / 正在删 —— 这几种状态只能取消，重装会被面板拒掉 */
 function depWorking(s) { return s === 0 || s === 3 || s === 6; }
 
+/* ---------- 依赖页批量操作（1.0.31） ----------
+   跟任务页 / 变量页同一套：顶栏「编辑」进批量模式，底栏出操作栏。
+   脚本换了一批依赖之后常常要「把这几个重装一遍」；逐个点卡片上的「重装」
+   要点 N 次、各等一次接口，还容易漏。 */
+
+function toggleDepEdit(on) {
+  S.deps.edit = (on == null ? !S.deps.edit : !!on);
+  if (!S.deps.edit) S.deps.sel = {};
+  var b = $('#btnDepEdit');
+  if (b) b.textContent = S.deps.edit ? '完成' : '编辑';
+  renderDeps();
+}
+
+function depSelCount() {
+  var n = 0;
+  for (var k in S.deps.sel) { if (S.deps.sel[k]) n++; }
+  return n;
+}
+
+function depSelIds() {
+  var out = [];
+  for (var k in S.deps.sel) { if (S.deps.sel[k]) out.push(Number(k)); }
+  return out;
+}
+
+function toggleDepSel(id) {
+  if (S.deps.sel[id]) delete S.deps.sel[id];
+  else S.deps.sel[id] = true;
+  renderDeps();
+}
+
+function depSelectAll(on) {
+  if (on) S.deps.list.forEach(function (x) { S.deps.sel[x.id] = true; });
+  else S.deps.sel = {};
+  renderDeps();
+}
+
+/* 单张依赖卡片的展开 / 收起。默认全收起来：名称 + 状态一行就够认了，
+   备注、更新时间、三个操作按钮只有真要动它时才需要看。
+   一张展开的卡片约 130px 高，收起来只剩 ~46px —— 一屏能从看三四个变成看八九个。 */
+function toggleDepOpen(id) {
+  if (S.deps.open[id]) delete S.deps.open[id];
+  else S.deps.open[id] = true;
+  renderDeps();
+}
+
+/* 批量动作。跟单条 depAction 的区别是**先按状态过滤再发** ——
+   面板那边「正在装/删」的依赖重装会被拒、未安装的删除会被拒，
+   整个数组一起发的话有一条不合状态就是整批失败，用户只看到一句报错，
+   根本不知道是哪条拖累了。过滤掉之后只发能发的；一条都不剩就明说原因。 */
+async function depBatch(act) {
+  var ids = depSelIds();
+  if (!ids.length) { toast('先选几个依赖', true); return; }
+  var picked = S.deps.list.filter(function (x) { return ids.indexOf(Number(x.id)) >= 0; });
+  var go = picked;
+  var why = '';
+  if (act === 'reinstall') {
+    go = picked.filter(function (x) { return !depWorking(x.status); });
+    why = '选中的都在安装/删除中，不用重装';
+  } else if (act === 'delete') {
+    go = picked.filter(function (x) { return x.status === 1; });
+    why = '选中的都不是「已安装」状态，删不掉';
+  }
+  if (!go.length) { toast(why, true); return; }
+  var send = go.map(function (x) { return Number(x.id); });
+  if (act === 'force' && !confirm('强制删除 ' + send.length + ' 个依赖？会连带删掉已安装的文件，不可恢复。')) return;
+  var label = '';
+  try {
+    if (act === 'reinstall') { label = '已提交重装'; await api('/api/dependencies/reinstall', { method: 'PUT', body: send }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/dependencies', { method: 'DELETE', body: send }); }
+    else if (act === 'force') { label = '已强制删除'; await api('/api/dependencies/force', { method: 'DELETE', body: send }); }
+    else return;
+    batchDone(label, send);
+    toggleDepEdit(false);
+    await loadDeps();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* 底栏。上行「全选 + 重装」（重装是唯一不破坏性的批量动作），
+   下行「删除 + 强制删除」—— 强制删除最狠，所以给它 danger 样式；
+   普通删除只在「已安装」时才发得出去（depBatch 里过滤），不算最狠的那个。 */
+function renderDepEditBar() {
+  var on = !!S.deps.edit;
+  if (!openEditShell('#depEditBar', on, 'depsedit')) return;
+  var bar = $('#depEditBar');
+  var n = depSelCount();
+  var allOn = n > 0 && n === S.deps.list.length;
+  bar.innerHTML =
+    '<div class="row" style="gap:8px;margin-bottom:8px">' +
+      '<button class="btn" id="btnDepAll" style="flex:1;padding:9px 4px">' +
+        (allOn ? '取消全选' : '全选') + '</button>' +
+      '<button class="btn" data-dbatch="reinstall" style="flex:1;padding:9px 4px">重装</button>' +
+    '</div>' +
+    '<div class="row" style="gap:8px">' +
+      '<button class="btn" data-dbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
+      '<button class="btn danger" data-dbatch="force" style="flex:1;padding:9px 4px">强制删除</button>' +
+      '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
+    '</div>';
+}
+
 function renderDeps() {
   var d = S.deps;
   $('#sub').textContent = d.list.length ? (d.list.length + ' 个依赖') : '';
   var box = $('#depList');
   if (d.loading && !d.list.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    renderDepEditBar();
     return;
   }
   if (!d.list.length) {
     box.innerHTML = '<div class="empty"><span class="ei">◫</span>' + (d.q ? '没有匹配的依赖' : '这一类还没有依赖') + '</div>';
+    renderDepEditBar();
     return;
   }
+  var editing = !!d.edit;
   box.innerHTML = d.list.map(function (x) {
     var s = depStatus(x.status);
     var busy = depWorking(x.status);
-    return '<div class="item">' +
-      '<div class="row"><div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + esc(x.name) + '</div>' + pill(s) + '</div>' +
+    var picked = editing && !!d.sel[x.id];
+    /* 编辑模式下没有折叠这回事：整行是勾选用的，展开反而更容易点错 */
+    var open = !editing && !!d.open[x.id];
+    return '<div class="item' + (picked ? ' on' : '') + '" data-deps="' + x.id + '">' +
+      '<div class="row">' +
+        (editing ? '<span class="ckb">✓</span>' : '') +
+        '<div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + esc(x.name) + '</div>' + pill(s) +
+        /* 折叠箭头：没有它用户看不出这行能点开 */
+        (editing ? '' : '<span class="t3" style="font-size:calc(11px*var(--fs));padding-left:6px">' +
+          (open ? '▾' : '▸') + '</span>') +
+      '</div>' +
+      (open ?
       (x.remark ? '<div class="f11 t3" style="margin-top:5px">' + esc(x.remark) + '</div>' : '') +
       '<div class="f11 t3" style="margin-top:5px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' +
       '<div class="row" style="gap:8px;margin-top:10px">' +
         '<button class="btn" style="flex:1;padding:8px" data-depact="log" data-id="' + x.id + '">日志</button>' +
         '<button class="btn" style="flex:1;padding:8px" data-depact="' + (busy ? 'cancel' : 'reinstall') + '" data-id="' + x.id + '">' + (busy ? '取消' : '重装') + '</button>' +
         '<button class="btn" style="flex:1;padding:8px" data-depact="more" data-id="' + x.id + '">更多</button>' +
-      '</div>' +
+      '</div>' : '') +
     '</div>';
   }).join('');
+  renderDepEditBar();
 }
 
 async function loadDeps() {
@@ -4593,7 +4728,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.30';
+var APP_VER = '1.0.31';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -6482,6 +6617,8 @@ function onClick(ev) {
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-envcoll],[data-theme-set],[data-log],[data-preset],[data-path],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
+    /* 1.0.31：依赖页的整行（勾选 / 展开收起）与批量栏 */
+    '[data-deps],[data-dbatch],' +
     /* 面板设置三页：应用的增删改 / 权限标签 / 复制 / 显隐密钥；
        其他设置的字段确认 / 备份模块勾选。 */
     '[data-appedit],[data-appsecret],[data-appdel],[data-reveal],[data-copy],' +
@@ -6494,6 +6631,7 @@ function onClick(ev) {
        注释里再留一份副本的话，变异把真实那行删掉、断言照样能在注释里搜到，
        于是「一条都不报错」= 那条变异被悄悄废掉（1.0.24 就是这么出来的 2 条 MISS）。 */
     '#btnEnvEdit,#btnEnvAll,#btnLogTail,' +
+    '#btnDepEdit,#btnDepAll,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
     '#btnCronLogErr,#btnSysLogErr,#btnSysLogCopy,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
@@ -6824,6 +6962,16 @@ function onClick(ev) {
   if (el.id === 'btnRenameOk') return renameScript(el.dataset.path, el.dataset.file);
 
   /* ---------- 依赖管理 ---------- */
+  /* 1.0.31：整行（data-deps）在批量模式下是勾选、平时是展开/收起。
+     必须排在 depact **之后**：closest 点到行内按钮时 el 是那个按钮，
+     它身上没有 data-deps，走不到这里；但保险起见顺序也别反。 */
+  if (el.dataset.deps != null) {
+    if (S.deps.edit) return toggleDepSel(el.dataset.deps);
+    return toggleDepOpen(el.dataset.deps);
+  }
+  if (el.id === 'btnDepEdit') return toggleDepEdit();
+  if (el.id === 'btnDepAll') return depSelectAll(depSelCount() !== S.deps.list.length);
+  if (el.dataset.dbatch) return depBatch(el.dataset.dbatch);
   if (el.dataset.depact) {
     var dact = el.dataset.depact;
     if (dact === 'log') return openDepLog(el.dataset.id);

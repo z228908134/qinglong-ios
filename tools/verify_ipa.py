@@ -162,7 +162,7 @@ FEATURES = [
     # 批量栏比底栏高一截，列表底部留白要跟着加，不然最后一张卡片被盖住。
     # 1.0.24：变量页也加了批量栏，两条栏同高，这条规则并成了一条选择器 ——
     # 锚点绑字面量，CSS 改写法就得跟着改，不然出包后这里报一项缺失。
-    ("批量 编辑模式加留白", r"#main\.cronedit,#main\.envsedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
+    ("批量 编辑模式加留白", r"#main\.cronedit,#main\.envsedit,#main\.depsedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
     # 1.0.23 新增：② 任务列表搜索命中高亮（复用日志那套 logHi，体验统一）
     ("列表 命中高亮复用 logHi", r"logHi\(t\.name \|\| '未命名任务', c\.q\)"),
     ("列表 标签也高亮", r"logHi\(l, c\.q\)"),
@@ -280,6 +280,17 @@ FEATURES = [
     ("变量分组 折叠按钮钩子", r'data-envcoll="'),
     ("变量分组 折叠是 toggle", r"delete S\.envs\.collapsed\[gk\]"),
     ("变量分组 委托里有折叠", r"\[data-envcoll\]"),
+
+    # 1.0.31：依赖卡片可折叠（默认只显示名称 + 状态，点一下展开三个按钮）
+    #        + 依赖页批量操作（重装 / 删除 / 强制删除，按状态过滤后整批发）。
+    ("依赖折叠 默认收起（编辑模式下不展开）", r"var open = !editing && !!d\.open\[x\.id\];"),
+    ("依赖折叠 箭头跟着状态", r"\(open \? '▾' : '▸'\)"),
+    ("依赖折叠 toggle", r"if \(S\.deps\.open\[id\]\) delete S\.deps\.open\[id\];"),
+    ("依赖批量 重装按状态过滤", r"return !depWorking\(x\.status\); \}\);"),
+    ("依赖批量 删除只发已安装", r"return x\.status === 1; \}\);"),
+    ("依赖批量 发的是过滤后那批", r"var send = go\.map\(function \(x\) \{ return Number\(x\.id\); \}\);"),
+    ("依赖批量 强制删除 danger", r'class="btn danger" data-dbatch="force"'),
+    ("依赖批量 委托里整行与批量按钮", r"\[data-deps\],\[data-dbatch\],"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

@@ -150,6 +150,30 @@ FEATURES = [
     ("面板日志 剥 ANSI 在入口", r"g\.text = stripAnsi\(text \|\| ''\);"),
     # 1.0.22 新增：④ 首次画日志直接跳到底（1.0.21 引入的回归）
     ("日志 第一次画跳到底", r"var stick = !cl\.painted \|\| atBottom\(box\);"),
+    # 1.0.23 新增：① 批量运行 / 批量停止。编辑模式以前只有启用 / 禁用 / 删除，
+    # 最常用的「把这几个都跑一遍」反而得一个个点进详情页。
+    ("批量 运行按钮", r'data-cbatch="run"'),
+    ("批量 停止按钮", r'data-cbatch="stop"'),
+    ("批量 拆两行", r"gap:8px;margin-bottom:8px"),
+    ("批量 运行走 run 接口", r"await api\('/api/crons/run', \{ method: 'PUT', body: ids \}\)"),
+    ("批量 停止走 stop 接口", r"await api\('/api/crons/stop', \{ method: 'PUT', body: ids \}\)"),
+    # 批量栏比底栏高一截，列表底部留白要跟着加，不然最后一张卡片被盖住
+    ("批量 编辑模式加留白", r"#main\.cronedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
+    # 1.0.23 新增：② 任务列表搜索命中高亮（复用日志那套 logHi，体验统一）
+    ("列表 命中高亮复用 logHi", r"logHi\(t\.name \|\| '未命名任务', c\.q\)"),
+    ("列表 标签也高亮", r"logHi\(l, c\.q\)"),
+    # `.logbox .hl` 出了日志框不生效 —— 列表必须单开一条，写死黄底（两套主题都看得清）
+    ("列表 高亮单开一条", r"\.item \.hl\{background:#ffd479;color:#1a1200;border-radius:2px\}"),
+    # 1.0.23 新增：③ 「上次耗时」与「本次已运行」
+    # last_running_time 是**秒数**（不是时间点），面板一直有、页面只在详情页画了「上次运行」；
+    # 脚本越跑越慢是京东类任务最常见的毛病，列表行里挂一个耗时一眼就能看出来。
+    ("列表 上次耗时", r"last \+= ' · 耗时 ' \+ fmtDur\(t\.last_running_time\)"),
+    ("详情 本次已运行函数", r"function cronElapsed\("),
+    ("详情 本次已运行行", r'id="cdSinceRow"'),
+    ("详情 本次已运行数字", r'id="cdSince"'),
+    # 排队中（status 3）时 last_execution_time 还是**上一次**跑的时间，
+    # 不判断状态会算出「十几小时」这种离谱值
+    ("详情 只有运行中才算本次", r"var running = t\.status === 0;"),
     # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),

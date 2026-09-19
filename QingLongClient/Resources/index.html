@@ -83,6 +83,8 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   background:var(--fill);font-size:calc(15px*var(--fs));line-height:1}
 /* overflow-x:hidden 是保险：内容万一还是宽了，也不让整页左右晃（各文本框自带滚动）。 */
 #main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(96px + var(--bot))}
+/* 批量操作栏两行、比底栏高一截，列表底部的留白要跟着加，否则最后一张卡片被盖住 */
+#main.cronedit{padding-bottom:calc(168px + var(--bot))}
 .view{display:none} .view.on{display:block}
 #ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
   font-size:calc(12px*var(--fs));color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
@@ -131,8 +133,10 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .item.on .ckb{background:var(--accent);border-color:var(--accent);color:#fff}
 /* 底部批量操作栏。fixed 贴底并自己吃掉安全区 —— 编辑模式下底栏（#tabbar）整体让位，
    所以不用去猜它有多高，两者也不会互相压住。 */
-#cronEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:8px;
-  align-items:center;padding:10px 16px calc(10px + var(--bot));
+/* 批量操作栏：拆成两行（主操作 / 状态操作）。一行塞 6 个按钮在 390px 上每个只剩
+   ~57px，「取消全选」四个字直接折成两行 —— 拆行比缩字号强。 */
+#cronEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
+  padding:10px 16px calc(10px + var(--bot));
   background:var(--card);border-top:1px solid var(--sep)}
 /* ---- 账号切换列表（系统设置 → 账号） ---- */
 /* 一行分两段：左边整块是「切到这个账号」，右边单独一个删除。
@@ -425,6 +429,10 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* 搜索命中的字。同样是**写死的颜色**（.logbox 底色恒为深色）：
    黄底 + 近黑字，深底上最扎眼，也不跟主题走。 */
 .logbox .hl{background:#ffd479;color:#1a1200;border-radius:2px}
+/* 列表里的搜索命中：**同一个黄底**（用户已经知道「黄底 = 命中」，不另造一套）。
+   作用域必须单独写 —— 上面那条是 `.logbox .hl`，出了日志框不生效。
+   黄底 + 深色字在两套主题下都看得清，所以写死颜色，不跟主题变量。 */
+.item .hl{background:#ffd479;color:#1a1200;border-radius:2px}
 .spin{width:16px;height:16px;border:2px solid var(--fill2);border-top-color:var(--accent);
   border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -1378,6 +1386,15 @@ function cronMs(sec) {
   var n = Number(sec);
   return isFinite(n) && n > 0 ? n * 1000 : 0;
 }
+/* 「本次已经跑了多久」（秒）= 现在 - 本次开始时间。
+   **只有 status === 0（运行中）时 last_execution_time 才是本次的开始时间** ——
+   排队中（3）的时候它还是上一次跑的时间，算出来会是「十几小时」这种离谱值，
+   所以调用方必须先确认状态。见 paintCronState。 */
+function cronElapsed(t) {
+  var start = cronMs(t && t.last_execution_time);
+  if (!start) return 0;
+  return Math.max(0, Math.round((Date.now() - start) / 1000));
+}
 /* 运行时长：秒 → 「X 天 X 时」。只留前两档 ——
    手机上「1 天 2 时 3 分 4 秒」一屏放不下，也没必要那么精确。 */
 function fmtDur(sec) {
@@ -1960,22 +1977,30 @@ function renderCrons() {
 
   box.innerHTML = list.map(function (t) {
     var s = statusOf(t);
+    /* 搜索命中就上黄底。以前搜完只是「列表变短了」，命中的是哪几个字还得自己找 ——
+       和日志搜索那套不一样（那边有黄底高亮），这里补上，用的还是同一个 logHi。 */
     var tags = '';
-    if (t.schedule) tags += '<span class="tag">' + esc(t.schedule) + '</span>';
-    (t.labels || []).slice(0, 3).forEach(function (l) { tags += '<span class="tag">' + esc(l) + '</span>'; });
+    if (t.schedule) tags += '<span class="tag">' + logHi(t.schedule, c.q) + '</span>';
+    (t.labels || []).slice(0, 3).forEach(function (l) { tags += '<span class="tag">' + logHi(l, c.q) + '</span>'; });
     if (t.isSystem === 1) tags += '<span class="tag">系统</span>';
 
     var next = nextRunText(t.schedule);
+    /* 「上次」后面挂一个耗时：脚本越跑越慢是京东类任务最常见的问题，
+       光看「上次 3 小时前」看不出这个。last_running_time 是**秒数**（不是时间点），
+       详见 fmtDur 的注释。0 表示没跑过 / 面板没回，那就不显示。 */
+    var last = '上次 ' + fmtRel(cronMs(t.last_execution_time));
+    if (t.last_running_time > 0) last += ' · 耗时 ' + fmtDur(t.last_running_time);
+
     /* 编辑模式下卡片左边多个勾选圈，「运行 / 更多」两个按钮收起来：
        一是避免批量操作时误触，二是腾出位置。点整张卡片 = 勾选 / 取消勾选。 */
     var on = editing && !!c.sel[t.id];
     return '<div class="item' + (on ? ' on' : '') + '" data-cron="' + t.id + '">' +
       '<div class="row">' +
         (editing ? '<span class="ckb">✓</span>' : '') +
-        '<div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + esc(t.name || '未命名任务') + '</div>' + pill(s) + '</div>' +
+        '<div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + logHi(t.name || '未命名任务', c.q) + '</div>' + pill(s) + '</div>' +
       '<div class="tags">' + tags + '</div>' +
       '<div class="row f11 t3" style="margin-top:8px">' +
-        '<span>上次 ' + esc(fmtRel(cronMs(t.last_execution_time))) + '</span>' +
+        '<span>' + esc(last) + '</span>' +
         (next ? '<span class="sp ell" style="text-align:right">下次 ' + esc(next.split('（')[0]) + '</span>' : '') +
       '</div>' +
       (editing ? '' :
@@ -2097,14 +2122,18 @@ function cronSelectAll(on) {
   renderCrons();
 }
 
-/* 批量动作。接口跟单个的一样，只是 body 传一组 id（青龙支持）。 */
+/* 批量动作。接口跟单个的一样，只是 body 传一组 id（青龙支持）。
+   「运行 / 停止」是 1.0.23 补的：编辑模式以前只能改状态和删，最常用的
+   「把这几个都跑一遍」反而没有 —— 得一个个点进详情页。 */
 async function cronBatch(act) {
   var ids = cronSelIds();
   if (!ids.length) { toast('先选几个任务', true); return; }
   if (act === 'delete' && !confirm('删除选中的 ' + ids.length + ' 个任务？删除后不可恢复。')) return;
   var label = '';
   try {
-    if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: ids }); }
+    if (act === 'run') { label = '已启动'; await api('/api/crons/run', { method: 'PUT', body: ids }); }
+    else if (act === 'stop') { label = '已停止'; await api('/api/crons/stop', { method: 'PUT', body: ids }); }
+    else if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: ids }); }
     else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: ids }); }
     else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: ids }); }
     else return;
@@ -2117,24 +2146,35 @@ async function cronBatch(act) {
 }
 
 /* 底部批量操作栏。编辑模式下把底栏（#tabbar）藏起来给它让位 —— 两个都是贴底元素，
-   同时显示会叠在一起；藏掉底栏也就不用去猜它有多高。 */
+   同时显示会叠在一起；藏掉底栏也就不用去猜它有多高。
+   顺带给 #main 加个 cronedit：两行比底栏高，列表底部留白要跟着加。 */
 function renderCronEditBar() {
   var bar = $('#cronEditBar');
   var on = !!S.crons.edit;
   var tb = $('#tabbar');
   if (tb) tb.classList.toggle('hidden', on);
+  var mn = $('#main');
+  if (mn) mn.classList.toggle('cronedit', on);
   if (!bar) return;
   bar.classList.toggle('hidden', !on);
   if (!on) { bar.innerHTML = ''; return; }
   var n = cronSelCount();
   var allOn = n > 0 && n === cronFiltered().length;
+  /* 两行：上行是「跑不跑」（运行 / 停止），下行是「改不改状态」（启用 / 禁用 / 删除）。
+     单行 6 个按钮在 390px 上每个只剩 ~57px，「取消全选」直接折行。 */
   bar.innerHTML =
-    '<button class="btn" id="btnCronAll" style="flex:1;padding:9px 4px">' +
-      (allOn ? '取消全选' : '全选') + '</button>' +
-    '<button class="btn" data-cbatch="enable" style="flex:1;padding:9px 4px">启用</button>' +
-    '<button class="btn" data-cbatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
-    '<button class="btn danger" data-cbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
-    '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>';
+    '<div class="row" style="gap:8px;margin-bottom:8px">' +
+      '<button class="btn" id="btnCronAll" style="flex:1;padding:9px 4px">' +
+        (allOn ? '取消全选' : '全选') + '</button>' +
+      '<button class="btn pri" data-cbatch="run" style="flex:1;padding:9px 4px">运行</button>' +
+      '<button class="btn" data-cbatch="stop" style="flex:1;padding:9px 4px">停止</button>' +
+    '</div>' +
+    '<div class="row" style="gap:8px">' +
+      '<button class="btn" data-cbatch="enable" style="flex:1;padding:9px 4px">启用</button>' +
+      '<button class="btn" data-cbatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
+      '<button class="btn danger" data-cbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
+      '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
+    '</div>';
 }
 
 /* ---------- 任务详情 ---------- */
@@ -2317,6 +2357,15 @@ function renderCronDetail(t) {
      last_running_time 是「运行了多久」的秒数，不是时间点，只能当时长格式化。 */
   h += kv('上次执行', fmtRel(cronMs(t.last_execution_time)));
   if (t.last_running_time > 0) h += kv('上次运行', fmtDur(t.last_running_time));
+  /* 「本次已运行」：任务在跑的时候最想知道的就是「跑了多久了」（好跟上面那行
+     「上次运行 4 分 57 秒」比一比，看是不是卡住了）。常驻 DOM，由 paintCronState
+     按状态显隐 + 更新数字 —— 开始/结束时不用重渲染整张详情
+     （轮询里重渲染会闪，AA17 那条断言就是钉这个的）。
+     首次渲染就按当前状态摆好，别等 3 秒后的第一次轮询才出现。 */
+  var running = t.status === 0;
+  h += '<div class="kv" id="cdSinceRow"' + (running ? '' : ' style="display:none"') + '>' +
+    '<div class="k">本次已运行</div><div class="v" id="cdSince">' +
+    (running ? esc(fmtDur(cronElapsed(t))) : '—') + '</div></div>';
   if (isBusy(t) && t.pid) h += kv('进程号', t.pid);
   h += '</div>';
 
@@ -2490,6 +2539,17 @@ function paintCronState(t) {
   if (!t) return;
   var p = $('#cdPill');
   if (p) p.innerHTML = pill(statusOf(t));
+  /* 「本次已运行」：**只有 status === 0（运行中）才算** —— 排队中（3）的时候
+     last_execution_time 还是上一次跑的时间，算出来会是「十几小时」。
+     行是常驻的（renderCronDetail 里默认 display:none），这里只切显隐 + 填数字，
+     不重建 DOM：轮询每 3 秒跑一次，重建会把用户的滚动位置和文字选中弄没。 */
+  var sr = $('#cdSinceRow');
+  if (sr) {
+    var running = t.status === 0;
+    sr.style.display = running ? '' : 'none';
+    var sv = $('#cdSince');
+    if (sv) sv.textContent = running ? fmtDur(cronElapsed(t)) : '—';
+  }
   var b = $('#cdAct');
   if (!b) return;
   var busy = isBusy(t);
@@ -4090,7 +4150,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.22';
+var APP_VER = '1.0.23';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

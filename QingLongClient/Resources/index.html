@@ -398,6 +398,18 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   font-size:calc(14px*var(--fs));line-height:1;font-family:inherit}
 .grphdr .gcoll:focus{outline:none}
 .grplist{display:flex;flex-direction:column;gap:10px}
+/* 1.0.32：变量搜索的「上 / 下一个」。搜「jd」能出二十来条，分组之后还散在各组里，
+   有的组还折着 —— 逐个滑着找很累，点箭头直接跳过去并把它圈出来。 */
+.envjump{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin:-4px 0 12px}
+.envjump .jb{min-width:32px;height:30px;padding:0 8px;border:none;border-radius:9px;background:var(--fill);
+  color:var(--text);font-size:calc(14px*var(--fs));line-height:1;cursor:pointer;font-family:inherit}
+.envjump .jb:focus{outline:none}
+/* 计数用等宽数字：从 9 跳到 10 时不会左右抖一下 */
+.envjump .jn{min-width:52px;text-align:center;font-size:calc(12px*var(--fs));color:var(--text2);
+  font-variant-numeric:tabular-nums}
+/* 当前跳到的那条套一圈黄边。用 outline 而不是 background —— 背景会跟编辑模式的
+   选中态 .item.on 撞在一起，看不出到底跳没跳。黄边沿用命中的那个黄，不跟主题变量。 */
+.item.hitcur{outline:2px solid #ffd479;outline-offset:-2px}
 .empty{text-align:center;color:var(--text2);padding:56px 20px}
 .empty .ei{font-size:calc(40px*var(--fs));opacity:.35;display:block;margin-bottom:12px}
 .secttl{font-size:calc(12px*var(--fs));font-weight:600;color:var(--text2);margin:18px 4px 8px;text-transform:uppercase;letter-spacing:.4px}
@@ -672,6 +684,12 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
 
     <section class="view" id="v-envs">
       <div class="searchbar"><input id="envSearch" type="search" placeholder="搜索变量名" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 1.0.32：搜出结果后逐个跳。没搜东西 / 没结果时整条藏起来（renderEnvs 控制显隐）。 -->
+      <div class="envjump hidden" id="envJump">
+        <button class="jb" data-envjump="-1" aria-label="上一个匹配">↑</button>
+        <span class="jn" id="envJumpN">-/0</span>
+        <button class="jb" data-envjump="1" aria-label="下一个匹配">↓</button>
+      </div>
       <!-- 工具条：「编辑」进批量模式（全选 / 启用 / 禁用 / 删除），排布照任务页。
            变量一多（京东 cookie 一堆账号）逐个点按钮太慢，而且「批量删掉过期的那几个」
            是换 cookie 时的常规操作。 -->
@@ -1177,7 +1195,7 @@ var S = {
   /* envs.collapsed：1.0.30 起的「分组折叠」状态，键是组名（标签名 / 未分类的哨兵）。
      **放 S 上而不是闭包里** —— 折叠按钮走全局事件委托，委托拿不到闭包变量。
      切页面不清空：用户折起来的组通常是不关心的那几组，来回切一次就全展开会很烦。 */
-  envs: { list: [], q: '', tag: '', loading: false, edit: false, sel: {}, collapsed: {} },
+  envs: { list: [], q: '', tag: '', loading: false, edit: false, sel: {}, collapsed: {}, hit: -1, hitId: null },
   /* logs.q：文件名搜索词。空串 = 正常目录浏览；非空 = 跨目录找整棵树。
      日志树是一次性整棵拉回来的，所以搜索不用再打接口。 */
   logs: { tree: [], path: [], q: '', loading: false },
@@ -3063,7 +3081,9 @@ function envRow(v) {
   var ls = envLabels(v);
   var editing = !!S.envs.edit;
   var picked = editing && !!S.envs.sel[v.id];
-  return '<div class="item' + (picked ? ' on' : '') + '" data-env="' + v.id + '">' +
+  /* 1.0.32：搜索跳转圈出来的那一条。没搜东西时不圈 —— 那时条子本来就是藏着的 */
+  var cur = !!S.envs.q && S.envs.hitId === v.id;
+  return '<div class="item' + (picked ? ' on' : '') + (cur ? ' hitcur' : '') + '" data-env="' + v.id + '">' +
     '<div class="row">' +
       (editing ? '<span class="ckb">✓</span>' : '') +
       '<div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + logHi(v.name, S.envs.q) + '</div>' +
@@ -3100,6 +3120,69 @@ function envFiltered() {
   return e.list.filter(function (v) { return envLabels(v).indexOf(e.tag) >= 0; });
 }
 
+/* 1.0.32：搜索跳转要走的**顺序** —— 就是页面上从上往下看见的顺序。
+   不能直接拿 envFiltered() 的结果当顺序：没选标签时页面是分组渲染的，
+   组是按标签出现次数排的，跟原列表顺序不一样 —— 按原顺序跳会「跳回去」。
+   顺带把每组所在的键带上，跳到折叠组里的那条时好把它展开。
+   注意这份顺序**不受折叠影响**（折叠的组也算进去），不然展开一个组
+   后面的下标就全错位了。 */
+function envHitList() {
+  var e = S.envs;
+  if (e.tag) return envFiltered().map(function (v) { return { id: v.id, key: '' }; });
+  var out = [];
+  envGrouped().forEach(function (g) {
+    g.items.forEach(function (v) { out.push({ id: v.id, key: g.key }); });
+  });
+  return out;
+}
+
+/* 跳转条当前的状况：没搜东西 or 没结果 → null（条子藏起来）。
+   顺手做一次校验：列表重拉过（换了关键字、刷新）之后，原来的下标可能已经
+   指到别的变量上了，拿 id 对一下，对不上就当没跳过（下标回到 -1）。 */
+function envJumpInfo() {
+  var e = S.envs;
+  if (!e.q) return null;
+  var hits = envHitList();
+  if (!hits.length) return null;
+  var cur = hits[e.hit];
+  if (e.hitId == null || !cur || cur.id !== e.hitId) { e.hit = -1; e.hitId = null; }
+  return { n: hits.length, cur: e.hit, hits: hits };
+}
+
+/* 上 / 下一个。step 只认 ±1 —— 条子上就两个箭头，别替它想太多。 */
+function envJump(step) {
+  var ji = envJumpInfo();
+  if (!ji) return;
+  var e = S.envs;
+  var n = ji.n;
+  /* 还没跳过时：↓ 从头开始，↑ 从最后一个开始（两个方向都给个说得通的起点） */
+  e.hit = e.hit < 0 ? (step > 0 ? 0 : n - 1) : (e.hit + step + n) % n;
+  /* 兜底：下标算错（理论上不会）时也不该让整页 JS 崩在这儿 ——
+     拿不到就当跳了个空，后面的渲染自己会把它清掉。 */
+  var t = ji.hits[e.hit] || {};
+  e.hitId = t.id;
+  /* 目标在折叠的组里：先展开再跳，否则跳过去是一片空白 */
+  if (t.key && e.collapsed[t.key]) delete e.collapsed[t.key];
+  renderEnvs();
+  scrollToEnvHit();
+}
+
+/* 把当前那条滚进视野。scrollIntoView 在老 WebView 上可能没有，挡一道。 */
+function scrollToEnvHit() {
+  var el = document.querySelector('#envList .item.hitcur');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+}
+
+/* 跳转条的显隐与计数。没搜东西 / 没结果就整条藏起来 —— 留着一条
+   「-/0」的条子只会让人以为坏了。 */
+function renderEnvJump() {
+  var ji = envJumpInfo();
+  var bar = $('#envJump');
+  if (!ji) { bar.classList.add('hidden'); return; }
+  $('#envJumpN').textContent = (ji.cur < 0 ? '-' : ji.cur + 1) + '/' + ji.n;
+  bar.classList.remove('hidden');
+}
+
 function renderEnvs() {
   var e = S.envs;
   $('#sub').textContent = e.list.length ? ('共 ' + e.list.length + ' 个变量') : '';
@@ -3121,6 +3204,9 @@ function renderEnvs() {
     bar.innerHTML = '';
     bar.classList.add('hidden');
   }
+
+  /* 跳转条要在列表重画前摆好：它读的是同一份列表（顺序 + 总数） */
+  renderEnvJump();
 
   var list = envFiltered();
 
@@ -4728,7 +4814,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.31';
+var APP_VER = '1.0.32';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -6518,7 +6604,23 @@ function bind() {
   var t2 = null;
   $('#envSearch').addEventListener('input', function (e) {
     clearTimeout(t2);
-    t2 = setTimeout(function () { S.envs.q = e.target.value.trim(); loadEnvs(); }, 350);
+    t2 = setTimeout(function () {
+      S.envs.q = e.target.value.trim();
+      /* 换了关键字，原来跳到第几个就不算数了 */
+      S.envs.hit = -1; S.envs.hitId = null;
+      loadEnvs();
+    }, 350);
+  });
+  /* 1.0.32：回车 = 下一个匹配（Shift+回车 = 上一个），跟电脑上「查找下一个」一个意思。
+     这里**不能只** envJump —— 打完字立刻回车的话防抖还没触发，
+     列表还是上一批结果，跳过去跳的是旧数据。所以先把这次输入落下去再跳。 */
+  $('#envSearch').addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    clearTimeout(t2);
+    S.envs.q = ev.target.value.trim();
+    S.envs.hit = -1; S.envs.hitId = null;
+    loadEnvs().then(function () { envJump(ev.shiftKey ? -1 : 1); });
   });
   /* 日志搜索不用防抖：树已经在本地了，重画一遍很便宜，打字节流直接跟手。 */
   $('#logSearch').addEventListener('input', function (e) {
@@ -6616,6 +6718,8 @@ function onClick(ev) {
     '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-envcoll],[data-theme-set],[data-log],[data-preset],[data-path],' +
+    /* 1.0.32：变量搜索结果的上 / 下一个 */
+    '[data-envjump],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
     /* 1.0.31：依赖页的整行（勾选 / 展开收起）与批量栏 */
     '[data-deps],[data-dbatch],' +
@@ -6830,6 +6934,9 @@ function onClick(ev) {
     renderEnvs();
     return;
   }
+
+  /* 1.0.32：变量搜索结果的上 / 下一个。两个箭头带的是 ±1，直接用。 */
+  if (el.dataset.envjump) return envJump(Number(el.dataset.envjump));
 
   /* 变量：编辑模式下点整行 = 勾选 / 取消勾选（不再是「什么都不发生」——
      行本身以前没有点击行为，只有行内按钮管用）。 */

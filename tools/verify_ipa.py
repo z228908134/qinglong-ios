@@ -291,6 +291,22 @@ FEATURES = [
     ("依赖批量 发的是过滤后那批", r"var send = go\.map\(function \(x\) \{ return Number\(x\.id\); \}\);"),
     ("依赖批量 强制删除 danger", r'class="btn danger" data-dbatch="force"'),
     ("依赖批量 委托里整行与批量按钮", r"\[data-deps\],\[data-dbatch\],"),
+
+    # 1.0.32：变量搜索结果「上 / 下一个」跳转（搜「JD」出 20 条也得能逐个跳过去看）。
+    #        三个交付点：① 跳转条按钮 + 计数；② 圈出当前那条用黄边（不用背景），
+    #        不跟编辑模式的选中态 .item.on 撞脸；③ 回车 = 下一个匹配、Shift+回车 = 上一个。
+    ("搜索跳转 委托钩子", r"\[data-envjump\]"),
+    ("搜索跳转 onClick 传 ±1", r"envJump\(Number\(el\.dataset\.envjump\)\)"),
+    ("搜索跳转 渲染里给当前那条加类", r"\(cur \? ' hitcur' : ''\)"),
+    ("搜索跳转 当前套黄边 outline", r"\.item\.hitcur\{outline:2px solid #ffd479"),
+    ("搜索跳转 顺序用分组后的渲染顺序", r"envGrouped\(\)\.forEach\(function \(g\) \{\s*g\.items\.forEach\(function \(v\) \{ out\.push\(\{ id: v\.id, key: g\.key \}\)"),
+    ("搜索跳转 列表换过下标失效", r"if \(e\.hitId == null \|\| !cur \|\| cur\.id !== e\.hitId\) \{ e\.hit = -1; e\.hitId = null; \}"),
+    ("搜索跳转 跳到折叠组里会展开", r"if \(t\.key && e\.collapsed\[t\.key\]\) delete e\.collapsed\[t\.key\]"),
+    ("搜索跳转 跳完重画", r"renderEnvs\(\);\s*scrollToEnvHit\(\)"),
+    ("搜索跳转 滚到中间", r"#envList \.item\.hitcur"),
+    ("搜索跳转 回车跳下一个", r"#envSearch.*addEventListener\('keydown'"),
+    ("搜索跳转 Shift+回车是上一个", r"envJump\(ev\.shiftKey \? -1 : 1\)"),
+    ("搜索跳转 换关键字时清位置", r"S\.envs\.hit = -1; S\.envs\.hitId = null;\s*loadEnvs\(\)"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

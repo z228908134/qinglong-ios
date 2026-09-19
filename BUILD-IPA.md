@@ -15,23 +15,25 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35441873241`，commit `6a0962c`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.30-trollstore.ipa`（179994 字节） |
-| SHA256 | `713e92b3c09213b5fa2525067abdaacc4a605d59b3f0ee88f529fdff4f0701ba` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.30-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35445275460`，commit `c92b47c`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.31-trollstore.ipa`（182292 字节） |
+| SHA256 | `0157facaa9c52cb3608cee67d8449e2057848a42f77bbefad2ec519d76368dd8` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.31-trollstore`（保留 30 天） |
 
-> **1.0.30 就一件事：变量多了能找到（按第一标签分组 + 折叠）**：
-> - **变量页按第一个标签分组**。几十上百个变量（京东 cookie 一堆账号 + 通知 + 其他）
->   混在一个长列表里，想找某一个得一路滑；分组后「京东」组、「通知」组一眼分开。
-> - **一个变量挂多个标签时只归第一个那组**（比如「京东 + 日常」归京东组）——
->   按每个标签都列一遍的话同一个 cookie 会在页面上出现两次，反而更难数。
-> - **每组可折叠**：点组头的 ▸/▾，折叠状态按标签名记着，换页/刷新列表都保留。
->   组头带「N 个」计数，折起来之前就能判断要不要展开。
-> - **没标签的那组叫「未分类」，永远排最后**，用哨兵键而不是空串也不是中文名 ——
->   万一用户真建了个叫「未分类」的标签，两组会撞一起。
-> - 选了标签筛选时**不分组**（筛完就一类了，再套组头只会多占一行）。
+> **1.0.31 就一件事：依赖页不再一屏只看得下三四个**：
+> - **依赖卡片默认折起来**。以前每张卡都占「名称 + 状态 + 备注 + 更新时间 + 三个按钮」，
+>   一屏只能看三四个；现在只留名称 + 状态一行，一屏能看六到八个，
+>   点一下才展开「日志 / 重装 / 更多」。折叠状态按 id 记，换页刷新都保留。
+> - **依赖页也能批量操作了**（任务页、变量页之后补齐的第三块）：
+>   全选 / 重装 / 删除 / 强制删除，两行操作栏 —— 上行轻（全选 + 重装）、
+>   下行狠（删除 + 强制删除，强制删除带 danger 样式）。
+> - **批量操作按状态过滤**：重装跳过「正在装/删」的（面板会直接拒，
+>   整批失败比不发更糟）；删除只发已安装的（未安装的本来也删不掉）。
+>   强制删除不过滤 —— 它本来就是兜底手段，该把所有不合状态的也带走。
+> - 编辑模式下整行是勾选框、不显示行内按钮（点哪都像要执行那个动作，
+>   跟变量页一个道理）。离开依赖页自动退出批量编辑。
 >
-> **装 1.0.30，别装 1.0.29 及更早的**。
+> **装 1.0.31，别装 1.0.30 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -42,13 +44,14 @@
 > 1.0.27 加了任务列表「下次」加今天/明天前缀 + 去秒数 + 风格统一；
 > 1.0.28 加了定时规则旁挂人类可读描述（cron 表达式翻人话）。
 > 1.0.29 加了变量页批量复制（换 cookie 时一次抠多个值）；
-> 1.0.30 加了变量页按第一标签分组 + 每组可折叠。
+> 1.0.30 加了变量页按第一标签分组 + 每组可折叠；
+> 1.0.31 加了依赖卡片可折叠 + 依赖页批量操作（重装 / 删除 / 强制删除）。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.30-trollstore.ipa
-# 应该得到 713e92b3c09213b5fa2525067abdaacc4a605d59b3f0ee88f529fdff4f0701ba
+sha256sum QingLongClient-1.0.31-trollstore.ipa
+# 应该得到 0157facaa9c52cb3608cee67d8449e2057848a42f77bbefad2ec519d76368dd8
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -218,7 +221,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.30-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.31-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -230,15 +233,15 @@ qinglong-ios/out/QingLongClient-1.0.30-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.30-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.31-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 374141 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.30（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 385307 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.31（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -287,11 +290,11 @@ python tools/verify_ipa.py out/QingLongClient-1.0.30-trollstore.ipa
 | 1.0.28 新增：`stepOf` helper（`function stepOf(set, n) {`） | ✅ 1 个锚点全在 |
 | 1.0.28 详情页「定时规则」挂人话（`var human = cronHumanize(parseCron(t.schedule));`） | ✅ 1 个锚点全在 |
 | 1.0.28 翻不出来不挂（`if (human) h += '<div ... padding:0 14px 8px'...`） | ✅ 1 个锚点全在 |
-| 1.0.30 新增：变量批量复制分支（`else if (act === 'copy') {`） | ✅ 1 个锚点全在 |
-| 1.0.30 新增：单选裸值 / 多选名=值（`var text = picked.length === 1`） | ✅ 1 个锚点全在 |
-| 1.0.30 新增：名=值 拼法带空值兜底（`v.name + '=' + (v.value || '');`） | ✅ 1 个锚点全在 |
-| 1.0.30 新增：复制完提前 return（不退出编辑） | ✅ 1 个锚点全在 |
-| 1.0.30 新增：批量栏里的复制值按钮（`data-ebatch="copy"`） | ✅ 1 个锚点全在 |
+| 1.0.29 新增：变量批量复制分支（`else if (act === 'copy') {`） | ✅ 1 个锚点全在 |
+| 1.0.29 新增：单选裸值 / 多选名=值（`var text = picked.length === 1`） | ✅ 1 个锚点全在 |
+| 1.0.29 新增：名=值 拼法带空值兜底（`v.name + '=' + (v.value || '');`） | ✅ 1 个锚点全在 |
+| 1.0.29 新增：复制完提前 return（不退出编辑） | ✅ 1 个锚点全在 |
+| 1.0.29 新增：批量栏里的复制值按钮（`data-ebatch="copy"`） | ✅ 1 个锚点全在 |
 | 1.0.30 新增：分组哨兵键（`var ENV_NO_TAG = '\\u0000none';`） | ✅ 1 个锚点全在 |
 | 1.0.30 新增：取第一个标签当分组键（`var key = ls.length ? ls[0] : ENV_NO_TAG;`） | ✅ 1 个锚点全在 |
 | 1.0.30 新增：未分类组排最后（`groups.push({ key: ENV_NO_TAG, name: '未分类'`） | ✅ 1 个锚点全在 |
@@ -299,6 +302,14 @@ python tools/verify_ipa.py out/QingLongClient-1.0.30-trollstore.ipa
 | 1.0.30 新增：折叠按钮钩子（`data-envcoll="`） | ✅ 1 个锚点全在 |
 | 1.0.30 新增：折叠是 toggle（`delete S.envs.collapsed[gk]`） | ✅ 1 个锚点全在 |
 | 1.0.30 新增：委托里有折叠（`[data-envcoll]`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：依赖卡默认折起来（`var open = !editing && !!d.open[x.id];`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：展开才渲染行内按钮（`      (open ?` 那一整块） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：折叠是 toggle（`delete S.deps.open[id]`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：批量栏四按钮（`data-dbatch="force"`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：重装跳过正在装/删的（`!depWorking(x.status)`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：删除只发已安装的（`x.status === 1`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：三条批量栏共用留白（`cronedit,#main.envsedit,#main.depsedit`） | ✅ 1 个锚点全在 |
+| 1.0.31 新增：委托里有依赖钩子（`[data-deps],[data-dbatch],`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -306,7 +317,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.30-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.30 (30) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.31 (31) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

@@ -15,23 +15,23 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35436142349`，commit `00a8084`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.29-trollstore.ipa`（178484 字节） |
-| SHA256 | `17d8d01ca6d776513112a8fe4a169a8895ec12b02bbfb6ae26a144cff65d743c` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.29-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35441873241`，commit `6a0962c`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.30-trollstore.ipa`（179994 字节） |
+| SHA256 | `713e92b3c09213b5fa2525067abdaacc4a605d59b3f0ee88f529fdff4f0701ba` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.30-trollstore`（保留 30 天） |
 
-> **1.0.29 就一件事：换 cookie 时一次抠多个值**：
-> - **变量页批量复制**（第二行加「复制值」按钮，左轻右重 —— 复制完用户接着操作，
->   删完直接退出）。换 cookie 场景：标签筛「京东」后批量复制一次走人，
->   不用逐个点每条变量右侧的「复制」。
-> - **单选 → 复制裸值**（只想要这个 cookie 的话）；
->   **多选 → 复制 `名=值\n名=值\n` 格式**，一眼分清哪个 cookie 是哪个账号，
->   且能直接 export 到 bash。
-> - **复制完不退出编辑模式、不刷新列表** —— 用户可能接着启/删；
->   走单独的 `copy` 分支提前 return，不要掉进 batchDone / toggleEnvEdit / loadEnvs。
-> - **空值变量兜底**：`value=null` 时复制出来是空串，不是 `'undefined'`。
+> **1.0.30 就一件事：变量多了能找到（按第一标签分组 + 折叠）**：
+> - **变量页按第一个标签分组**。几十上百个变量（京东 cookie 一堆账号 + 通知 + 其他）
+>   混在一个长列表里，想找某一个得一路滑；分组后「京东」组、「通知」组一眼分开。
+> - **一个变量挂多个标签时只归第一个那组**（比如「京东 + 日常」归京东组）——
+>   按每个标签都列一遍的话同一个 cookie 会在页面上出现两次，反而更难数。
+> - **每组可折叠**：点组头的 ▸/▾，折叠状态按标签名记着，换页/刷新列表都保留。
+>   组头带「N 个」计数，折起来之前就能判断要不要展开。
+> - **没标签的那组叫「未分类」，永远排最后**，用哨兵键而不是空串也不是中文名 ——
+>   万一用户真建了个叫「未分类」的标签，两组会撞一起。
+> - 选了标签筛选时**不分组**（筛完就一类了，再套组头只会多占一行）。
 >
-> **装 1.0.29，别装 1.0.28 及更早的**。
+> **装 1.0.30，别装 1.0.29 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -41,13 +41,14 @@
 > 1.0.23 加了任务批量运行/停止 + 任务列表搜索高亮 + 「上次耗时 / 本次已运行」；
 > 1.0.27 加了任务列表「下次」加今天/明天前缀 + 去秒数 + 风格统一；
 > 1.0.28 加了定时规则旁挂人类可读描述（cron 表达式翻人话）。
-> 1.0.29 加了变量页批量复制（换 cookie 时一次抠多个值）。
+> 1.0.29 加了变量页批量复制（换 cookie 时一次抠多个值）；
+> 1.0.30 加了变量页按第一标签分组 + 每组可折叠。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.29-trollstore.ipa
-# 应该得到 17d8d01ca6d776513112a8fe4a169a8895ec12b02bbfb6ae26a144cff65d743c
+sha256sum QingLongClient-1.0.30-trollstore.ipa
+# 应该得到 713e92b3c09213b5fa2525067abdaacc4a605d59b3f0ee88f529fdff4f0701ba
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -217,7 +218,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.29-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.30-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -229,7 +230,7 @@ qinglong-ios/out/QingLongClient-1.0.29-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.29-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.30-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
@@ -237,7 +238,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.29-trollstore.ipa
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
 | `index.html` | ✅ 374141 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.29（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| 页面 `APP_VER` | ✅ 1.0.30（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -286,11 +287,18 @@ python tools/verify_ipa.py out/QingLongClient-1.0.29-trollstore.ipa
 | 1.0.28 新增：`stepOf` helper（`function stepOf(set, n) {`） | ✅ 1 个锚点全在 |
 | 1.0.28 详情页「定时规则」挂人话（`var human = cronHumanize(parseCron(t.schedule));`） | ✅ 1 个锚点全在 |
 | 1.0.28 翻不出来不挂（`if (human) h += '<div ... padding:0 14px 8px'...`） | ✅ 1 个锚点全在 |
-| 1.0.29 新增：变量批量复制分支（`else if (act === 'copy') {`） | ✅ 1 个锚点全在 |
-| 1.0.29 新增：单选裸值 / 多选名=值（`var text = picked.length === 1`） | ✅ 1 个锚点全在 |
-| 1.0.29 新增：名=值 拼法带空值兜底（`v.name + '=' + (v.value || '');`） | ✅ 1 个锚点全在 |
-| 1.0.29 新增：复制完提前 return（不退出编辑） | ✅ 1 个锚点全在 |
-| 1.0.29 新增：批量栏里的复制值按钮（`data-ebatch="copy"`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：变量批量复制分支（`else if (act === 'copy') {`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：单选裸值 / 多选名=值（`var text = picked.length === 1`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：名=值 拼法带空值兜底（`v.name + '=' + (v.value || '');`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：复制完提前 return（不退出编辑） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：批量栏里的复制值按钮（`data-ebatch="copy"`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：分组哨兵键（`var ENV_NO_TAG = '\\u0000none';`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：取第一个标签当分组键（`var key = ls.length ? ls[0] : ENV_NO_TAG;`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：未分类组排最后（`groups.push({ key: ENV_NO_TAG, name: '未分类'`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：渲染走 envGrouped（`box.innerHTML = envGrouped().map(envGroupHtml)...`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：折叠按钮钩子（`data-envcoll="`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：折叠是 toggle（`delete S.envs.collapsed[gk]`） | ✅ 1 个锚点全在 |
+| 1.0.30 新增：委托里有折叠（`[data-envcoll]`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -298,7 +306,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.29-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.29 (29) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.30 (30) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

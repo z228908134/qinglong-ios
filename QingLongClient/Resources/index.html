@@ -50,6 +50,12 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .row{display:flex;align-items:center;gap:10px}
 .sp{flex:1;min-width:0}
 .ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 变量的值：打码时是短的，用 .ell 单行省略没问题；点「显示值」之后要**完整显示** ——
+   京东 cookie 动辄两三百字符，单行省略号截掉以后等于没显示（1.0.24 才发现：
+   之前「显示值」只能看到前 40 来个字符，想核对 pt_pin 都得靠猜）。
+   加 .full 覆盖掉 .ell 的 nowrap/ellipsis（.envval.full 比 .ell 多一个类，优先级更高）。
+   break-all 而不是 break-word：cookie 里没有空格，按词断行会整段溢出。 */
+.envval.full{white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip;line-height:1.5}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .t2{color:var(--text2)} .t3{color:var(--text3)}
 .f11{font-size:calc(11px*var(--fs))} .f12{font-size:calc(12px*var(--fs))} .f13{font-size:calc(13px*var(--fs))}
@@ -83,8 +89,9 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   background:var(--fill);font-size:calc(15px*var(--fs));line-height:1}
 /* overflow-x:hidden 是保险：内容万一还是宽了，也不让整页左右晃（各文本框自带滚动）。 */
 #main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(96px + var(--bot))}
-/* 批量操作栏两行、比底栏高一截，列表底部的留白要跟着加，否则最后一张卡片被盖住 */
-#main.cronedit{padding-bottom:calc(168px + var(--bot))}
+/* 批量操作栏两行、比底栏高一截，列表底部的留白要跟着加，否则最后一张卡片被盖住。
+   任务页和变量页的批量栏同高，共用一条。 */
+#main.cronedit,#main.envsedit{padding-bottom:calc(168px + var(--bot))}
 .view{display:none} .view.on{display:block}
 #ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
   font-size:calc(12px*var(--fs));color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
@@ -134,10 +141,20 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* 底部批量操作栏。fixed 贴底并自己吃掉安全区 —— 编辑模式下底栏（#tabbar）整体让位，
    所以不用去猜它有多高，两者也不会互相压住。 */
 /* 批量操作栏：拆成两行（主操作 / 状态操作）。一行塞 6 个按钮在 390px 上每个只剩
-   ~57px，「取消全选」四个字直接折成两行 —— 拆行比缩字号强。 */
-#cronEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
+   ~57px，「取消全选」四个字直接折成两行 —— 拆行比缩字号强。
+   任务页和变量页共用这一套样式（两条栏的按钮数不同，但外形、贴底方式、
+   安全区处理完全一样，各写一份迟早会不一致）。 */
+#cronEditBar,#envEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
   padding:10px 16px calc(10px + var(--bot));
   background:var(--card);border-top:1px solid var(--sep)}
+/* 「跳到最新」：日志框往上翻过之后（自动跟随已停）才出现的小按钮。
+   固定在右下角、浮在弹层之上 —— 放在日志框上方的工具条里不行，
+   日志框有 70vh 高，翻到中间时工具条早滚出屏幕了，按钮等于不存在。 */
+#btnLogTail{position:fixed;right:16px;bottom:calc(22px + var(--bot));z-index:46;
+  padding:9px 14px;border-radius:999px;border:1px solid var(--sep);
+  background:var(--card);color:var(--text);font-family:inherit;
+  font-size:calc(12px*var(--fs));cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,.32)}
 /* ---- 账号切换列表（系统设置 → 账号） ---- */
 /* 一行分两段：左边整块是「切到这个账号」，右边单独一个删除。
    按钮不能套按钮（HTML 不允许），所以外面是 div，里面并排两个 button。 */
@@ -619,6 +636,12 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
 
     <section class="view" id="v-envs">
       <div class="searchbar"><input id="envSearch" type="search" placeholder="搜索变量名" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 工具条：「编辑」进批量模式（全选 / 启用 / 禁用 / 删除），排布照任务页。
+           变量一多（京东 cookie 一堆账号）逐个点按钮太慢，而且「批量删掉过期的那几个」
+           是换 cookie 时的常规操作。 -->
+      <div class="cronbar">
+        <button class="cfbtn" id="btnEnvEdit">编辑</button>
+      </div>
       <!-- 标签筛选条：点一个标签就只看带这个标签的变量，选中态高亮。
            没有标签时不占位置（renderEnvs 里控制显隐）。 -->
       <div class="tagbar hidden" id="envTagBar"></div>
@@ -708,8 +731,14 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
     <button data-tab="me"><span class="ti av" id="tabAv">◍</span>我的</button>
   </nav>
   <!-- 任务页批量编辑时的底部操作栏。fixed 贴底，编辑模式下底栏（#tabbar）整体让位
-       —— 这样就不用去猜底栏有多高，也不会互相压住。见 renderCronEditBar()。 -->
+       —— 这样就不用去猜底栏有多高，也不会互相压住。见 renderCronEditBar()。
+       变量页同理，见 renderEnvEditBar()。两条栏共用同一套 CSS。 -->
   <div id="cronEditBar" class="hidden"></div>
+  <div id="envEditBar" class="hidden"></div>
+  <!-- 「跳到最新」：日志框往上翻过之后（自动跟随已停）才出现，见 syncLogTail()。
+       页面级 fixed 元素 —— 弹层 #sheet 是 z-index 40，这条给 46 才压得住它。
+       放在日志框上方的工具条里不行：日志框有 70vh 高，翻到中间时工具条早滚出屏幕了。 -->
+  <button id="btnLogTail" class="hidden">跳到最新 ↓</button>
 </div>
 
 <div id="sheet"><div class="mask"></div><div class="panel">
@@ -1102,7 +1131,7 @@ var S = {
            filter: 'all', edit: false, sel: {},
            views: [], view: null, viewsFailed: false },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
-  envs: { list: [], q: '', tag: '', loading: false },
+  envs: { list: [], q: '', tag: '', loading: false, edit: false, sel: {} },
   /* logs.q：文件名搜索词。空串 = 正常目录浏览；非空 = 跨目录找整棵树。
      日志树是一次性整棵拉回来的，所以搜索不用再打接口。 */
   logs: { tree: [], path: [], q: '', loading: false },
@@ -1795,7 +1824,8 @@ function setTab(tab, force) {
   var addBtn = $('#btnScrAdd');
   if (addBtn) addBtn.title = tab === 'scripts' ? '新建 / 上传' : '新建';
   /* 离开任务页就退出批量编辑。不退出的话：底栏还藏着（#tabbar 被 renderCronEditBar
-     藏了）、勾选还留着，回到任务页时会很突兀，而且别的页面底栏没了。 */
+     藏了）、勾选还留着，回到任务页时会很突兀，而且别的页面底栏没了。
+     变量页的批量模式同理。 */
   if (tab !== 'crons' && S.crons.edit) {
     S.crons.edit = false;
     S.crons.sel = {};
@@ -1803,6 +1833,18 @@ function setTab(tab, force) {
     if (eb) { eb.classList.add('hidden'); eb.innerHTML = ''; }
     var tbar = $('#tabbar');
     if (tbar) tbar.classList.remove('hidden');
+  }
+  if (tab !== 'envs' && S.envs.edit) {
+    S.envs.edit = false;
+    S.envs.sel = {};
+    var eb2 = $('#envEditBar');
+    if (eb2) { eb2.classList.add('hidden'); eb2.innerHTML = ''; }
+    var tbar2 = $('#tabbar');
+    if (tbar2) tbar2.classList.remove('hidden');
+    var mn = $('#main');
+    if (mn) mn.classList.remove('envsedit');
+    var b2 = $('#btnEnvEdit');
+    if (b2) b2.textContent = '编辑';
   }
   $('#main').scrollTop = 0;
   syncBack();
@@ -2122,6 +2164,10 @@ function cronSelectAll(on) {
   renderCrons();
 }
 
+/* 批量操作完的提示。任务页 / 变量页共用 —— 各写一份的话，改了一处忘了另一处，
+   用户看到的就是「已删除 3 个」和「已删除」两种文案。 */
+function batchDone(label, ids) { toast(label + ' ' + ids.length + ' 个'); }
+
 /* 批量动作。接口跟单个的一样，只是 body 传一组 id（青龙支持）。
    「运行 / 停止」是 1.0.23 补的：编辑模式以前只能改状态和删，最常用的
    「把这几个都跑一遍」反而没有 —— 得一个个点进详情页。 */
@@ -2137,7 +2183,7 @@ async function cronBatch(act) {
     else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: ids }); }
     else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: ids }); }
     else return;
-    toast(label + ' ' + ids.length + ' 个');
+    batchDone(label, ids);
     toggleCronEdit(false);
     await loadCrons(true);
   } catch (e) {
@@ -2145,19 +2191,28 @@ async function cronBatch(act) {
   }
 }
 
-/* 底部批量操作栏。编辑模式下把底栏（#tabbar）藏起来给它让位 —— 两个都是贴底元素，
-   同时显示会叠在一起；藏掉底栏也就不用去猜它有多高。
-   顺带给 #main 加个 cronedit：两行比底栏高，列表底部留白要跟着加。 */
-function renderCronEditBar() {
-  var bar = $('#cronEditBar');
-  var on = !!S.crons.edit;
+/* 批量操作栏的「外壳」：底栏让位 + 给 #main 加留白类 + 操作栏显隐。
+   任务页和变量页两条栏共用 —— 两个贴底元素（底栏和操作栏）同时显示会叠在一起，
+   藏掉底栏也就不用去猜它有多高；两行比底栏高，列表底部留白要跟着加。
+   各写一份的话，改了一处忘了另一处就会出现「变量页底栏没藏、最后一张卡片被盖住」。
+   返回 true 表示确实在编辑模式（调用方接着填内容）。 */
+function openEditShell(barSel, on, mainCls) {
   var tb = $('#tabbar');
   if (tb) tb.classList.toggle('hidden', on);
   var mn = $('#main');
-  if (mn) mn.classList.toggle('cronedit', on);
-  if (!bar) return;
+  if (mn) mn.classList.toggle(mainCls, on);
+  var bar = $(barSel);
+  if (!bar) return false;
   bar.classList.toggle('hidden', !on);
-  if (!on) { bar.innerHTML = ''; return; }
+  if (!on) { bar.innerHTML = ''; return false; }
+  return true;
+}
+
+/* 底部批量操作栏（任务页）。 */
+function renderCronEditBar() {
+  var on = !!S.crons.edit;
+  if (!openEditShell('#cronEditBar', on, 'cronedit')) return;
+  var bar = $('#cronEditBar');
   var n = cronSelCount();
   var allOn = n > 0 && n === cronFiltered().length;
   /* 两行：上行是「跑不跑」（运行 / 停止），下行是「改不改状态」（启用 / 禁用 / 删除）。
@@ -2465,6 +2520,46 @@ function stickBottom(el) {
   if (atBottom(el)) el.scrollTop = el.scrollHeight;
 }
 
+/* ---------- 「跳到最新」 ----------
+   1.0.21 把「自动贴底」改成「只在本来就贴着底时才贴」之后，往上翻看报错就
+   **停在那儿了** —— 想回到最新那几行只能自己一路滑到底，几千行时很难滑准。
+   这个按钮补上那一步：只要已经不在底部就浮出来，点一下回到最新。
+   （放在日志框上方的工具条里不行：日志框有 70vh 高，翻到中间时工具条早滚出屏幕了，
+   按钮等于不存在 —— 所以做成页面级 fixed 的悬浮按钮。）
+
+   该作用于哪个框：详情页的运行日志是 #logBox，日志文件弹层是 #logPre。
+   两者都是弹层里的，而 #shB 的内容在关掉弹层后**不会清空** —— 所以判断「弹层开着」
+   必须看 #sheet 的 on 类，不能只看元素在不在。 */
+function activeLogBox() {
+  var sh = $('#sheet');
+  if (!sh || !sh.classList.contains('on')) return null;
+  return $('#logPre') || $('#logBox');
+}
+
+/* 把按钮的显隐同步到当前日志框的滚动位置。内容比框还短时 scrollHeight 和
+   clientHeight 相等，atBottom 会算成「在底部」→ 按钮不出现（本来也不需要）。 */
+function syncLogTail() {
+  var btn = $('#btnLogTail');
+  if (!btn) return;
+  var box = activeLogBox();
+  btn.classList.toggle('hidden', !(box && !atBottom(box)));
+}
+
+/* 滚监听只挂一次（同一个元素）。用模块级变量记而不是 dataset：
+   日志框是弹层里 innerHTML 换出来的，dataset 在 DOM 桩里不一定有。 */
+var tailBoundEl = null;
+function bindLogTailScroll(box) {
+  if (!box || box === tailBoundEl) return;
+  tailBoundEl = box;
+  if (box.addEventListener) box.addEventListener('scroll', syncLogTail);
+}
+
+function jumpLogTail() {
+  var box = activeLogBox();
+  if (box) box.scrollTop = box.scrollHeight;
+  syncLogTail();
+}
+
 /* 重画详情页的运行日志框。切「只看错误」、改搜索词、刷新回来都走这里 ——
    一处渲染，三处调用，不会出现「框里 3 行、复制出来 5 行」这种对不上的事。
    这里的日志**不带行号**，除非开了筛选（那才需要行号定位）。 */
@@ -2497,6 +2592,10 @@ function paintCronLog() {
     else if (cl.lines.length) mt.textContent = '共 ' + cl.lines.length + ' 行' + (cl.errN ? ' · 错误 ' + cl.errN : '');
     else mt.textContent = '';
   }
+  /* 重画之后滚动位置刚被上面改过，按钮的显隐要跟着重算（自动刷新是 3 秒一次，
+     不重算的话「跳到最新」会一直停在上一轮的状态）。 */
+  bindLogTailScroll(box);
+  syncLogTail();
 }
 
 /* 详情页的运行日志也按级别上色：跑起来的时候红行（error）能一眼看到，
@@ -2724,22 +2823,43 @@ function envAllTags() {
 function envRow(v) {
   var on = v.status !== 1;
   var ls = envLabels(v);
-  return '<div class="item" data-env="' + v.id + '">' +
-    '<div class="row"><div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + esc(v.name) + '</div>' +
+  var editing = !!S.envs.edit;
+  var picked = editing && !!S.envs.sel[v.id];
+  return '<div class="item' + (picked ? ' on' : '') + '" data-env="' + v.id + '">' +
+    '<div class="row">' +
+      (editing ? '<span class="ckb">✓</span>' : '') +
+      '<div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + logHi(v.name, S.envs.q) + '</div>' +
       (v.isPinned ? '<span class="pill blue">置顶</span>' : '') +
       '<span class="pill ' + (on ? 'green' : 'gray') + '">' + (on ? '已启用' : '已禁用') + '</span></div>' +
     /* 标签行：flex-wrap 是必须的 —— 标签数量和长度都不可控，不换行会撑出屏幕。
        这里**绝不能**再出现第二个 style 属性（第二个会被解析器丢掉，正好丢掉 flex-wrap）。 */
     (ls.length ? '<div class="row" style="flex-wrap:wrap;gap:5px;margin-top:7px">' +
       ls.map(tagHtml).join('') + '</div>' : '') +
-    '<div class="f11 t2 mono ell" style="margin-top:6px" data-val="' + v.id + '">' + esc(maskValue(v.value)) + '</div>' +
+    /* 值那行右边挂一个「复制」：手机上要把 cookie 抠出来只能长按选中再拖手柄，
+       两三百个字符根本抠不动 —— 一键复制才是正道。
+       值本身打码时是短的，所以仍然用 .ell 单行；点「显示值」后由 onclick 加上
+       .full 换成换行完整显示（见 .envval.full）。 */
+    '<div class="row" style="margin-top:6px;gap:8px">' +
+      '<div class="f11 t2 mono ell envval sp" data-val="' + v.id + '">' + esc(maskValue(v.value)) + '</div>' +
+      '<button class="cpb" data-eact="copy" data-id="' + v.id + '">复制</button>' +
+    '</div>' +
     (v.remarks ? '<div class="f11 t3" style="margin-top:5px">' + esc(v.remarks) + '</div>' : '') +
+    /* 编辑模式下整行是勾选用的，行内按钮全部收起来 —— 留着的话点哪都像要执行那个动作 */
+    (editing ? '' :
     '<div class="row" style="margin-top:10px;gap:8px">' +
       '<button class="btn" style="flex:1;padding:8px" data-eact="reveal" data-id="' + v.id + '">显示值</button>' +
       '<button class="btn" style="flex:1;padding:8px" data-eact="edit" data-id="' + v.id + '">编辑</button>' +
       '<button class="btn" style="flex:1;padding:8px" data-eact="' + (on ? 'disable' : 'enable') + '" data-id="' + v.id + '">' + (on ? '禁用' : '启用') + '</button>' +
-    '</div>' +
+    '</div>') +
   '</div>';
+}
+
+/* 变量页当前筛出来的那些（标签筛选之后的）。批量「全选」只作用于它们 ——
+   筛了「京东」再点全选，用户想处理的就是这些。 */
+function envFiltered() {
+  var e = S.envs;
+  if (!e.tag) return e.list;
+  return e.list.filter(function (v) { return envLabels(v).indexOf(e.tag) >= 0; });
 }
 
 function renderEnvs() {
@@ -2764,21 +2884,23 @@ function renderEnvs() {
     bar.classList.add('hidden');
   }
 
-  var list = e.tag
-    ? e.list.filter(function (v) { return envLabels(v).indexOf(e.tag) >= 0; })
-    : e.list;
+  var list = envFiltered();
 
   var box = $('#envList');
   if (e.loading && !e.list.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    renderEnvEditBar();
     return;
   }
   if (!list.length) {
     box.innerHTML = '<div class="empty"><span class="ei">⚿</span>' +
       (e.tag ? '「' + esc(e.tag) + '」标签下没有变量' : (e.q ? '没有匹配的变量' : '还没有环境变量')) + '</div>';
+    renderEnvEditBar();
     return;
   }
   box.innerHTML = list.map(envRow).join('');
+  /* 列表重画完再摆操作栏：勾选数、全选/取消全选 的文案都依赖这一份列表 */
+  renderEnvEditBar();
 }
 
 async function loadEnvs() {
@@ -2796,6 +2918,84 @@ async function loadEnvs() {
     e.loading = false;
     renderEnvs();
   }
+}
+
+/* ---------- 变量页批量编辑（左上角「编辑」） ----------
+   和任务页那套是一模一样的交互（全选 / 批量动作 / 两行操作栏 / 离开页面自动退出），
+   只是动作换成了变量的三个：启用 / 禁用 / 删除。
+   京东 cookie 一堆账号的时候，逐个点行内按钮太慢，而且换 cookie 时
+   「把过期的那几个删掉」是常规操作。 */
+
+function toggleEnvEdit(on) {
+  S.envs.edit = (on == null ? !S.envs.edit : !!on);
+  if (!S.envs.edit) S.envs.sel = {};
+  var b = $('#btnEnvEdit');
+  if (b) b.textContent = S.envs.edit ? '完成' : '编辑';
+  renderEnvs();
+}
+
+function envSelCount() {
+  var n = 0;
+  for (var k in S.envs.sel) { if (S.envs.sel[k]) n++; }
+  return n;
+}
+
+function envSelIds() {
+  var out = [];
+  for (var k in S.envs.sel) { if (S.envs.sel[k]) out.push(Number(k)); }
+  return out;
+}
+
+function toggleEnvSel(id) {
+  if (S.envs.sel[id]) delete S.envs.sel[id];
+  else S.envs.sel[id] = true;
+  renderEnvs();
+}
+
+/* 全选 / 取消全选。只作用于**当前筛出来的那些**（标签筛选之后的）。 */
+function envSelectAll(on) {
+  if (on) envFiltered().forEach(function (v) { S.envs.sel[v.id] = true; });
+  else S.envs.sel = {};
+  renderEnvs();
+}
+
+/* 批量动作。接口跟单个的一样，body 传一组 id（青龙的 /api/envs/* 就是这个形状，
+   单个操作时也是传 [id]）。 */
+async function envBatch(act) {
+  var ids = envSelIds();
+  if (!ids.length) { toast('先选几个变量', true); return; }
+  if (act === 'delete' && !confirm('删除选中的 ' + ids.length + ' 个变量？删除后不可恢复。')) return;
+  var label = '';
+  try {
+    if (act === 'enable') { label = '已启用'; await api('/api/envs/enable', { method: 'PUT', body: ids }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/envs/disable', { method: 'PUT', body: ids }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/envs', { method: 'DELETE', body: ids }); }
+    else return;
+    batchDone(label, ids);
+    toggleEnvEdit(false);
+    await loadEnvs();
+  } catch (e) { toast(e.message, true); }
+}
+
+function renderEnvEditBar() {
+  var on = !!S.envs.edit;
+  if (!openEditShell('#envEditBar', on, 'envsedit')) return;
+  var bar = $('#envEditBar');
+  var n = envSelCount();
+  var allOn = n > 0 && n === envFiltered().length;
+  /* 两行，和任务页的批量栏同一个排布逻辑：上行「全选 + 状态」，下行「删除 + 计数」。
+     一行塞 4 个按钮 + 计数在 390px 上会把「取消全选」挤到折行。 */
+  bar.innerHTML =
+    '<div class="row" style="gap:8px;margin-bottom:8px">' +
+      '<button class="btn" id="btnEnvAll" style="flex:1;padding:9px 4px">' +
+        (allOn ? '取消全选' : '全选') + '</button>' +
+      '<button class="btn" data-ebatch="enable" style="flex:1;padding:9px 4px">启用</button>' +
+      '<button class="btn" data-ebatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
+    '</div>' +
+    '<div class="row" style="gap:8px">' +
+      '<button class="btn danger" data-ebatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
+      '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
+    '</div>';
 }
 
 function openEnvEdit(id) {
@@ -4150,7 +4350,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.23';
+var APP_VER = '1.0.24';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -5570,6 +5770,8 @@ function paintLogFile() {
   if (fn) {
     fn.textContent = lf.q ? (logPick(lf.lines, lf.onlyErr, lf.q).length + ' 行匹配') : '';
   }
+  bindLogTailScroll(pre);
+  syncLogTail();
 }
 
 /* 面板日志切行。末尾那个换行会切出一个空串，去掉 —— 否则日志框底下永远多一行空白，
@@ -5726,6 +5928,12 @@ function closeSheet() {
   stopDetailPolling();
   S.detailId = null;
   $('#sheet').classList.remove('on');
+  /* 关弹层顺手收起「跳到最新」。必须显式收：关掉之后没人再调 syncLogTail，
+     而 #shB 的内容不会清空 —— 不收的话那个按钮会一直浮在主页上。
+     顺带把「当前挂着的日志框」也忘掉，下次开弹层是新元素、要重新挂监听。 */
+  var lt = $('#btnLogTail');
+  if (lt) lt.classList.add('hidden');
+  tailBoundEl = null;
   syncBack();
 }
 
@@ -5937,6 +6145,7 @@ function onClick(ev) {
   var el = ev.target.closest ? ev.target.closest(
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
     '[data-cf],[data-view],[data-cbatch],[data-viewav],' +
+    '[data-ebatch],' +
     '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-theme-set],[data-log],[data-preset],[data-path],' +
@@ -5946,6 +6155,13 @@ function onClick(ev) {
     '[data-appedit],[data-appsecret],[data-appdel],[data-reveal],[data-copy],' +
     '[data-scope],[data-scsave],[data-scmod],' +
     '#btnCronEdit,#btnCronAll,#btnAccts,' +
+    /* 变量页批量编辑 + 日志「跳到最新」：单独新起一行，别拼进下面那一行 ——
+       下面那行的「只看错误 / 复制」那组按钮 id 被 AB19 / AC24 两条变异锚着，
+       往它里面加东西会打散锚点（等于那两条变异白写）。
+       ⚠️ 这句注释**不许原样抄那串 id**：断言是拿正则在整份源码里搜字面量，
+       注释里再留一份副本的话，变异把真实那行删掉、断言照样能在注释里搜到，
+       于是「一条都不报错」= 那条变异被悄悄废掉（1.0.24 就是这么出来的 2 条 MISS）。 */
+    '#btnEnvEdit,#btnEnvAll,#btnLogTail,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
     '#btnCronLogErr,#btnSysLogErr,#btnSysLogCopy,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
@@ -6034,6 +6250,12 @@ function onClick(ev) {
   if (el.dataset.view != null) return setView(el.dataset.view);
   if (el.id === 'btnCronAll') return cronSelectAll(cronSelCount() !== cronFiltered().length);
   if (el.dataset.cbatch) return cronBatch(el.dataset.cbatch);
+  /* 变量页工具条 / 批量栏 / 日志「跳到最新」。和上面一样必须排在
+     data-env / data-eact 之前，否则会被那些分支先截走。 */
+  if (el.id === 'btnEnvEdit') return toggleEnvEdit();
+  if (el.id === 'btnEnvAll') return envSelectAll(envSelCount() !== envFiltered().length);
+  if (el.dataset.ebatch) return envBatch(el.dataset.ebatch);
+  if (el.id === 'btnLogTail') return jumpLogTail();
   /* 主机卡的头像：弹大图（带「刷新」按钮）。没设过头像也照样进。 */
   if (el.dataset.viewav) return openAvSheet();
   /* 任务详情里的三处直达：脚本 / 最新日志 / 日志历史 */
@@ -6121,16 +6343,26 @@ function onClick(ev) {
     return;
   }
 
+  /* 变量：编辑模式下点整行 = 勾选 / 取消勾选（不再是「什么都不发生」——
+     行本身以前没有点击行为，只有行内按钮管用）。 */
+  if (el.dataset.env && S.envs.edit) return toggleEnvSel(Number(el.dataset.env));
+
   /* 变量 */
   if (el.dataset.eact) {
     var v = S.envs.list.filter(function (x) { return x.id === Number(id); })[0];
     if (!v) return;
+    /* 复制的是**真实值**（不是打码的那份），也不用先「显示值」——
+       打码只是防肩窥，复制这个动作本来就是用户主动要的。 */
+    if (el.dataset.eact === 'copy') { copyText(v.value || ''); return; }
     if (el.dataset.eact === 'reveal') {
       var line = document.querySelector('[data-val="' + id + '"]');
       if (!line) return;
       var shown = line.dataset.shown === '1';
       line.textContent = shown ? maskValue(v.value) : (v.value || '（空）');
       line.dataset.shown = shown ? '0' : '1';
+      /* 显示时换成换行完整显示 —— 单行省略号会把长 cookie 截掉大半
+         （见 .envval.full 的注释）。藏起来时换回 .ell 的单行。 */
+      line.classList.toggle('full', !shown);
       el.textContent = shown ? '显示值' : '隐藏值';
       return;
     }

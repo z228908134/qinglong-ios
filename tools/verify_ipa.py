@@ -157,8 +157,10 @@ FEATURES = [
     ("批量 拆两行", r"gap:8px;margin-bottom:8px"),
     ("批量 运行走 run 接口", r"await api\('/api/crons/run', \{ method: 'PUT', body: ids \}\)"),
     ("批量 停止走 stop 接口", r"await api\('/api/crons/stop', \{ method: 'PUT', body: ids \}\)"),
-    # 批量栏比底栏高一截，列表底部留白要跟着加，不然最后一张卡片被盖住
-    ("批量 编辑模式加留白", r"#main\.cronedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
+    # 批量栏比底栏高一截，列表底部留白要跟着加，不然最后一张卡片被盖住。
+    # 1.0.24：变量页也加了批量栏，两条栏同高，这条规则并成了一条选择器 ——
+    # 锚点绑字面量，CSS 改写法就得跟着改，不然出包后这里报一项缺失。
+    ("批量 编辑模式加留白", r"#main\.cronedit,#main\.envsedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
     # 1.0.23 新增：② 任务列表搜索命中高亮（复用日志那套 logHi，体验统一）
     ("列表 命中高亮复用 logHi", r"logHi\(t\.name \|\| '未命名任务', c\.q\)"),
     ("列表 标签也高亮", r"logHi\(l, c\.q\)"),
@@ -178,6 +180,38 @@ FEATURES = [
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),
     ("时间 文件时间兜底", r"function fmtFileTime\("),
+    # 1.0.24 新增：① 变量的值「显示值」以前被 .ell 的单行省略号截断 ——
+    # 京东 cookie 一百多字符只显示前 40 来个，等于没显示；手机上想核对 pt_pin
+    # 只能长按选中再拖手柄，两三百个字符根本抠不出来。所以：完整换行 + 一键复制。
+    ("变量 值完整显示样式", r"\.envval\.full\{white-space:normal;word-break:break-all"),
+    ("变量 显示值切到完整", r"line\.classList\.toggle\('full', !shown\);"),
+    ("变量 复制按钮", r'data-eact="copy"'),
+    # 复制的是**真实值**（不是打码的那份），也不用先点「显示值」
+    ("变量 复制的是真实值", r"copyText\(v\.value \|\| ''\)"),
+    # 1.0.24 新增：② 变量页批量操作（照任务页 1.0.23 那套：编辑模式 + 两行操作栏）。
+    # 京东 cookie 一堆账号时逐个点行内按钮太慢，「换 cookie 时把过期的删掉」是常规操作。
+    ("变量 编辑按钮", r'id="btnEnvEdit"'),
+    ("变量 批量栏容器", r'id="envEditBar"'),
+    ("变量 批量删除按钮", r'data-ebatch="delete"'),
+    ("变量 批量启用接口", r"await api\('/api/envs/enable', \{ method: 'PUT', body: ids \}\)"),
+    ("变量 批量禁用接口", r"await api\('/api/envs/disable', \{ method: 'PUT', body: ids \}\)"),
+    ("变量 批量删除接口", r"await api\('/api/envs', \{ method: 'DELETE', body: ids \}\)"),
+    # 全选只作用于**筛出来的**那些：筛了「京东」再点全选，用户想处理的就是这些
+    ("变量 全选按筛选结果", r"function envFiltered\("),
+    # 两条批量栏（任务 / 变量）共用外壳与样式 —— 各写一份迟早会出现
+    # 「变量页底栏没藏、最后一张卡片被盖住」这种只坏一边的问题。
+    # 重构时把这段从 renderCronEditBar 里搬进了 openEditShell，锚点也得跟着搬。
+    ("批量 外壳两条栏共用", r"function openEditShell\("),
+    ("批量 完成提示共用", r"function batchDone\("),
+    # 1.0.24 新增：③ 日志「跳到最新」—— 1.0.21 的贴底策略只在本来就贴着底时才跟随，
+    # 往上翻看报错之后就停在那儿了，回最新只能自己一路滑到底。
+    ("日志 跳到最新按钮", r'id="btnLogTail"'),
+    ("日志 跳到最新浮在弹层上", r"#btnLogTail\{position:fixed;"),
+    ("日志 当前日志框判定", r"function activeLogBox\("),
+    ("日志 只在离开底部时露出", r"function syncLogTail\("),
+    ("日志 跳到最新滚到底", r"if \(box\) box\.scrollTop = box\.scrollHeight;"),
+    # 关弹层必须**显式**收起：#shB 的内容不会清空，不收的话那个按钮会一直浮在主页上
+    ("日志 关弹层收起按钮", r"var lt = \$\('#btnLogTail'\);\s*if \(lt\) lt\.classList\.add\('hidden'\);"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

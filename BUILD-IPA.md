@@ -15,47 +15,42 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35414139471`，commit `87e08cd`，一次过） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.22-trollstore.ipa`（165905 字节） |
-| SHA256 | `2f96bf769cec4da76eb6b19c7b6bc3c88f070cdf375f020af24d0426cd6e1420` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.22-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35416139987`，commit `2561209`，一次过） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.23-trollstore.ipa`（167589 字节） |
+| SHA256 | `efc1970d047c8ed1e36da2026b18c54128068de136df6afd1a4457e1bc6a9c94` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.23-trollstore`（保留 30 天） |
 
-> **1.0.22 是修问题版**，修的是你上次点名的两个：
-> - **从任务详情跳出去之后，返回能回到上一页了**。任务详情里的「脚本 / 最新日志 /
->   日志历史」三处直达跳走时会关掉弹层（顺手清掉「当前在看哪个任务」），
->   于是系统返回手势回来时**没有任何可回的地方** —— 跳出去就回不来了。
->   现在跳之前先记下来源任务，返回一次回到它（用一次就清，不会连按两次都被送回）。
->   返回优先级：**弹层 > 日志目录层级 > 来源任务 > 回「我的」 > 不可返回**。
->   顶栏那个 `‹` 也走同一套逻辑（以前它只会无脑回「我的」）。
->   任务被删 / 列表刷新后找不到就不算「能返回」——手势生效却什么都不发生更让人懵。
-> - **头像修好了**。根因不是取图，是**根本没去取**：App 启动有两条路，
->   登录那条会拉头像，而「本地已经有令牌」那条（**平时重开 App 走的就是它**）
->   一直没拉 —— 所以只要重开一次就永远是首字母。1.0.17 那次「真机不显示」
->   其实一直没被走到。
->   顺带修了取图地址：面板如果给的是以 `/` 开头的相对路径，原样塞进 `<img>` 会被
->   iOS 的 `file://` 解析成 `file:///api/...`，**永远加载不出来而且不报错**；
->   现在一律补上面板地址。连接诊断里多了一段「头像」自检
->   （这条链每一步都是静默失败，不写出来只能靠猜）。
+> **1.0.23 加的是三个「一眼看得见」的东西**，都是补原来缺的那一块：
+> - **任务能批量跑了**。任务页的编辑模式以前只有「启用 / 禁用 / 删除」，
+>   最常用的「把这几个都跑一遍」反而没有 —— 得一个个点进详情页。
+>   现在多了「运行 / 停止」，跟单个任务走同一套接口（青龙的批量接口 body 就是一组 id）。
+>   操作栏拆成两行：上行「跑不跑」（全选 / 运行 / 停止），下行「改不改状态」
+>   （启用 / 禁用 / 删除 / 已选 N）。单行塞 6 个按钮在 390px 上每个只剩 ~57px，
+>   「取消全选」四个字会直接折行。
+> - **任务列表的搜索命中上黄底了**。以前搜完只是「列表变短了」，命中的是哪几个字
+>   还得自己找 —— 而日志那边早就有黄底高亮，两处体验不一致。
+>   现在任务名和标签里的命中都会标黄，用的还是日志那套（同一个 `logHi`）。
+> - **列表行多了「上次耗时」，详情页多了「本次已运行」**。
+>   `last_running_time`（上次跑了多少**秒**）面板一直有，页面只在详情页画了
+>   「上次运行」，列表行里没画 —— 而「脚本越跑越慢」是京东类任务最常见的毛病，
+>   光看「上次 3 小时前」看不出来。详情页那行是「这次跑了多久了」，
+>   好跟「上次运行 4 分 57 秒」比一比，判断是不是卡住了。
+>   注意「本次已运行」**只在状态是「运行中」时才算** —— 排队中时
+>   `last_execution_time` 还是**上一次**跑的时间，不判断状态会算出「十几小时」这种离谱值。
 >
-> 顺手挖出来的两个：
-> - **面板日志也能搜了**：「只看错误」+ 搜关键字（带原始行号），和另外两处日志界面
->   统一 —— 它是三处里唯一没有筛选功能的那个。
-> - **详情页运行日志不再停在开头**：1.0.21 把「自动贴底」改成「只在本来就贴着底时
->   才贴」之后，日志框刚建出来时会被判成「没贴底」，于是新日志不跟到底、
->   一打开就停在第一行。现在第一次打开直接跳到底，之后只有你自己往上翻才不跟。
->
-> **装 1.0.22，别装 1.0.22 及更早的**。
+> **装 1.0.23，别装 1.0.23 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
 > 1.0.19 做了日志级别上色 / 只看错误 / 目录倒序；
-> 1.0.21 做了日志内搜关键字 + 详情页状态/按钮实时跟着跑 + 概览今日成功/失败。
+> 1.0.21 做了日志内搜关键字 + 详情页状态/按钮实时跟着跑 + 概览今日成功/失败；
+> 1.0.22 修好「从详情跳出去回不来」和头像不显示（根因是启动的「已有令牌」路径从不拉头像）。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.22-trollstore.ipa
-# 应该得到 2f96bf769cec4da76eb6b19c7b6bc3c88f070cdf375f020af24d0426cd6e1420
+sha256sum QingLongClient-1.0.23-trollstore.ipa
+# 应该得到 efc1970d047c8ed1e36da2026b18c54128068de136df6afd1a4457e1bc6a9c94
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -225,7 +220,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.22-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.23-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -237,15 +232,15 @@ qinglong-ios/out/QingLongClient-1.0.22-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.22-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.23-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 340483 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.22（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 344976 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.23（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -271,6 +266,9 @@ python tools/verify_ipa.py out/QingLongClient-1.0.22-trollstore.ipa
 | 1.0.22 修复：头像（「已有令牌」路径也拉头像 / 以 `/` 开头的相对路径补面板地址 / 诊断里带头像自检） | ✅ 3 个锚点全在 |
 | 1.0.22 新增：面板日志筛选（`paintSysLog` / `id="sysLogFind"` / `id="btnSysLogErr"` / `id="btnSysLogCopy"` / 入口剥 ANSI） | ✅ 5 个锚点全在 |
 | 1.0.22 修复：首次画日志跳到底（`var stick = !cl.painted \|\| atBottom(box);` / 贴底余量 48px） | ✅ 都在 |
+| 1.0.23 新增：批量运行 / 停止（`data-cbatch="run"` / `data-cbatch="stop"` / 两行布局 / `/api/crons/run` / `/api/crons/stop` 传整组 id） | ✅ 6 个锚点全在 |
+| 1.0.23 新增：任务页搜索高亮（复用 `logHi` / 标签也高亮 / `.item .hl` 单开一条写死黄底） | ✅ 3 个锚点全在 |
+| 1.0.23 新增：上次耗时 + 本次已运行（`last += ' · 耗时 ' + fmtDur(...)` / `cronElapsed` / `id="cdSinceRow"` / `id="cdSince"` / 只有运行中才算） | ✅ 5 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -278,7 +276,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.22-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.22 (22) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.23 (23) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
@@ -373,7 +371,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.22 |
+| 版本 | 1.0.23 |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

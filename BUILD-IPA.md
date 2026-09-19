@@ -15,25 +15,25 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35445275460`，commit `c92b47c`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.31-trollstore.ipa`（182292 字节） |
-| SHA256 | `0157facaa9c52cb3608cee67d8449e2057848a42f77bbefad2ec519d76368dd8` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.31-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35448984429`，commit `eb91d41`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.32-trollstore.ipa`（184368 字节） |
+| SHA256 | `c03e585a6934b0880d4136314844a1d4870be6fe8d2b2f3f43cf68553a8c830e` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.32-trollstore`（保留 30 天） |
 
-> **1.0.31 就一件事：依赖页不再一屏只看得下三四个**：
-> - **依赖卡片默认折起来**。以前每张卡都占「名称 + 状态 + 备注 + 更新时间 + 三个按钮」，
->   一屏只能看三四个；现在只留名称 + 状态一行，一屏能看六到八个，
->   点一下才展开「日志 / 重装 / 更多」。折叠状态按 id 记，换页刷新都保留。
-> - **依赖页也能批量操作了**（任务页、变量页之后补齐的第三块）：
->   全选 / 重装 / 删除 / 强制删除，两行操作栏 —— 上行轻（全选 + 重装）、
->   下行狠（删除 + 强制删除，强制删除带 danger 样式）。
-> - **批量操作按状态过滤**：重装跳过「正在装/删」的（面板会直接拒，
->   整批失败比不发更糟）；删除只发已安装的（未安装的本来也删不掉）。
->   强制删除不过滤 —— 它本来就是兜底手段，该把所有不合状态的也带走。
-> - 编辑模式下整行是勾选框、不显示行内按钮（点哪都像要执行那个动作，
->   跟变量页一个道理）。离开依赖页自动退出批量编辑。
+> **1.0.32 就一件事：搜出来的变量不用自己滑着找了**：
+> - **搜索框下多一条「↑ 2/4 ↓」**。搜「jd」能出二十来条，分组之后还散在各组里、
+>   有的组还折着 —— 以前只能自己滑着找，现在点箭头逐个跳过去，跳到的那条套一圈黄边。
+> - **圈的是黄边 outline 不是背景**：背景会跟编辑模式的选中态（`.item.on`）撞在一起，
+>   看不出到底跳没跳。黄边沿用「命中」那个黄，两套主题下都看得清。
+> - **跳的顺序是页面上看见的顺序**，不是列表原顺序 —— 分组会把顺序重排，
+>   照列表顺序跳会「跳回去」（比如跳到第 2 个却是列表里第 4 条）。
+> - **目标在折叠的组里会先展开再跳**，否则跳过去是一片空白。
+> - **回车 = 下一个、Shift+回车 = 上一个**，跟电脑上「查找下一个」一个意思；
+>   回车会先把防抖落下去再跳，不然跳的是上一批旧结果。
+> - **换关键字后原来的位置不算数**（拿 id 对一下，对不上就清掉），
+>   不会「跳到另一个变量上还圈着它」。
 >
-> **装 1.0.31，别装 1.0.30 及更早的**。
+> **装 1.0.32，别装 1.0.31 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -45,13 +45,14 @@
 > 1.0.28 加了定时规则旁挂人类可读描述（cron 表达式翻人话）。
 > 1.0.29 加了变量页批量复制（换 cookie 时一次抠多个值）；
 > 1.0.30 加了变量页按第一标签分组 + 每组可折叠；
-> 1.0.31 加了依赖卡片可折叠 + 依赖页批量操作（重装 / 删除 / 强制删除）。
+> 1.0.31 加了依赖卡片可折叠 + 依赖页批量操作（重装 / 删除 / 强制删除）；
+> 1.0.32 加了变量搜索结果的上 / 下一个跳转（命中项逐个跳，折叠组自动展开）。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.31-trollstore.ipa
-# 应该得到 0157facaa9c52cb3608cee67d8449e2057848a42f77bbefad2ec519d76368dd8
+sha256sum QingLongClient-1.0.32-trollstore.ipa
+# 应该得到 c03e585a6934b0880d4136314844a1d4870be6fe8d2b2f3f43cf68553a8c830e
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -233,15 +234,15 @@ qinglong-ios/out/QingLongClient-1.0.31-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.31-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.32-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 385307 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.31（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 391050 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.32（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -310,6 +311,18 @@ python tools/verify_ipa.py out/QingLongClient-1.0.31-trollstore.ipa
 | 1.0.31 新增：删除只发已安装的（`x.status === 1`） | ✅ 1 个锚点全在 |
 | 1.0.31 新增：三条批量栏共用留白（`cronedit,#main.envsedit,#main.depsedit`） | ✅ 1 个锚点全在 |
 | 1.0.31 新增：委托里有依赖钩子（`[data-deps],[data-dbatch],`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：委托里有跳转钩子（`[data-envjump]`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：分支把正负号传进去（`envJump(Number(el.dataset.envjump))`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：渲染时给当前那条加类（`(cur ? ' hitcur' : '')`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：当前套黄边 outline（`.item.hitcur{outline:2px solid #ffd479`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：顺序用分组后的渲染顺序（`envGrouped().forEach`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：列表换过后下标失效（`e.hitId == null \|\| !cur \|\| cur.id !== e.hitId`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：跳到折叠组里会展开（`delete e.collapsed[t.key]`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：跳完重画再滚（`renderEnvs();` 后接 `scrollToEnvHit()`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：滚的是当前圈出来的那条（`#envList .item.hitcur`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：搜索框挂回车跳转（`addEventListener('keydown'`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：Shift+回车是上一个（`envJump(ev.shiftKey ? -1 : 1)`） | ✅ 1 个锚点全在 |
+| 1.0.32 新增：换关键字时清掉跳转位置（`S.envs.hit = -1`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -317,7 +330,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.31-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.31 (31) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.32 (32) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

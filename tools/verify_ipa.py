@@ -245,6 +245,15 @@ FEATURES = [
     ("日志 跳到最新（按 box.id 分两边）", r"box\.id === 'logBox' \? 0 : box\.scrollHeight"),
     # paintCronLog 用「贴顶」做贴新端判断（1.0.21 那条 AC32 的字面量也改了）。
     ("详情页日志 首次画跟顶", r"var stick = !cl\.painted \|\| box\.scrollTop < 48;"),
+
+    # 1.0.27：下次执行时间显示优化（之前是 `MM-DD HH:MM:SS`，秒数永远 :00 占位、
+    # 跨日看不出是今天/明天、跟「上次 X 小时前」风格不一致）。
+    # 抽 fmtNext(d) 加今天/明天前缀 + 去秒数；nextRunText 走 fmtNext。
+    ("下次时间 今天/明天 前缀", r"sameYMD\(d, now\) \? '今天' :\s*sameYMD\(d, tomorrow\) \? '明天'"),
+    ("下次时间 fmtNext 函数", r"function fmtNext\(d\) \{"),
+    ("下次时间 去秒数（HH:MM，不是 HH:MM:SS）",
+     r"return prefix \+ ' ' \+ pad\(d\.getHours\(\)\) \+ ':' \+ pad\(d\.getMinutes\(\)\)"),
+    ("下次时间 nextRunText 走 fmtNext", r"  return fmtNext\(d\);"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /
@@ -256,6 +265,12 @@ FORBIDDEN = [
     ("弹层 无 登录日志 入口", r'data-goto="loginlog"'),
     ("弹层 无 面板日志 入口", r'data-goto="syslog"'),
     ("弹层 无 面板设置 分区", r'<div class="secttl">面板设置</div>'),
+
+    # 1.0.27 新增：「下次执行」加今天/明天前缀、去秒数（之前是 `MM-DD HH:MM:SS`，
+    # 秒数永远 :00 占位、跨日看不出是今天/明天、跟「上次 X 小时前」风格不一致）。
+    ("下次时间 今天/明天 前缀", r"sameYMD\(d, now\) \? '今天' :\s*sameYMD\(d, tomorrow\) \? '明天'"),
+    ("下次时间 去秒数（HH:MM，不是 HH:MM:SS）", r"function fmtNext\(d\) \{[\s\S]{0,500}?return prefix \+ ' ' \+ pad\(d\.getHours\(\)\) \+ ':' \+ pad\(d\.getMinutes\(\)\)"),
+    ("nextRunText 走 fmtNext", r"  return fmtNext\(d\);"),
 ]
 
 PLIST_KEYS = [

@@ -1418,6 +1418,24 @@ function fmtCountdown(d) {
   if (s < 86400) return Math.floor(s / 3600) + ' 小时后';
   return Math.floor(s / 86400) + ' 天后';
 }
+/* 1.0.27：「下次执行」格式 —— 之前是 `MM-DD HH:MM:SS（X 小时后）`，秒数都是 :00 占着位置、
+   跨日的看不出是今天 / 明天、跟「上次 X 小时前」的相对时间风格不一致。
+   新版：**今天 / 明天 / MM-DD** 前缀，去秒数。任务列表里直接显示完整（之前 split 掉了
+   倒计时 —— 新格式短了 4 个字符，单元格塞得下）；详情 / 编辑页照旧。 */
+function sameYMD(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate();
+}
+function fmtNext(d) {
+  var now = new Date();
+  var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  var prefix = sameYMD(d, now) ? '今天' :
+               sameYMD(d, tomorrow) ? '明天' :
+               pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  return prefix + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) +
+         '（' + fmtCountdown(d) + '）';
+}
 function fmtSize(n) {
   if (n == null) return '';
   if (n < 1024) return n + ' B';
@@ -1601,7 +1619,7 @@ function nextRunText(expr) {
   if (!sch) return null;
   var d = nextRunDate(sch);
   if (!d) return null;
-  return fmtAbs(d) + '（' + fmtCountdown(d) + '）';
+  return fmtNext(d);
 }
 
 /* ================= 登录 / 登出 ================= */
@@ -2083,7 +2101,7 @@ function renderCrons() {
       '<div class="tags">' + tags + '</div>' +
       '<div class="row f11 t3" style="margin-top:8px">' +
         '<span>' + esc(last) + '</span>' +
-        (next ? '<span class="sp ell" style="text-align:right">下次 ' + esc(next.split('（')[0]) + '</span>' : '') +
+        (next ? '<span class="sp ell" style="text-align:right">下次 ' + esc(next) + '</span>' : '') +
       '</div>' +
       (editing ? '' :
       '<div class="row" style="margin-top:10px;gap:8px">' +
@@ -4419,7 +4437,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.26';
+var APP_VER = '1.0.27';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

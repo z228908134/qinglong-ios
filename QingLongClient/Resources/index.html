@@ -1074,6 +1074,13 @@ var S = {
   avatarSrc: '',
   need2fa: false,
   detailId: null,
+  /* 「从任务详情跳走」的来源。任务详情里的「脚本 / 最新日志 / 日志历史」三处直达
+     是**跳去别的页面**，跳之前会把弹层关掉（S.detailId 一起清空），
+     于是系统返回手势回来时没有任何可回的地方 —— 用户跳出去就回不来了。
+     这里只记**一层**：返回一次就用掉。不做完整历史栈 ——
+     用户按返回时心里想的是「回到我刚才那个任务」，连按四五次才出来反而更烦。
+     用户主动点底栏换页 = 已经走开了，顺手清掉（见底栏 click）。 */
+  backTo: null,
   /* filter: 状态筛选（all / running / unused / disabled），分档规则见 cronBucket()。
      edit / sel: 批量编辑模式 —— 勾选中的任务 id 记在 sel 里（键是 id，值是 true）。
      views / view / viewsFailed：任务页顶部那排「定时视图」tab。
@@ -1102,7 +1109,7 @@ var S = {
      两处的筛选是各自独立的（在日志文件里筛了错误，不该影响详情页的运行日志）。
      刷新日志时 lines 换新、onlyErr / q **保留** —— 开着「只看错误」按刷新，
      结果又被塞回全部，那个开关就白点了。 */
-  cronlog: { lines: [], errN: 0, onlyErr: false, q: '' },
+  cronlog: { lines: [], errN: 0, onlyErr: false, q: '', painted: false },
   /* scripts.expanded 的键是「从脚本根目录算起的相对路径」（如 dir1/sub），值是真值。
      默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
      path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
@@ -1130,7 +1137,7 @@ var S = {
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
      面板自己也只允许查最近 7 天。 */
-  syslog: { text: '', range: 'today', loading: false, err: '' },
+  syslog: { text: '', range: 'today', loading: false, err: '', onlyErr: false, q: '', painted: false },
   busy: false
 };
 
@@ -2140,7 +2147,7 @@ async function openCron(id) {
   S.detailId = id;
   /* 换任务就把上一份的筛选清掉 —— 上一个任务开着「只看错误」，
      新任务的日志一进来就只剩几行，看着像日志是空的。 */
-  S.cronlog = { lines: [], errN: 0, onlyErr: false, q: '' };
+  S.cronlog = { lines: [], errN: 0, onlyErr: false, q: '', painted: false };
   openSheet(t.name || '未命名任务', '<div class="center"><span class="spin"></span>加载中…</div>');
   renderCronDetail(t);
   loadCronLog(id, false);
@@ -2240,7 +2247,11 @@ async function gotoScript(full) {
   if (!parts.length) return;
   var file = parts.pop();
   var dir = parts.join('/');
+  /* 先记下从哪个任务跳出来的：closeSheet 会把 S.detailId 清掉，
+     清掉之后就再也想不起「用户刚才在看哪个任务」了。 */
+  var from = S.detailId;
   closeSheet();
+  S.backTo = from;
   /* 先摆好目标目录再切页：setTab 会顺手 refresh，带着对的 path 去拉才不会
      先渲染一次根目录再跳。 */
   S.scripts.path = parts.slice();
@@ -2266,7 +2277,9 @@ async function gotoScript(full) {
 /* 打开这个任务最新的一条日志。 */
 async function openCronLog(t) {
   if (!t) return;
+  var from = S.detailId;
   closeSheet();
+  S.backTo = from;
   await ensureLogTree();
   var f = newestLogFile(findLogDir(t));
   if (!f) { toast('这个任务还没有日志', true); return; }
@@ -2275,7 +2288,9 @@ async function openCronLog(t) {
 /* 跳到日志页，并停在这个任务的日志目录里。 */
 async function gotoCronLogDir(t) {
   if (!t) return;
+  var from = S.detailId;
   closeSheet();
+  S.backTo = from;
   await ensureLogTree();
   var dir = findLogDir(t);
   setTab('logs');
@@ -2394,9 +2409,11 @@ function kv(k, v) {
    你往上翻两屏看前面的报错，每 3 秒被拽回底部一次，根本没法读。
    （阈值 48px 是给「就差一点点」留的余量：手指滚不到绝对底部。）
    注意 scrollHeight 和 scrollTop 都是取整过的，别指望它们能精确相等。 */
+function atBottom(el) {
+  return el.scrollHeight - el.scrollTop - (el.clientHeight || 0) < 48;
+}
 function stickBottom(el) {
-  var bottom = el.scrollHeight - el.scrollTop - (el.clientHeight || 0);
-  if (bottom < 48) el.scrollTop = el.scrollHeight;
+  if (atBottom(el)) el.scrollTop = el.scrollHeight;
 }
 
 /* 重画详情页的运行日志框。切「只看错误」、改搜索词、刷新回来都走这里 ——
@@ -2406,10 +2423,16 @@ function paintCronLog() {
   var box = $('#logBox');
   if (!box) return;
   var cl = S.cronlog;
+  /* **贴底判断必须在换 innerHTML 之前做**：换完之后浏览器会把 scrollTop
+     重置成 0，那时候再算「本来就贴着底吗」永远算不成立，新日志就不跟到底了。
+     而且第一次画要**直接跳到底** —— 任务在跑，用户要看的是最后那几行；
+     只有「已经画过内容、且用户往上翻了」才该原地不动。 */
+  var stick = !cl.painted || atBottom(box);
   box.innerHTML = cl.lines.length ? logBoxHtml(cl.lines, cl.onlyErr, cl.q) : '（日志为空）';
+  cl.painted = true;
   /* 搜索时滚到**第一条匹配**（否则搜完还停在末尾，看着像没搜到） */
   if (cl.q) box.scrollTop = 0;
-  else stickBottom(box);
+  else if (stick) box.scrollTop = box.scrollHeight;
   var eb = $('#btnCronLogErr');
   if (eb) {
     /* 一行错都没有就不给按钮（点了只会看到空框），跟日志文件弹层一致 */
@@ -2443,7 +2466,10 @@ async function loadCronLog(id, silent) {
        那个开关就白点了。lines 和 errN 换新。 */
     S.cronlog = {
       lines: lines, errN: logErrLines(lines).length,
-      onlyErr: S.cronlog.onlyErr, q: S.cronlog.q
+      onlyErr: S.cronlog.onlyErr, q: S.cronlog.q,
+      /* painted 也要留着：新日志回来时得知道「之前已经画过内容了」，
+         否则每一轮轮询都会被当成「第一次」，用户翻上去读历史又被拽回底部。 */
+      painted: S.cronlog.painted
     };
     paintCronLog();
     var st = $('#logStat');
@@ -4064,7 +4090,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.21';
+var APP_VER = '1.0.22';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -4129,7 +4155,12 @@ function avStaticUrl(file) {
   var f = String(file == null ? '' : file).trim();
   if (!f) return '';
   /* 有的面板/改版把整条 URL 或 data: 直接塞在 avatar 字段里 —— 那就别再拼了 */
-  if (/^(data:|https?:\/\/|\/)/i.test(f)) return f;
+  if (/^(data:|https?:\/\/)/i.test(f)) return f;
+  /* 以 `/` 开头的是**相对面板**的路径（如 `/api/static/x.png`）。
+     不能原样塞进 <img src>：iOS 的页面是 file:// 加载的，以 `/` 开头的地址
+     会被解析成 `file:///api/static/x.png`，永远加载不出来 —— 而且**不报错**，
+     表现就是「头像一直是首字母」。所以一律补上面板地址。 */
+  if (f.charAt(0) === '/') return apiBase() + f;
   return apiBase() + '/api/static/' + encodeURIComponent(f);
 }
 /* <img> 真正用的地址：S.avatarSrc（data: URL，或面板直接给的 URL）。空串 = 没头像 */
@@ -4157,7 +4188,12 @@ async function loadAvatar() {
     var raw = (me.data && me.data.avatar) ? String(me.data.avatar).trim() : '';
     if (!raw) return;
     S.avatar = raw;
-    if (/^(data:|https?:\/\/|\/)/i.test(raw)) { S.avatarSrc = raw; return; }
+    /* 面板直接塞了个 data: URL —— 拿来就能用，不用再取一次 */
+    if (/^data:/i.test(raw)) { S.avatarSrc = raw; return; }
+    /* 其余**一律走 fetch 拿字节再转 data: URL**，包括面板给的 http(s) 绝对地址。
+       iOS 的页面是 file:// 加载的，<img src> 指远程地址能不能加载没保证
+       （安卓那边更明确：回环服务只代理页面发出的 fetch，<img> 的加载它不管）。
+       走 fetch 就和其他所有请求同一条路，还能带上 token。 */
     var res = await fetch(avStaticUrl(raw), {
       headers: S.token ? { Authorization: 'Bearer ' + S.token } : {},
       cache: 'no-store'
@@ -5362,7 +5398,12 @@ async function loadSysLog(force) {
     var text = await apiText('/api/system/log', sysLogRange());
     /* 期间又点了一次刷新 / 切了档位：这次的结果已经过期，丢掉 */
     if (seq !== g.seq) return;
-    g.text = text || '';
+    /* ANSI 在这里**一次性**剥掉，不留给渲染层 ——
+       面板日志是进程原样写的，带 `\x1b[31m` 这种颜色码；剥在这里的话
+       正文、筛选、搜索、复制看到的都是同一份干净文本。
+       （1.0.21 之前是渲染时逐行 stripAnsi；1.0.22 正文改走 logBoxHtml 后
+       那个 stripAnsi 就没了，颜色码会直接显示成乱码 —— 所以挪到入口。） */
+    g.text = stripAnsi(text || '');
   } catch (e) {
     if (seq !== g.seq) return;
     g.err = e.message;
@@ -5471,6 +5512,52 @@ function paintLogFile() {
   }
 }
 
+/* 面板日志切行。末尾那个换行会切出一个空串，去掉 —— 否则日志框底下永远多一行空白，
+   「共 N 行」也会多算一行。三处日志界面（弹层 / 详情页 / 面板日志）都这么切。 */
+function sysLogLines() {
+  var lines = String(S.syslog.text || '').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  return lines;
+}
+
+/* 重画面板日志的正文框（改搜索词 / 切「只看错误」走这里）。
+   **不重新打接口**（内容已经在 S.syslog.text 里了），
+   也**不重建搜索框** —— 重建会把已输入的字和光标位置弄丢。
+   筛选逻辑和另外两处日志界面共用 logPick / logBoxHtml，不会出现
+   「框里 3 行、复制出来 5 行」这种对不上的事。 */
+function paintSysLog() {
+  var pre = $('#syslogPre');
+  if (!pre) return;
+  var g = S.syslog;
+  var lines = sysLogLines();
+  var errN = logErrLines(lines).length;
+  /* 贴底判断要在换 innerHTML 之前做（换完 scrollTop 会被重置成 0），
+     第一次画直接跳到底：面板日志最新的一行在最下面，停在开头等于什么都没看到。 */
+  var stick = !g.painted || atBottom(pre);
+  pre.innerHTML = lines.length ? logBoxHtml(lines, g.onlyErr, g.q) : '（日志为空）';
+  g.painted = true;
+  if (g.q) pre.scrollTop = 0;
+  else if (stick) pre.scrollTop = pre.scrollHeight;
+  var eb = $('#btnSysLogErr');
+  if (eb) {
+    /* 一行错都没有就不给按钮（点了只会看到空框），跟另外两处一致 */
+    eb.style.display = errN ? '' : 'none';
+    eb.textContent = g.onlyErr ? '看全部' : '只看错误';
+  }
+  var cp = $('#btnSysLogCopy');
+  if (cp) cp.textContent = g.q ? '复制匹配行' : (g.onlyErr ? '复制错误行' : '复制');
+  var fn = $('#sysLogFindN');
+  if (fn) fn.textContent = g.q ? (logPick(lines, g.onlyErr, g.q).length + ' 行匹配') : '';
+  var mt = $('#sysLogMeta');
+  if (mt) {
+    if (g.onlyErr || g.q) {
+      mt.textContent = '筛出 ' + logPick(lines, g.onlyErr, g.q).length + ' 行（共 ' + lines.length + ' 行）';
+    } else {
+      mt.textContent = '共 ' + lines.length + ' 行' + (errN ? ' · 错误 ' + errN : '');
+    }
+  }
+}
+
 function renderSysLog() {
   var box = $('#syslogBody');
   if (!box) return;
@@ -5483,9 +5570,7 @@ function renderSysLog() {
     '<button class="btn danger" id="btnSysLogClear" style="flex:1">清空日志</button>' +
     '</div>';
 
-  var lines = String(g.text || '').split('\n');
-  /* 末尾那个换行会切出一个空串，去掉，否则日志框底下永远多一行空白 */
-  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  var lines = sysLogLines();
 
   if (g.err) {
     h += '<div class="empty"><span class="ei">!</span>' + esc(g.err) +
@@ -5495,22 +5580,40 @@ function renderSysLog() {
   } else if (!lines.length) {
     h += '<div class="empty"><span class="ei">☰</span>这段时间没有面板日志</div>';
   } else {
-    /* 一行一个 span 上色。整个日志几千行是常态，这里只做字符串拼接，
-       不建 DOM 节点 —— 逐行 createElement 在手机上会明显卡住。 */
-    h += '<pre class="logbox lg" id="syslogPre">' + lines.map(function (l) {
-      var lv = logLv(l);
-      return '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' +
-        esc(stripAnsi(l)) + '\n</span>';
-    }).join('') + '</pre>';
-    h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.6">共 ' + lines.length +
-      ' 行。日志是面板进程自己写的，跟任务运行日志不是一回事（任务日志在「日志文件」里）。</div>';
+    /* 几千行是常态：整块拼字符串一次性 innerHTML，不逐行建 DOM 节点 ——
+       逐行 createElement 在手机上会明显卡住。正文交给 paintSysLog 填。 */
+    h += '<div class="row" style="margin:0 4px 8px;gap:8px;align-items:center">' +
+      '<div class="f11 t3 sp" id="sysLogMeta"></div>' +
+      '<button class="btn" id="btnSysLogErr" style="display:none;padding:6px 12px;font-size:calc(12px*var(--fs));flex:0 0 auto">只看错误</button>' +
+      '</div>';
+    h += '<div class="searchbar" style="margin:0 4px 8px;display:flex;gap:8px;align-items:center">' +
+      '<input id="sysLogFind" type="search" placeholder="在面板日志里搜关键字" style="flex:1">' +
+      '<div class="f11 t3" id="sysLogFindN" style="flex:0 0 auto"></div>' +
+      '</div>';
+    h += '<pre class="logbox lg" id="syslogPre"></pre>';
+    h += '<div class="row" style="margin-top:12px;gap:8px">' +
+      '<button class="btn" id="btnSysLogCopy" style="flex:1">复制</button>' +
+      '</div>';
+    h += '<div class="f11 t3" style="margin:10px 4px 0;line-height:1.6">日志是面板进程自己写的，' +
+      '跟任务运行日志不是一回事（任务日志在「日志文件」里）。</div>';
   }
   box.innerHTML = h;
 
-  /* 贴到底：新的日志追加在文件末尾，后端又是按时间正序拼的，所以最新在下面。
-     必须等 innerHTML 落地之后再滚，否则 scrollHeight 还是旧值。 */
-  var pre = $('#syslogPre');
-  if (pre) pre.scrollTop = pre.scrollHeight;
+  /* 搜索框是这次 innerHTML **新建**的，input 事件委托不到，得就地挂。
+     paintSysLog 只改 #syslogPre、不会把这个 input 换掉，所以挂一次就够。
+     但 renderSysLog 会被「刷新 / 切档位 / 切回本页」重新调用（那时输入框是新的），
+     所以必须把 g.q **回填**进去 —— 不然搜过的词会凭空消失，看着像搜索没生效。 */
+  var sfin = $('#sysLogFind');
+  if (sfin) {
+    sfin.value = g.q;
+    sfin.addEventListener('input', function () {
+      S.syslog.q = sfin.value.trim();
+      paintSysLog();
+    });
+  }
+  /* 正文交给 paintSysLog 填（顺带按「第一次画 / 本来就贴着底」决定滚到哪儿），
+     和切「只看错误」走同一条路 —— 不搞两套滚动逻辑。 */
+  if ($('#syslogPre')) paintSysLog();
 
   /* 这几个元素是刚被 innerHTML 换掉的，全局委托里没登记它们，就地绑。
      每次重画都是新元素，旧监听随旧元素一起消失，不会累积。 */
@@ -5577,20 +5680,35 @@ function closeSheet() {
    层级（从外到内）：
      1. 弹层开着（任务详情 / 各种编辑表单）→ 关弹层
      2. 日志页下钻了目录 → 回上一级
-     3. 当前不是底栏页面（日志是从「我的」进去的）→ 回「我的」
-     4. 其余情况（就在底栏某页的顶层）→ 没什么可返回的，手势不生效 */
+     3. 是从任务详情跳出来的（脚本 / 最新日志 / 日志历史）→ 回那个任务详情
+     4. 当前不是底栏页面（日志是从「我的」进去的）→ 回「我的」
+     5. 其余情况（就在底栏某页的顶层）→ 没什么可返回的，手势不生效 */
 function canGoBack() {
   var sh = $('#sheet');
   if (sh && sh.classList.contains('on')) return true;
   if (S.tab === 'logs' && S.logs.path.length) return true;
+  /* 任务可能已经被删了 / 列表刷新后找不到了 —— 那就不算「能返回」，
+     否则手势会生效但按下去什么都不发生，比手势不生效更让人困惑。 */
+  if (S.backTo && cronById(S.backTo)) return true;
   if (!$('#tabbar button[data-tab="' + S.tab + '"]')) return true;
   return false;
+}
+
+/* 回到跳走前那个任务详情。任务没了就返回 false，让调用方接着走后面的兜底分支。 */
+function backToCron() {
+  var id = S.backTo;
+  if (!id) return false;
+  S.backTo = null;
+  if (!cronById(id)) return false;
+  openCron(id);
+  return true;
 }
 
 function goBack() {
   var sh = $('#sheet');
   if (sh && sh.classList.contains('on')) { closeSheet(); return true; }
   if (S.tab === 'logs' && S.logs.path.length) { loadLogs(S.logs.path.slice(0, -1)); return true; }
+  if (backToCron()) return true;
   if (!$('#tabbar button[data-tab="' + S.tab + '"]')) { setTab('me'); return true; }
   return false;
 }
@@ -5651,7 +5769,12 @@ function bind() {
   });
 
   $$('#tabbar button').forEach(function (b) {
-    b.addEventListener('click', function () { setTab(b.dataset.tab); });
+    b.addEventListener('click', function () {
+      /* 主动点底栏 = 已经走开了，把「回到刚才那个任务」的来源清掉 ——
+         不清的话，用户在别处逛半天再按返回，会被莫名其妙地送回旧任务详情。 */
+      S.backTo = null;
+      setTab(b.dataset.tab);
+    });
   });
   $('#btnRefresh').addEventListener('click', function () { refresh(); });
 
@@ -5672,7 +5795,9 @@ function bind() {
   });
   $('#btnNewEnv').addEventListener('click', function () { openEnvEdit(null); });
 
-  $('#btnBack').addEventListener('click', function () { setTab('me'); });
+  /* 顶栏那个 ‹ ：先走和系统手势同一套返回逻辑（日志页先逐级往上、
+     从任务详情跳来的先回任务详情），实在没得返回才回「我的」。 */
+  $('#btnBack').addEventListener('click', function () { if (!goBack()) setTab('me'); });
 
   var t3 = null;
   $('#subSearch').addEventListener('input', function (e) {
@@ -5762,7 +5887,7 @@ function onClick(ev) {
     '[data-scope],[data-scsave],[data-scmod],' +
     '#btnCronEdit,#btnCronAll,#btnAccts,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
-    '#btnCronLogErr,' +
+    '#btnCronLogErr,#btnSysLogErr,#btnSysLogCopy,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
     '#btnNewScriptOk,#btnSaveScript,#btnRunScript,#btnRenameScript,#btnDelScript,#btnRenameOk,' +
     '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
@@ -5910,6 +6035,19 @@ function onClick(ev) {
   if (el.id === 'btnCronLogErr') {
     S.cronlog.onlyErr = !S.cronlog.onlyErr;
     return paintCronLog();
+  }
+
+  /* 面板日志的「只看错误」/「复制」：和另外两处日志界面同一个开关语义。
+     内容已经在 S.syslog.text 里，**不重新打接口**（切一下开关就打一次接口
+     既慢又会闪一下）。复制走原文 —— 读 DOM 的话筛选态会把行号一起复制走。 */
+  if (el.id === 'btnSysLogErr') {
+    S.syslog.onlyErr = !S.syslog.onlyErr;
+    return paintSysLog();
+  }
+  if (el.id === 'btnSysLogCopy') {
+    var sg = S.syslog;
+    if (!sg.onlyErr && !sg.q) return copyText(sg.text || '');
+    return copyText(logPickText(sysLogLines(), sg.onlyErr, sg.q));
   }
 
   /* 任务保存 */
@@ -6159,6 +6297,41 @@ function nativeProbe(url) {
   });
 }
 
+/* 头像自检。头像这条链比别的请求多一步（先 /api/user 拿文件名，再取图），
+   而且**每一步失败都是静默的** —— 页面上只是继续显示首字母，不报错、不留痕。
+   所以在这儿把三段全摊开：avatar 字段是什么、拼出来的地址长什么样、
+   取图那步 HTTP 多少、拿到多少字节。出问题就不用靠猜了。 */
+async function diagAvatar() {
+  var L = [];
+  var raw = '';
+  try {
+    var me = await api('/api/user');
+    raw = (me.data && me.data.avatar) ? String(me.data.avatar).trim() : '';
+    L.push('/api/user   OK     username=' + ((me.data && me.data.username) || '?') +
+      '  avatar=' + (raw || '（空 —— 面板上没设头像，显示首字母是对的）'));
+  } catch (e) {
+    L.push('/api/user   失败：' + (e && e.message ? e.message : '错误'));
+    return L;
+  }
+  if (!raw) return L;
+  if (/^data:/i.test(raw)) { L.push('面板直接给了 data: URL，拿来就能用。'); return L; }
+  var url = avStaticUrl(raw);
+  L.push('取图地址    ' + url);
+  try {
+    var res = await fetch(url, {
+      headers: S.token ? { Authorization: 'Bearer ' + S.token } : {},
+      cache: 'no-store'
+    });
+    L.push('HTTP        ' + res.status + (res.ok ? '' : '   ← 不是 2xx，图取不到'));
+    var blob = await res.blob();
+    L.push('字节        ' + (blob ? blob.size : 0) + (blob && blob.size ? '' : '   ← 空的'));
+    if (blob && blob.size) L.push('结论：头像能取到，App 里应该显示成图片而不是首字母。');
+  } catch (e) {
+    L.push('取图失败    ' + (e && e.message ? e.message : '错误'));
+  }
+  return L;
+}
+
 async function diagnose() {
   var L = [];
   var viaProxy = apiBase() !== base();
@@ -6221,6 +6394,9 @@ async function diagnose() {
     if (j && j.code === 200 && j.data) {
       L.push('结论：面板可达，地址和网络都没问题。');
       L.push('      面板版本 ' + (j.data.version || '?') + '，登录失败的话是账号密码的问题。');
+      L.push('');
+      L.push('══ 头像 ══');
+      L.push.apply(L, await diagAvatar());
     } else if (j && j.code === 502) {
       L.push('结论：App 内置代理转发失败，原因就是上面那句。');
       L.push('      这不是跨域或页面的问题 —— 是这台手机到面板这一段不通。');
@@ -6316,6 +6492,13 @@ async function boot() {
     S.sys = sys.data || null;
   } catch (e) { /* 忽略 */ }
   setTab(S.tab, true);
+  /* 头像**必须在这条路上也拉一次**。
+     这条「已经有令牌」的分支才是 App 的**常规**启动路径（用户平时重开 App 走的就是
+     它），而以前只有 doLogin 那条路会调 loadAvatar —— 于是只要 App 一重开，
+     头像就永远是首字母。1.0.17 那次「真机不显示」其实一直没被走到。
+     不 await：它要连下两个请求（/api/user + 取图），压在这里会拖慢首屏；
+     先让界面出来（这时是首字母），拉到了 paintAvatars 就地换掉。 */
+  loadAvatar().then(paintAvatars);
 }
 
 document.addEventListener('DOMContentLoaded', boot);

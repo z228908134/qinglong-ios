@@ -128,7 +128,28 @@ FEATURES = [
     ("详情 运行日志搜索框", r'id="cronLogFind"'),
     ("详情 只看错误按钮", r'id="btnCronLogErr"'),
     ("详情 复制走筛选后的原文", r"function logPickText\("),
-    ("详情 只在贴底时贴底", r"if \(bottom < 48\) el\.scrollTop = el\.scrollHeight;"),
+    # 1.0.22：1.0.21 加的这条锚的是内联的阈值比较，1.0.22 把阈值抽进了
+    # atBottom() —— 字面量搬家，锚点就得跟着搬。不改的话出包后这里会报
+    # 「详情 只在贴底时贴底 缺失 !!」，白折腾一轮 CI。
+    ("详情 只在贴底时贴底", r"if \(atBottom\(el\)\) el\.scrollTop = el\.scrollHeight;"),
+    ("详情 贴底余量 48px", r"return el\.scrollHeight - el\.scrollTop - \(el\.clientHeight \|\| 0\) < 48;"),
+    # 1.0.22 新增：① 从任务详情跳出去之后要能返回上一页
+    ("返回 回来源任务", r"function backToCron\(\)"),
+    ("返回 能返回的判断", r"if \(S\.backTo && cronById\(S\.backTo\)\) return true;"),
+    ("返回 顶栏走同一套", r"if \(!goBack\(\)\) setTab\('me'\);"),
+    ("返回 来源只用一次", r"S\.backTo = null;"),
+    # 1.0.22 新增：② 头像（根因是 boot 的「已有令牌」路径以前不拉头像）
+    ("头像 已有令牌路径也拉", r"loadAvatar\(\)\.then\(paintAvatars\);"),
+    ("头像 相对路径补面板地址", r"if \(f\.charAt\(0\) === '/'\) return apiBase\(\) \+ f;"),
+    ("头像 连接诊断自检", r"async function diagAvatar\(\)"),
+    # 1.0.22 新增：③ 面板日志补搜索 / 只看错误 / 复制（和另外两处日志界面统一）
+    ("面板日志 重画", r"function paintSysLog\("),
+    ("面板日志 搜索框", r'id="sysLogFind"'),
+    ("面板日志 只看错误按钮", r'id="btnSysLogErr"'),
+    ("面板日志 复制按钮", r'id="btnSysLogCopy"'),
+    ("面板日志 剥 ANSI 在入口", r"g\.text = stripAnsi\(text \|\| ''\);"),
+    # 1.0.22 新增：④ 首次画日志直接跳到底（1.0.21 引入的回归）
+    ("日志 第一次画跳到底", r"var stick = !cl\.painted \|\| atBottom\(box\);"),
     # 两个时间字段的单位都跟直觉相反，写错了不报错、只是显示成 1970
     ("时间 秒级时间戳换算", r"function cronMs\("),
     ("时间 运行时长格式化", r"function fmtDur\("),

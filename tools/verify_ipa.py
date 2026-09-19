@@ -262,6 +262,14 @@ FEATURES = [
     ("定时规则 详情页挂人话", r"var human = cronHumanize\(parseCron\(t\.schedule\)\);"),
     ("定时规则 翻不出来不挂（if human）",
      r"if \(human\) h \+= '<div class=\"f11 t3\" style=\"padding:0 14px 8px\">' \+ esc\(human\) \+ '</div>';"),
+
+    # 1.0.29：变量页批量复制（换 cookie 时一次抠多个值，不用逐个点「复制」）。
+    # 单选复制裸值、多选复制「名=值」换行；复制完不退出编辑、不刷新列表。
+    ("变量批量 复制分支", r"else if \(act === 'copy'\) \{"),
+    ("变量批量 单选裸值 / 多选名=值", r"var text = picked\.length === 1"),
+    ("变量批量 名=值 拼法（带空值兜底）", r"v\.name \+ '=' \+ \(v\.value \|\| ''\)"),
+    ("变量批量 复制完不退出编辑（提前 return）", r"      toast\('已复制 ' \+ picked\.length \+ ' 个变量'"),
+    ("变量批量 栏里的复制值按钮", r'data-ebatch="copy"'),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

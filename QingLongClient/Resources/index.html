@@ -3127,6 +3127,18 @@ async function envBatch(act) {
     if (act === 'enable') { label = '已启用'; await api('/api/envs/enable', { method: 'PUT', body: ids }); }
     else if (act === 'disable') { label = '已禁用'; await api('/api/envs/disable', { method: 'PUT', body: ids }); }
     else if (act === 'delete') { label = '已删除'; await api('/api/envs', { method: 'DELETE', body: ids }); }
+    /* 1.0.29：批量复制 —— 换 cookie 时经常要一次抠多个值（标签筛「京东」后批量复制走人）。
+       单选：复制值；多选：复制「名=值」格式（一眼能分清哪个 cookie 是哪个账号，
+       且能直接 export 到 bash）。复制完不退出编辑、不刷新列表 —— 用户可能接着启/删。 */
+    else if (act === 'copy') {
+      var picked = S.envs.list.filter(function (v) { return ids.indexOf(v.id) >= 0; });
+      var text = picked.length === 1
+        ? (picked[0].value || '')
+        : picked.map(function (v) { return v.name + '=' + (v.value || ''); }).join('\n');
+      copyText(text);
+      toast('已复制 ' + picked.length + ' 个变量' + (picked.length > 1 ? '（名=值）' : ''));
+      return;
+    }
     else return;
     batchDone(label, ids);
     toggleEnvEdit(false);
@@ -3140,8 +3152,8 @@ function renderEnvEditBar() {
   var bar = $('#envEditBar');
   var n = envSelCount();
   var allOn = n > 0 && n === envFiltered().length;
-  /* 两行，和任务页的批量栏同一个排布逻辑：上行「全选 + 状态」，下行「删除 + 计数」。
-     一行塞 4 个按钮 + 计数在 390px 上会把「取消全选」挤到折行。 */
+  /* 1.0.29：加「复制」按钮（第二行左）。第一行「全选 / 启用 / 禁用」全是状态类动作，
+     第二行「复制 / 删除」左轻右重 —— 复制完用户接着操作，删完直接退出。 */
   bar.innerHTML =
     '<div class="row" style="gap:8px;margin-bottom:8px">' +
       '<button class="btn" id="btnEnvAll" style="flex:1;padding:9px 4px">' +
@@ -3150,6 +3162,7 @@ function renderEnvEditBar() {
       '<button class="btn" data-ebatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
     '</div>' +
     '<div class="row" style="gap:8px">' +
+      '<button class="btn" data-ebatch="copy" style="flex:1;padding:9px 4px">复制值</button>' +
       '<button class="btn danger" data-ebatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
       '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
     '</div>';
@@ -4517,7 +4530,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.28';
+var APP_VER = '1.0.29';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

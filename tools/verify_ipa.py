@@ -270,6 +270,16 @@ FEATURES = [
     ("变量批量 名=值 拼法（带空值兜底）", r"v\.name \+ '=' \+ \(v\.value \|\| ''\)"),
     ("变量批量 复制完不退出编辑（提前 return）", r"      toast\('已复制 ' \+ picked\.length \+ ' 个变量'"),
     ("变量批量 栏里的复制值按钮", r'data-ebatch="copy"'),
+
+    # 1.0.30：变量页按**第一个标签**分组 + 每组可折叠。
+    # 几十上百个 cookie 混在一个长列表里，找某一个得一路滑；分组后一眼分开。
+    ("变量分组 哨兵键（不与真标签撞）", r"var ENV_NO_TAG = '\\u0000none';"),
+    ("变量分组 取第一个标签", r"var key = ls\.length \? ls\[0\] : ENV_NO_TAG;"),
+    ("变量分组 未分类排最后", r"groups\.push\(\{ key: ENV_NO_TAG, name: '未分类'"),
+    ("变量分组 渲染走 envGrouped", r"box\.innerHTML = envGrouped\(\)\.map\(envGroupHtml\)\.join\(''\);"),
+    ("变量分组 折叠按钮钩子", r'data-envcoll="'),
+    ("变量分组 折叠是 toggle", r"delete S\.envs\.collapsed\[gk\]"),
+    ("变量分组 委托里有折叠", r"\[data-envcoll\]"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

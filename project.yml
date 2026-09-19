@@ -51,8 +51,8 @@ targets:
         INFOPLIST_FILE: QingLongClient/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "1.0.29"
-        CURRENT_PROJECT_VERSION: "29"
+        MARKETING_VERSION: "1.0.30"
+        CURRENT_PROJECT_VERSION: "30"
         # 打包时完全不签名；出包后再用 ad-hoc 补一个签名给 TrollStore 用。
         # 这里千万别写 CODE_SIGN_STYLE: Automatic —— CI 上没有开发者账号会直接卡死。
         CODE_SIGN_STYLE: Manual

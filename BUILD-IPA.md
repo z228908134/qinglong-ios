@@ -15,41 +15,40 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35421574060`，commit `1c47213`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.24-trollstore.ipa`（172354 字节） |
-| SHA256 | `7e11475be0c7ca668495808f1b17dfbea261bdaf9fbba4c485da3a1a4c2635d6` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.24-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35424465686`，commit `d1ca71a`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.25-trollstore.ipa`（175651 字节） |
+| SHA256 | `a175ac5934a176b24aa77175ab0fd518057f0384ef5ff9c1353cad0b94907d85` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.25-trollstore`（保留 30 天） |
 
-> **1.0.24 加的三件事：两件是「原来就不好用」，一件是「原来根本做不到」**。
-> - **变量的值终于能看全了**（这是个真 bug）。「显示值」以前显示的是被单行省略号
->   截掉的那一段 —— 京东 cookie 一百多字符，页面上只能看到前 40 来个，
->   想核对 `pt_pin` 都得靠猜。现在点「显示值」会**换行显示完整**
->   （`.envval.full` 覆盖掉 `.ell` 的 `nowrap`），而且值那行右边多了个「复制」——
->   手机上要把 cookie 抠出来只能长按选中再拖手柄，两三百个字符根本抠不动。
-> - **变量能批量操作了**。编辑模式：全选 / 批量启用 / 批量禁用 / 批量删除，
->   照任务页那套做（两行操作栏、底栏自动让位、离开页面自动退出编辑）。
->   京东 cookie 一堆账号时逐个点行内按钮太慢，而「换 cookie 时把过期的删掉」
->   是常规操作。全选只作用于**当前筛出来的**那些 —— 筛了「京东」再点全选，
->   用户想处理的就是这些。
-> - **日志多了「跳到最新」**。1.0.21 的贴底策略只在本来就贴着底时才自动跟随，
->   往上翻去看报错之后跟随就停了，回最新只能自己一路滑到底。
->   现在离开底部时右下角会浮出一个小按钮，点一下回最新并重新开始跟随
->   （关掉弹层会顺手收起来 —— 不收的话它会一直浮在主页上）。
+> **1.0.25 加了三件事，一件扩时间窗口、一件化跳转、一件补一致**：
+> - **趋势图新增 30 天档**。7 天看不出「是不是越来越常失败」——
+>   今天挂一次明天好一次，图上就是两根孤零零的红。30 天才能看出趋势。
+>   密集模式下柱顶数字藏起（30 根柱子每根只剩 ~9px 宽塞不下两位数），
+>   日期也稀疏成 ~7 个；图下方新增一行「读数」，默认显示整个区间的汇总，
+>   **点柱子会显示那天的次数 + 成功/失败**，再点同一个回汇总。
+>   切档位只重拉趋势那一个接口 —— 另外三个跟天数无关，白等一次往返纯属浪费。
+> - **主页「N 个任务正在执行」整段可点** → 跳到任务页的「运行中」筛选
+>   （排队中在 `cronBucket` 里也归「运行中」桶）。以前只能看个数字「2」，
+>   想知道哪两个得切过去再点一次筛选。零个在跑时不做按钮、也不显示「0 个正在执行」。
+> - **脚本树搜索命中上黄底**（跟任务列表 1.0.23 / 变量页 1.0.24 统一），
+>   用的是同一套 `logHi`。**命中只在父目录名上时把目录也画出来**，
+>   否则这个文件为什么出现在结果里用户根本看不出来（搜索是按完整路径匹配的）。
 >
-> **装 1.0.24，别装 1.0.24 及更早的**。
+> **装 1.0.25，别装 1.0.24 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
 > 1.0.19 做了日志级别上色 / 只看错误 / 目录倒序；
 > 1.0.21 做了日志内搜关键字 + 详情页状态/按钮实时跟着跑 + 概览今日成功/失败；
 > 1.0.22 修好「从详情跳出去回不来」和头像不显示（根因是启动的「已有令牌」路径从不拉头像）；
-> 1.0.23 加了任务批量运行/停止 + 任务列表搜索高亮 + 「上次耗时 / 本次已运行」。
+> 1.0.23 加了任务批量运行/停止 + 任务列表搜索高亮 + 「上次耗时 / 本次已运行」；
+> 1.0.24 加了变量值完整显示/复制 + 变量页批量操作 + 日志「跳到最新」。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.24-trollstore.ipa
-# 应该得到 7e11475be0c7ca668495808f1b17dfbea261bdaf9fbba4c485da3a1a4c2635d6
+sha256sum QingLongClient-1.0.25-trollstore.ipa
+# 应该得到 a175ac5934a176b24aa77175ab0fd518057f0384ef5ff9c1353cad0b94907d85
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -219,7 +218,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.24-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.25-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -231,15 +230,15 @@ qinglong-ios/out/QingLongClient-1.0.24-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.24-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.25-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 357736 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.24（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 366534 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.25（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -272,6 +271,10 @@ python tools/verify_ipa.py out/QingLongClient-1.0.24-trollstore.ipa
 | 1.0.24 新增：变量批量操作（`id="btnEnvEdit"` / `id="envEditBar"` / `data-ebatch="delete"` / `/api/envs/enable` / `/api/envs/disable` / `/api/envs` DELETE 传整组 id / 全选只作用于筛出来的） | ✅ 7 个锚点全在 |
 | 1.0.24 新增：日志「跳到最新」（`id="btnLogTail"` / 浮在弹层之上 / `activeLogBox` / `syncLogTail` / 滚到底 / 关弹层收起） | ✅ 6 个锚点全在 |
 | 1.0.24 重构：两条批量栏共用外壳（`openEditShell` / `batchDone` / 一条留白选择器 `#main.cronedit,#main.envsedit`） | ✅ 3 个锚点全在 |
+| 1.0.25 新增：趋势图 7/30 天切换（`var TREND_DAYS = [7, 30]` / `setTrendDays` / `pickTrendDay` / `trendReadout` / 密集藏数字 `.trend.d30 .tv{display:none}` / `data-tday="'` / `data-tdays="'`） | ✅ 7 个锚点全在 |
+| 1.0.25 新增：主页「正在执行」可点（`data-gocrons="running"` / `gotoCrons`） | ✅ 2 个锚点全在 |
+| 1.0.25 新增：脚本树搜索高亮（`logHi(n.title, q)` / 命中在目录上画目录 `hitDir ? '<div ... 在 ' + logHi(r.dir, q) + '/' : ''`） | ✅ 2 个锚点全在 |
+| 1.0.25 重构：三个新钩子都进委托（`[data-tdays],[data-tday],[data-gocrons],`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -279,7 +282,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.24-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.24 (24) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.25 (25) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |
@@ -374,7 +377,7 @@ codesign --force --sign - --timestamp=none --generate-entitlement-der Payload/Qi
 | 最低系统 | iOS 15.0 |
 | 设备 | iPhone / iPad（`TARGETED_DEVICE_FAMILY: 1,2`） |
 | Bundle ID | `com.qinglong.client` |
-| 版本 | 1.0.24 |
+| 版本 | 1.0.25 |
 
 巨魔本身支持 iOS 14.0 – 16.6.1（17.0 需要特定机型 + 特定巨魔版本）。
 

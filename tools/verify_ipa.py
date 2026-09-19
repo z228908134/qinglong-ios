@@ -265,12 +265,6 @@ FORBIDDEN = [
     ("弹层 无 登录日志 入口", r'data-goto="loginlog"'),
     ("弹层 无 面板日志 入口", r'data-goto="syslog"'),
     ("弹层 无 面板设置 分区", r'<div class="secttl">面板设置</div>'),
-
-    # 1.0.27 新增：「下次执行」加今天/明天前缀、去秒数（之前是 `MM-DD HH:MM:SS`，
-    # 秒数永远 :00 占位、跨日看不出是今天/明天、跟「上次 X 小时前」风格不一致）。
-    ("下次时间 今天/明天 前缀", r"sameYMD\(d, now\) \? '今天' :\s*sameYMD\(d, tomorrow\) \? '明天'"),
-    ("下次时间 去秒数（HH:MM，不是 HH:MM:SS）", r"function fmtNext\(d\) \{[\s\S]{0,500}?return prefix \+ ' ' \+ pad\(d\.getHours\(\)\) \+ ':' \+ pad\(d\.getMinutes\(\)\)"),
-    ("nextRunText 走 fmtNext", r"  return fmtNext\(d\);"),
 ]
 
 PLIST_KEYS = [

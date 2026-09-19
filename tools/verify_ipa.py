@@ -150,7 +150,8 @@ FEATURES = [
     ("面板日志 复制按钮", r'id="btnSysLogCopy"'),
     ("面板日志 剥 ANSI 在入口", r"g\.text = stripAnsi\(text \|\| ''\);"),
     # 1.0.22 新增：④ 首次画日志直接跳到底（1.0.21 引入的回归）
-    ("日志 第一次画跳到底", r"var stick = !cl\.painted \|\| atBottom\(box\);"),
+    ("日志 第一次画跳到底（面板日志，#logPre 正序贴底，1.0.26 没改它）",
+    r"var stick = !g\.painted \|\| atBottom\(pre\);"),
     # 1.0.23 新增：① 批量运行 / 批量停止。编辑模式以前只有启用 / 禁用 / 删除，
     # 最常用的「把这几个都跑一遍」反而得一个个点进详情页。
     ("批量 运行按钮", r'data-cbatch="run"'),
@@ -210,7 +211,8 @@ FEATURES = [
     ("日志 跳到最新浮在弹层上", r"#btnLogTail\{position:fixed;"),
     ("日志 当前日志框判定", r"function activeLogBox\("),
     ("日志 只在离开底部时露出", r"function syncLogTail\("),
-    ("日志 跳到最新滚到底", r"if \(box\) box\.scrollTop = box\.scrollHeight;"),
+    ("日志 跳到最新滚到底（1.0.26 起详情页跳顶，#logPre 仍跳底 → 改成锚 jumpNewest 内的分支）",
+    r"box\.id === 'logBox' \? 0 : box\.scrollHeight;"),
     # 关弹层必须**显式**收起：#shB 的内容不会清空，不收的话那个按钮会一直浮在主页上
     ("日志 关弹层收起按钮", r"var lt = \$\('#btnLogTail'\);\s*if \(lt\) lt\.classList\.add\('hidden'\);"),
     # 1.0.25 新增：① 趋势图 7 / 30 天切换。7 天看不出「是不是越来越常失败」，
@@ -234,6 +236,15 @@ FEATURES = [
     ("脚本树 命中在目录上画目录", r"hitDir \? '<div class=\"f11 t3 ell\">在 ' \+ logHi\(r\.dir, q\) \+ '/<\/div>' : ''\)"),
     # 三个新钩子都进了委托：漏一个就是「点了没反应」且最难查
     ("委托 新钩子", r"\[data-tdays\],\[data-tday\],\[data-gocrons\],"),
+
+    # 1.0.26 新增：任务详情运行日志**倒序**（最新在上，报错总在末尾 → 现在一眼就到）。
+    # loadCronLog 拿完日志调 reverse() 再存到 S.cronlog.lines；AG1 锚着这行。
+    ("详情页日志 反转", r"lines\.reverse\(\);"),
+    # 方向感知的「在新端」判断 —— #logBox（详情页倒序）贴顶、#logPre（文件弹层正序）贴底。
+    ("日志 在新端判断（按 box.id 分两边）", r"box\.id === 'logBox' \? box\.scrollTop < 48 : atBottom\(box\)"),
+    ("日志 跳到最新（按 box.id 分两边）", r"box\.id === 'logBox' \? 0 : box\.scrollHeight"),
+    # paintCronLog 用「贴顶」做贴新端判断（1.0.21 那条 AC32 的字面量也改了）。
+    ("详情页日志 首次画跟顶", r"var stick = !cl\.painted \|\| box\.scrollTop < 48;"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

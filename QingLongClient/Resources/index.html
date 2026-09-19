@@ -2560,6 +2560,20 @@ function stickBottom(el) {
   if (atBottom(el)) el.scrollTop = el.scrollHeight;
 }
 
+/* 「贴新端」的方向取决于哪个日志框：#logBox（详情页运行日志）**倒序**（最新在上）→ 贴顶；
+   #logPre（日志文件弹层）**正序**（最新在下）→ 贴底。两边共用同一个 #btnLogTail /
+   syncLogTail / jumpLogTail，所以「在不在最新端」和「跳到最新」都要分两边判断。
+   1.0.26 把详情页改成倒序后这里必须分清楚 —— 否则详情页也会被「跳到最新」拽到
+   底部（旧日志末尾），跟「最新在上面」自相矛盾。 */
+function isAtNewest(box) {
+  if (!box) return false;
+  return box.id === 'logBox' ? box.scrollTop < 48 : atBottom(box);
+}
+function jumpNewest(box) {
+  if (!box) return;
+  box.scrollTop = box.id === 'logBox' ? 0 : box.scrollHeight;
+}
+
 /* ---------- 「跳到最新」 ----------
    1.0.21 把「自动贴底」改成「只在本来就贴着底时才贴」之后，往上翻看报错就
    **停在那儿了** —— 想回到最新那几行只能自己一路滑到底，几千行时很难滑准。
@@ -2582,7 +2596,7 @@ function syncLogTail() {
   var btn = $('#btnLogTail');
   if (!btn) return;
   var box = activeLogBox();
-  btn.classList.toggle('hidden', !(box && !atBottom(box)));
+  btn.classList.toggle('hidden', !box || isAtNewest(box));
 }
 
 /* 滚监听只挂一次（同一个元素）。用模块级变量记而不是 dataset：
@@ -2596,7 +2610,7 @@ function bindLogTailScroll(box) {
 
 function jumpLogTail() {
   var box = activeLogBox();
-  if (box) box.scrollTop = box.scrollHeight;
+  jumpNewest(box);
   syncLogTail();
 }
 
@@ -2607,16 +2621,17 @@ function paintCronLog() {
   var box = $('#logBox');
   if (!box) return;
   var cl = S.cronlog;
-  /* **贴底判断必须在换 innerHTML 之前做**：换完之后浏览器会把 scrollTop
-     重置成 0，那时候再算「本来就贴着底吗」永远算不成立，新日志就不跟到底了。
-     而且第一次画要**直接跳到底** —— 任务在跑，用户要看的是最后那几行；
-     只有「已经画过内容、且用户往上翻了」才该原地不动。 */
-  var stick = !cl.painted || atBottom(box);
+  /* **贴新端判断必须在换 innerHTML 之前做**：换完之后浏览器会把 scrollTop
+     重置成 0，那时候再算「本来就贴着新端吗」永远算不成立，新日志就不跟了。
+     而且第一次画要**直接跳到新端** —— 任务在跑，用户要看的是最新那几行；
+     只有「已经画过内容、且用户往**新端的反方向**翻了」才该原地不动。
+     1.0.26 改成倒序后新端在顶（scrollTop = 0），所以这里判断的是「在不在顶」。 */
+  var stick = !cl.painted || box.scrollTop < 48;
   box.innerHTML = cl.lines.length ? logBoxHtml(cl.lines, cl.onlyErr, cl.q) : '（日志为空）';
   cl.painted = true;
-  /* 搜索时滚到**第一条匹配**（否则搜完还停在末尾，看着像没搜到） */
+  /* 搜索时滚到**第一条匹配**（倒序后就是最新那条匹配） */
   if (cl.q) box.scrollTop = 0;
-  else if (stick) box.scrollTop = box.scrollHeight;
+  else if (stick) box.scrollTop = 0;
   var eb = $('#btnCronLogErr');
   if (eb) {
     /* 一行错都没有就不给按钮（点了只会看到空框），跟日志文件弹层一致 */
@@ -2650,13 +2665,17 @@ async function loadCronLog(id, silent) {
     var txt = stripAnsi(r.data || '');
     var lines = txt ? txt.split('\n') : [];
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
+    /* 1.0.26：详情页日志**倒序**渲染（最新在上面）。报错总在末尾，倒过来一眼就能看到；
+       「只看错误」打开时错误全在顶，「跳到最新」也跟着改成贴顶。
+       反转之后再算 errN（数量跟顺序无关，但放在反转前/后逻辑都一样，写在前面更顺）。 */
+    lines.reverse();
     /* onlyErr / q **保留**：开着「只看错误」按刷新，结果又被塞回全部，
        那个开关就白点了。lines 和 errN 换新。 */
     S.cronlog = {
       lines: lines, errN: logErrLines(lines).length,
       onlyErr: S.cronlog.onlyErr, q: S.cronlog.q,
       /* painted 也要留着：新日志回来时得知道「之前已经画过内容了」，
-         否则每一轮轮询都会被当成「第一次」，用户翻上去读历史又被拽回底部。 */
+         否则每一轮轮询都会被当成「第一次」，用户翻下去读历史又被拽回顶部。 */
       painted: S.cronlog.painted
     };
     paintCronLog();
@@ -4400,7 +4419,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.25';
+var APP_VER = '1.0.26';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

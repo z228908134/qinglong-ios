@@ -15,21 +15,27 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35430386534`，commit `32696b5`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.27-trollstore.ipa`（176469 字节） |
-| SHA256 | `45164350bd8eefb16bf6fb236bc39eeec0721daa383fb8174607822afae98e83` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.27-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35433471913`，commit `aac9050`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.28-trollstore.ipa`（178163 字节） |
+| SHA256 | `2262b3718799014ab568253bb4e2d48735dfa22a0d1b4f47ac8c0f58d40f7918` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.28-trollstore`（保留 30 天） |
 
-> **1.0.27 就一件事：让下次时间更易读**：
-> - **下次执行时间显示优化**。之前是 `MM-DD HH:MM:SS` —— 秒数永远 `:00` 占位、
->   跨日看不出是今天/明天、跟「上次 X 小时前」风格不一致。现在：
->   - **加今天/明天前缀**：明天八点显示成「下次 明天 08:00（16 小时后）」，今天直接「今天 14:30」；
->   - **去秒数**：分秒永远是 `:00`，多此一举；
->   - **风格统一**：「上次 1 小时前 · 耗时 4 分 57 秒」 + 「下次 明天 08:00（16 小时后）」
->     两个都是「相对 + 绝对」拼接，一眼看全。
->   抽 `fmtNext(d)` 拿同一天 / 第二天的判断，`nextRunText` 改走它。
+> **1.0.28 就一件事：让 cron 表达式看得懂**：
+> - **定时规则旁加人类可读描述**。cron 表达式 `0 8 * * *` 光看像乱码，
+>   详情页「定时规则」下面挂一行灰色小字人话描述：
+>   - `0 8 * * *` → 「每天 08:00」
+>   - `0 8 * * 1-5` → 「周一至周五 08:00」
+>   - `30 9 * * 1` → 「每周一 09:30」
+>   - `0 8 1 * *` → 「每月 1 号 08:00」
+>   - `*/15 * * * *` → 「每 15 分钟」
+>   - `0 * * * *` → 「每小时整点」
+>   - `0 8 * * 0,6` → 「周末 08:00」
+>   抽 `cronHumanize(sch)` 用 parseCron 的输出翻回人话，
+>   抽 `stepOf(set, n)` 检查「是不是 {0, step, 2*step, ...} 一直到底」。
+>   翻不出来（步长 / 复合模式 / 周+日期同时限定）时返回 null，不挂这行：
+>   **宁可什么都不说，也别说错的**。
 >
-> **装 1.0.27，别装 1.0.26 及更早的**。
+> **装 1.0.28，别装 1.0.27 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -37,13 +43,13 @@
 > 1.0.21 做了日志内搜关键字 + 详情页状态/按钮实时跟着跑 + 概览今日成功/失败；
 > 1.0.22 修好「从详情跳出去回不来」和头像不显示（根因是启动的「已有令牌」路径从不拉头像）；
 > 1.0.23 加了任务批量运行/停止 + 任务列表搜索高亮 + 「上次耗时 / 本次已运行」；
-> 1.0.26 加了任务详情运行日志倒序（最新在上），「跳到最新」跟着贴顶。
+> 1.0.27 加了任务列表「下次」加今天/明天前缀 + 去秒数 + 风格统一。
 
 核对下载到的包对不对：
 
 ```bash
 sha256sum QingLongClient-1.0.25-trollstore.ipa
-# 应该得到 45164350bd8eefb16bf6fb236bc39eeec0721daa383fb8174607822afae98e83
+# 应该得到 2262b3718799014ab568253bb4e2d48735dfa22a0d1b4f47ac8c0f58d40f7918
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -213,7 +219,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.27-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.28-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -225,15 +231,15 @@ qinglong-ios/out/QingLongClient-1.0.27-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.27-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.28-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 368738 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.27（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 373223 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.28（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -278,6 +284,10 @@ python tools/verify_ipa.py out/QingLongClient-1.0.27-trollstore.ipa
 | 1.0.27 新增：`fmtNext` 函数（`function fmtNext(d) {`） | ✅ 1 个锚点全在 |
 | 1.0.27 新增：下次时间去秒数（`return prefix + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())`，无 `:SS`） | ✅ 1 个锚点全在 |
 | 1.0.27 重构：`nextRunText` 走 `fmtNext`（`return fmtNext(d);`） | ✅ 1 个锚点全在 |
+| 1.0.28 新增：`cronHumanize` 函数（`function cronHumanize(sch) {`） | ✅ 1 个锚点全在 |
+| 1.0.28 新增：`stepOf` helper（`function stepOf(set, n) {`） | ✅ 1 个锚点全在 |
+| 1.0.28 详情页「定时规则」挂人话（`var human = cronHumanize(parseCron(t.schedule));`） | ✅ 1 个锚点全在 |
+| 1.0.28 翻不出来不挂（`if (human) h += '<div ... padding:0 14px 8px'...`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -285,7 +295,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.27-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.27 (27) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.28 (28) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

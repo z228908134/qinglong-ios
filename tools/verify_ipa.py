@@ -63,8 +63,9 @@ FEATURES = [
     ("底栏 有主页", r'<button data-tab="home"><span class="ti">◰</span>主页</button>'),
     ("底栏 有我的", r'data-tab="me"'),
     # 1.0.16 新增：趋势图 / 面板卡头像 / 日志搜索
-    ("趋势 柱状图容器", r'class="trend"'),
-    ("趋势 接口 days=7", r"/api/dashboard/trend'?,? ?\{ days: 7 \}"),
+    ("趋势 柱状图容器", r"class=\"trend'"),
+    # 1.0.25：days 从写死 7 换成 d.trendDays || 7（接口本身还是 /api/dashboard/trend）。
+    ("趋势 接口 days=N", r"/api/dashboard/trend', \{ days: d\.trendDays"),
     ("面板卡 头像", r'class="hav"'),
     ("日志 搜索框", r'id="logSearch"'),
     ("日志 key 拆前缀", r"function logKeyPath\("),
@@ -212,6 +213,27 @@ FEATURES = [
     ("日志 跳到最新滚到底", r"if \(box\) box\.scrollTop = box\.scrollHeight;"),
     # 关弹层必须**显式**收起：#shB 的内容不会清空，不收的话那个按钮会一直浮在主页上
     ("日志 关弹层收起按钮", r"var lt = \$\('#btnLogTail'\);\s*if \(lt\) lt\.classList\.add\('hidden'\);"),
+    # 1.0.25 新增：① 趋势图 7 / 30 天切换。7 天看不出「是不是越来越常失败」，
+    # 30 天才看得出（点柱子还能看那天具体多少次 —— 密集模式下柱顶数字被藏了）。
+    ("趋势 两档常量", r"var TREND_DAYS = \[7, 30\]"),
+    ("趋势 切档函数", r"async function setTrendDays\("),
+    ("趋势 点柱子", r"function pickTrendDay\("),
+    ("趋势 读数函数", r"function trendReadout\("),
+    ("趋势 密集藏数字", r"\.trend\.d30 \.tv\{display:none\}"),
+    ("趋势 柱子钩子", r'data-tday="\''),
+    ("趋势 切换钩子", r'data-tdays="\''),
+    # 1.0.25 新增：② 主页「正在执行 N 个」可点 → 跳任务页「运行中」筛选
+    # （之前只能看个数字，想知道哪几个还得切过去再点一次筛选）。
+    ("概览 跳转钩子", r'data-gocrons="running"'),
+    ("概览 跳转函数", r"async function gotoCrons\("),
+    # 1.0.25 新增：③ 脚本树搜索命中上黄底（跟任务列表 1.0.23 / 变量页统一）。
+    # 不加这条就会出现「任务列表搜出来有黄底、变量页有、脚本树偏偏没有」的怪事。
+    ("脚本树 命中高亮", r"logHi\(n\.title, q\)"),
+    # 命中只在父目录名上时（文件名一个命中都没有），把目录画出来，
+    # 否则用户不知道这个文件为什么出现在搜索结果里。文件名缩进变化可能把锚点打散 —— 整行锚。
+    ("脚本树 命中在目录上画目录", r"hitDir \? '<div class=\"f11 t3 ell\">在 ' \+ logHi\(r\.dir, q\) \+ '/<\/div>' : ''\)"),
+    # 三个新钩子都进了委托：漏一个就是「点了没反应」且最难查
+    ("委托 新钩子", r"\[data-tdays\],\[data-tday\],\[data-gocrons\],"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

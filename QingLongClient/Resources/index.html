@@ -313,6 +313,29 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 .trend .td{font-size:calc(10px*var(--fs));color:var(--text3);margin-top:5px;white-space:nowrap}
 .tlg{display:flex;gap:14px;margin-top:11px;font-size:calc(11px*var(--fs));color:var(--text2)}
 .tlg .d{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:-1px}
+/* 1.0.25：7 / 30 天切换。7 天看不出「是不是越来越常失败」，30 天才看得出。
+   两个小按钮长在标题右侧（.tsw），点一下只重拉趋势那一个接口。 */
+.tsw{display:flex;gap:5px}
+.tsw button{padding:4px 10px;border-radius:999px;border:1px solid var(--sep);
+  background:transparent;color:var(--text2);font-family:inherit;
+  font-size:calc(11px*var(--fs));cursor:pointer}
+.tsw button.on{background:var(--tint);border-color:var(--accent);color:var(--accent);font-weight:600}
+/* 30 天时一根柱子只剩 ~9px 宽，柱顶那个两位数（「12」）根本塞不下，
+   硬塞会互相挤到看不清 —— 所以 30 天模式直接不显示柱顶数字，
+   要看某天具体多少次就点那根柱子（读数在 .tread 里）。 */
+.trend.d30{gap:3px}
+.trend.d30 .tv{display:none}
+/* 每根柱子是可以点的（看那天的成功/失败各多少次）。button 要清掉默认样式，
+   否则它在 .trend 的 flex 里会被撑出内边距、跟别的柱子对不齐。 */
+.tb{background:none;border:0;padding:0;margin:0;font-family:inherit;color:inherit;cursor:pointer}
+.tb.on .tbar{outline:2px solid var(--accent);outline-offset:1px}
+/* 读数：默认显示整个区间的汇总，点了某根柱子就显示那天。 */
+.tread{font-size:calc(11px*var(--fs));color:var(--text2);margin-top:8px;line-height:1.5}
+.tread b{color:var(--text);font-weight:600}
+/* 主页「N 个任务正在执行」可点 —— 点了跳到任务页的「运行中」筛选。
+   同样是 button 清零默认样式（它长在 .meta 里，字号要跟着父级）。 */
+.livebtn{background:none;border:0;padding:0;font-family:inherit;font-size:inherit;
+  color:inherit;cursor:pointer;text-align:left;display:block;width:100%}
 
 /* 2 列卡片网格。 */
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -1158,7 +1181,11 @@ var S = {
      否则慢的那次后到，会把新数据覆盖回去。 */
   dash: {
     sys: null, ov: null, rt: null, trend: null,
-    loading: false, err: '', seq: 0
+    loading: false, err: '', seq: 0,
+    /* 1.0.25：趋势图看几天（7 / 30）和当前点中的那一天（下标，null = 看汇总）。
+       两个都放在这里而不是渲染时临时算 —— 切完 30 天再切回 7 天，
+       用户期望的还是上次那个区间，不该每次都弹回默认的 7 天。 */
+    trendDays: 7, tday: null
   },
   subs: { list: [], q: '', loading: false },
   deps: { list: [], type: 'nodejs', q: '', loading: false },
@@ -1916,6 +1943,19 @@ async function setCronFilter(f) {
     return;
   }
   renderCrons();
+}
+
+/* 1.0.25：从别处（现在只有主页「正在执行 N 个」）直接跳到任务页的某个状态档位。
+   跟 setCronFilter 的区别是它**顺带切页** —— setCronFilter 是在任务页内部切的，
+   从主页过来不 setTab 的话页面根本不会变。
+   非「全部」档位要先把 size 顶到 500 再切（切页触发的 refresh 会按新 size 拉全），
+   不然只筛到当前这一页，用户会以为「在跑的就一个」。 */
+async function gotoCrons(bucket) {
+  if (!CRON_FILTERS.some(function (x) { return x[0] === bucket; })) bucket = 'all';
+  S.crons.filter = bucket;
+  if (bucket !== 'all') S.crons.size = Math.max(S.crons.size, 500);
+  renderCronFilters();
+  setTab('crons');
 }
 
 /* ================= 定时视图（面板「定时任务」页顶部那排 tab） =================
@@ -3337,12 +3377,22 @@ function scrRow(r) {
   var ft = fmtFileTime(n.createTime);
   if (ft) meta.push(ft);
   var open = isDir && scrExpanded(r.key);
+  /* 1.0.25：搜索命中上黄底 —— 任务列表（1.0.23）和变量页早就有了，
+     脚本树一直只是「列表变短了」，命中的是哪几个字还得自己找。同一个 logHi。
+     搜索是按**完整路径**匹配的（见 renderScripts），命中可能只落在某一级目录名上；
+     这时文件名里一个命中都没有，用户会不知道它为什么出现在结果里 ——
+     所以那种情况下把父目录也画出来（同样上黄底）。 */
+  var q = String(S.scripts.q || '');
+  var ql = q.toLowerCase();
+  var hitTitle = q && String(n.title || '').toLowerCase().indexOf(ql) >= 0;
+  var hitDir = q && !hitTitle && r.dir && String(r.dir).toLowerCase().indexOf(ql) >= 0;
   /* 缩进用行内 --d 传给 CSS 的 padding-left（卡片背景跟着一起缩，不会被推窄）。 */
   return '<div class="item row ind" style="--d:' + r.depth + ';gap:8px">' +
     '<div class="fi2">' + (isDir ? '📁' : '📄') + '</div>' +
     '<button class="sp" style="text-align:left;min-width:0" data-scr="' + esc(n.title) +
       '" data-path="' + esc(r.dir) + '" data-scrtype="' + n.type + '">' +
-      '<div class="ell" style="font-size:calc(14px*var(--fs));font-weight:' + (isDir ? 600 : 400) + '">' + esc(n.title) + '</div>' +
+      '<div class="ell" style="font-size:calc(14px*var(--fs));font-weight:' + (isDir ? 600 : 400) + '">' + logHi(n.title, q) + '</div>' +
+      (hitDir ? '<div class="f11 t3 ell">在 ' + logHi(r.dir, q) + '/</div>' : '') +
       (meta.length ? '<div class="f11 t3 ell">' + esc(meta.join(' · ')) + '</div>' : '') +
     '</button>' +
     (isDir ? '<button class="tw' + (open ? ' on' : '') + '" data-scrtog="' + esc(r.key) + '">⌄</button>' : '') +
@@ -4350,7 +4400,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.24';
+var APP_VER = '1.0.25';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -4624,12 +4674,19 @@ function dashHost() {
   if (s.platform) meta.push(s.platform);
 
   /* 「正在执行 N 个」+「排队 N 个」拼成一段，前后用主色和高亮样式
-     —— 跟参考图一致，跟面板运行时间灰色那段区分开。 */
+     —— 跟参考图一致，跟面板运行时间灰色那段区分开。
+     1.0.25：整段做成可点的，点了跳到任务页的「运行中」筛选 ——
+     看到「有 2 个在跑」之后最自然的下一步就是「到底是哪两个」，
+     以前得自己切到底栏再点一次筛选。（排队中 3 在 cronBucket 里也归「运行中」桶，
+     所以两个都指向同一个筛选。）
+     只有真的有在跑 / 在排队时才做成按钮：0 个的话点了也是空列表，不如不点。 */
+  var runN = Number(rt.runningCount);
+  if (!isFinite(runN) || runN < 0) runN = 0;
+  var queN = Number(rt.queuedCount);
+  if (!isFinite(queN) || queN < 0) queN = 0;
   var live = [];
-  if (rt.runningCount != null) live.push(
-    '<span class="live-num">' + esc(rt.runningCount) + '</span> 个任务正在执行');
-  if (rt.queuedCount) live.push(
-    '<span class="live-num">' + esc(rt.queuedCount) + '</span> 个排队');
+  if (runN) live.push('<span class="live-num">' + esc(runN) + '</span> 个任务正在执行');
+  if (queN) live.push('<span class="live-num">' + esc(queN) + '</span> 个排队');
 
   return '<div class="ovcard ovhost">' +
     '<div class="sp">' +
@@ -4638,7 +4695,10 @@ function dashHost() {
       '<div class="big">' + esc(S.user || '未登录') + '</div>' +
       (meta.length ? '<div class="meta">' + esc(meta.join(' · ')) + '</div>' : '') +
       (s.uptime != null ? '<div class="meta">面板已运行 ' + esc(fmtUptime(s.uptime)) + '</div>' : '') +
-      (live.length ? '<div class="meta live">' + live.join(' · ') + '</div>' : '') +
+      (live.length
+        ? '<div class="meta live"><button class="livebtn" data-gocrons="running">' +
+          live.join(' · ') + ' ›</button></div>'
+        : '') +
     '</div>' +
     /* 头像：面板上传过的图优先，没设过才退回首字母。
        未登录时 avChar() 退回一个字形，不是一个空白圆。
@@ -4706,48 +4766,122 @@ function dashTasks() {
   return '<div class="sec">任务概览</div><div class="ovcard">' + h + '</div>';
 }
 
-/* 近 7 日执行趋势（/api/dashboard/trend?days=7）。
+/* 趋势图可看的天数。7 天太短 —— 脚本「是不是越来越常失败」在七天里根本看不出来，
+   （今天挂一次明天好一次，图上就是两根孤零零的红）；30 天才看得出趋势。
+   面板前端自己只给 7 天，但接口 `days` 是通用的，传 30 一样回 30 条。 */
+var TREND_DAYS = [7, 30];
+
+/* 切天数。**只重拉趋势那一个接口** —— 系统 / 概览 / 运行时跟天数无关，
+   跟着一起重拉纯属多等一次往返（而且会把整页闪一下）。 */
+async function setTrendDays(n) {
+  n = Number(n);
+  var d = S.dash;
+  if (TREND_DAYS.indexOf(n) < 0) return;
+  if (n === d.trendDays) return;
+  d.trendDays = n;
+  /* 换区间就取消选中：下标在新区间里指的是另一天了 */
+  d.tday = null;
+  var r;
+  try {
+    r = await api('/api/dashboard/trend', { query: { days: n } });
+  } catch (e) {
+    toast(e.message, true);
+    renderHome();
+    return;
+  }
+  d.trend = r.data || null;
+  renderHome();
+}
+
+/* 点某根柱子：选中它（再点一次取消，回到整个区间的汇总）。 */
+function pickTrendDay(i) {
+  var d = S.dash;
+  d.tday = (d.tday === i) ? null : i;
+  renderHome();
+}
+
+/* 图下面那行读数：没点柱子时是整个区间的汇总，点了就是那天。
+   30 天模式下柱顶那个数字被藏了（一根只有 ~9px 宽塞不下两位数），
+   这行是那时候唯一能读出「具体多少次」的地方。 */
+function trendReadout(days, sel) {
+  var i, n, m, st = 0, so = 0;
+  if (sel == null) {
+    for (i = 0; i < days.length; i++) {
+      n = Number(days[i].total); if (isFinite(n) && n > 0) st += n;
+      m = Number(days[i].success); if (isFinite(m) && m > 0) so += m;
+    }
+    return '近 ' + days.length + ' 天共执行 <b>' + st + '</b> 次 · 成功 <b>' + so +
+      '</b> · 失败 <b>' + (st - so) + '</b>（点柱子看某天）';
+  }
+  var x = days[sel] || {};
+  n = Number(x.total); if (!isFinite(n) || n < 0) n = 0;
+  m = Number(x.success); if (!isFinite(m) || m < 0) m = 0;
+  if (m > n) m = n;
+  return esc(x.date || '') + ' 共 <b>' + n + '</b> 次 · 成功 <b>' + m +
+    '</b> · 失败 <b>' + (n - m) + '</b>（再点一次看汇总）';
+}
+
+/* 近 N 日执行趋势（/api/dashboard/trend?days=N）。
    面板回的是 [{date:'MM-DD', total, success, fail}]，固定补齐 days 天、没跑过的日子是 0。
    **没有数据就整节不画** —— 面板版本老没这个接口时，画一排空柱子只会让人以为
-   「这七天一个任务都没跑」。 */
+   「这几天一个任务都没跑」。 */
 function dashTrend() {
-  var t = S.dash.trend;
+  var d = S.dash;
+  var t = d.trend;
   if (!Array.isArray(t)) return '';
   /* 面板偶尔会塞进 null 项，过滤掉，免得渲染出 undefined */
-  var days = t.filter(function (d) { return d && typeof d === 'object'; });
+  var days = t.filter(function (x) { return x && typeof x === 'object'; });
   if (!days.length) return '';
 
   var max = 0;
-  days.forEach(function (d) {
-    var n = Number(d.total);
+  days.forEach(function (x) {
+    var n = Number(x.total);
     if (isFinite(n) && n > max) max = n;
   });
   if (max <= 0) {
-    return '<div class="sec">近 7 日任务趋势</div>' +
-      '<div class="ovcard"><div class="f12 t3">近 7 天没有执行记录</div></div>';
+    return '<div class="sec">近 ' + days.length + ' 日任务趋势</div>' +
+      '<div class="ovcard"><div class="f12 t3">近 ' + days.length + ' 天没有执行记录</div></div>';
   }
 
-  var h = '<div class="sec">近 7 日任务趋势</div><div class="ovcard"><div class="trend">';
-  days.forEach(function (d) {
-    var total = Number(d.total);
+  /* 30 根柱子挤在 358px 里每根只剩 ~9px：柱顶数字和日期标签都得稀疏散，
+     不然「30」两个数字会顶到隔壁柱子上、七个日期全糊成一条。
+     按**数据条数**判断而不是按 d.trendDays —— 面板补齐规则不一样时也能对。 */
+  var dense = days.length > 14;
+  var step = dense ? Math.ceil(days.length / 6) : 1;
+  var sel = (d.tday == null || d.tday < 0 || d.tday >= days.length) ? null : d.tday;
+
+  var sw = '<span class="tsw">';
+  TREND_DAYS.forEach(function (n) {
+    sw += '<button data-tdays="' + n + '" class="' + (d.trendDays === n ? 'on' : '') +
+      '">' + n + ' 天</button>';
+  });
+  sw += '</span>';
+
+  var h = '<div class="sec row" style="justify-content:space-between;gap:8px">' +
+    '<span>近 ' + days.length + ' 日任务趋势</span>' + sw + '</div>';
+  h += '<div class="ovcard"><div class="trend' + (dense ? ' d30' : '') + '">';
+  days.forEach(function (x, i) {
+    var total = Number(x.total);
     if (!isFinite(total) || total < 0) total = 0;
-    var ok = Number(d.success);
+    var ok = Number(x.success);
     if (!isFinite(ok) || ok < 0) ok = 0;
     if (ok > total) ok = total;
-    /* 柱高按七天最大值归一，最小留 4% —— 总数为 1 的那天也要看得见一根 */
+    /* 柱高按区间最大值归一，最小留 4% —— 总数为 1 的那天也要看得见一根 */
     var hp = total > 0 ? Math.max(4, Math.round(total / max * 100)) : 0;
     var op = total > 0 ? (ok / total * 100) : 0;
-    h += '<div class="tb">' +
+    /* 日期标签：密集时只标每 step 个 + 最后一个，其余留空占位（高度还在，不会跳） */
+    var lab = (!dense || i % step === 0 || i === days.length - 1) ? (x.date || '') : '';
+    h += '<button class="tb' + (sel === i ? ' on' : '') + '" data-tday="' + i + '">' +
       '<div class="tv">' + esc(total) + '</div>' +
       '<div class="tbar"><i style="height:' + hp + '%">' +
         '<b style="height:' + op.toFixed(1) + '%"></b></i></div>' +
-      '<div class="td">' + esc(d.date || '') + '</div>' +
-      '</div>';
+      '<div class="td">' + esc(lab) + '</div>' +
+      '</button>';
   });
   h += '</div><div class="tlg">' +
     '<span><span class="d" style="background:var(--green)"></span>成功</span>' +
     '<span><span class="d" style="background:var(--red)"></span>失败</span>' +
-    '</div></div>';
+    '</div><div class="tread">' + trendReadout(days, sel) + '</div></div>';
   return h;
 }
 
@@ -4824,11 +4958,13 @@ async function loadDash() {
     one('/api/dashboard/system'),
     one('/api/dashboard/overview'),
     one('/api/dashboard/runtime'),
-    one('/api/dashboard/trend', { days: 7 })
+    one('/api/dashboard/trend', { days: d.trendDays || 7 })
   ]);
   /* 期间用户又点了一次刷新：这次的结果已经过期，丢掉，别把新数据覆盖回去 */
   if (seq !== d.seq) return;
   d.sys = rs[0]; d.ov = rs[1]; d.rt = rs[2]; d.trend = rs[3];
+  /* 刷新后原来选中的那天下标可能已经越界（区间换了 / 数据少了），直接清掉 */
+  d.tday = null;
   d.loading = false;
   if (!rs[0] && !rs[1]) {
     d.err = '这个面板没有统计接口（需要青龙 v2.21 及以上）。功能模块不受影响。';
@@ -6145,6 +6281,9 @@ function onClick(ev) {
   var el = ev.target.closest ? ev.target.closest(
     '[data-cron],[data-act],[data-mact],[data-dact],[data-edit],[data-del],[data-copycmd],' +
     '[data-cf],[data-view],[data-cbatch],[data-viewav],' +
+    /* 1.0.25：趋势图的「7 / 30 天」切换 + 点柱子看那天 + 主页「正在执行」跳任务页。
+       另起一行加，别拼进上面那行 —— 上面那行被 V32 锚着（它是整条一起比的）。 */
+    '[data-tdays],[data-tday],[data-gocrons],' +
     '[data-ebatch],' +
     '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
     '[data-acct],[data-acctdel],' +
@@ -6252,6 +6391,13 @@ function onClick(ev) {
   if (el.dataset.cbatch) return cronBatch(el.dataset.cbatch);
   /* 变量页工具条 / 批量栏 / 日志「跳到最新」。和上面一样必须排在
      data-env / data-eact 之前，否则会被那些分支先截走。 */
+  /* 1.0.25：趋势图「7 / 30 天」切换 + 点柱子看那天；
+     主页「正在执行 N 个」跳到任务页的「运行中」筛选。
+     data-tday 用 `!= null` 判断：那天下标是 0 时字符串 '0' 也成立，
+     但写成 `if (el.dataset.tday)` 也能过 —— 这里按数取值，显式一点。 */
+  if (el.dataset.gocrons) return gotoCrons(el.dataset.gocrons);
+  if (el.dataset.tdays) return setTrendDays(el.dataset.tdays);
+  if (el.dataset.tday != null) return pickTrendDay(Number(el.dataset.tday));
   if (el.id === 'btnEnvEdit') return toggleEnvEdit();
   if (el.id === 'btnEnvAll') return envSelectAll(envSelCount() !== envFiltered().length);
   if (el.dataset.ebatch) return envBatch(el.dataset.ebatch);

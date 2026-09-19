@@ -15,21 +15,21 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35427755839`，commit `f95261f`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.26-trollstore.ipa`（176128 字节） |
-| SHA256 | `8929b27926008024988d5fb5be5d980a738625dfaf3397960f132ef6fcd6d127` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.26-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35430386534`，commit `32696b5`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.27-trollstore.ipa`（176469 字节） |
+| SHA256 | `45164350bd8eefb16bf6fb236bc39eeec0721daa383fb8174607822afae98e83` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.27-trollstore`（保留 30 天） |
 
-> **1.0.26 就一件事：让报错一眼就到**：
-> - **任务详情运行日志倒序**（最新在上）。报错总在末尾，倒过来一眼就到：
->   「只看错误」打开时红行全部排在最上面，「跳到最新」也跟着改成贴顶（顶 = 新端）。
->   日志文件弹层（`#logPre`）保持正序贴底不变 —— 抽 `isAtNewest` / `jumpNewest`
->   两个**方向感知**的小帮手，按 `box.id` 分两边走。
->   抽 `isAtNewest(box)` / `jumpNewest(box)`，两边共用同一个 `syncLogTail()` /
->   `jumpLogTail()` / `#btnLogTail`。
->   副作用：搜索时滚到顶 = 最新那条匹配；轮询 3 秒一次、用户本来贴顶的话自动跟顶。
+> **1.0.27 就一件事：让下次时间更易读**：
+> - **下次执行时间显示优化**。之前是 `MM-DD HH:MM:SS` —— 秒数永远 `:00` 占位、
+>   跨日看不出是今天/明天、跟「上次 X 小时前」风格不一致。现在：
+>   - **加今天/明天前缀**：明天八点显示成「下次 明天 08:00（16 小时后）」，今天直接「今天 14:30」；
+>   - **去秒数**：分秒永远是 `:00`，多此一举；
+>   - **风格统一**：「上次 1 小时前 · 耗时 4 分 57 秒」 + 「下次 明天 08:00（16 小时后）」
+>     两个都是「相对 + 绝对」拼接，一眼看全。
+>   抽 `fmtNext(d)` 拿同一天 / 第二天的判断，`nextRunText` 改走它。
 >
-> **装 1.0.26，别装 1.0.25 及更早的**。
+> **装 1.0.27，别装 1.0.26 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -37,13 +37,13 @@
 > 1.0.21 做了日志内搜关键字 + 详情页状态/按钮实时跟着跑 + 概览今日成功/失败；
 > 1.0.22 修好「从详情跳出去回不来」和头像不显示（根因是启动的「已有令牌」路径从不拉头像）；
 > 1.0.23 加了任务批量运行/停止 + 任务列表搜索高亮 + 「上次耗时 / 本次已运行」；
-> 1.0.25 加了趋势图 7/30 天切换 + 主页「正在执行」直达 + 脚本树搜索高亮。
+> 1.0.26 加了任务详情运行日志倒序（最新在上），「跳到最新」跟着贴顶。
 
 核对下载到的包对不对：
 
 ```bash
 sha256sum QingLongClient-1.0.25-trollstore.ipa
-# 应该得到 8929b27926008024988d5fb5be5d980a738625dfaf3397960f132ef6fcd6d127
+# 应该得到 45164350bd8eefb16bf6fb236bc39eeec0721daa383fb8174607822afae98e83
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -213,7 +213,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.26-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.27-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -225,15 +225,15 @@ qinglong-ios/out/QingLongClient-1.0.26-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.26-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.27-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 367767 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.26（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 368738 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.27（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -274,6 +274,10 @@ python tools/verify_ipa.py out/QingLongClient-1.0.26-trollstore.ipa
 | 1.0.26 新增：方向感知「在新端」（`box.id === 'logBox' ? box.scrollTop < 48 : atBottom(box)`） | ✅ 1 个锚点全在 |
 | 1.0.26 新增：方向感知「跳到最新」（`box.id === 'logBox' ? 0 : box.scrollHeight`） | ✅ 1 个锚点全在 |
 | 1.0.26 重构：详情页首次画跟顶（`var stick = !cl.painted || box.scrollTop < 48;`） | ✅ 1 个锚点全在 |
+| 1.0.27 新增：`fmtNext` 加今天/明天前缀（`sameYMD(d, now) ? '今天' : ...`） | ✅ 1 个锚点全在 |
+| 1.0.27 新增：`fmtNext` 函数（`function fmtNext(d) {`） | ✅ 1 个锚点全在 |
+| 1.0.27 新增：下次时间去秒数（`return prefix + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())`，无 `:SS`） | ✅ 1 个锚点全在 |
+| 1.0.27 重构：`nextRunText` 走 `fmtNext`（`return fmtNext(d);`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -281,7 +285,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.26-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.26 (26) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.27 (27) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

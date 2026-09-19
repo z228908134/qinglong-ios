@@ -1622,6 +1622,80 @@ function nextRunText(expr) {
   return fmtNext(d);
 }
 
+/* 1.0.28：把 parseCron 的输出翻回人话 —— cron 表达式 `0 8 * * *` 看起来像乱码，
+   但解析完再翻回去就是「每天 8:00」「周一至周五 9:30」「每月 1 号 8:00」这种一眼能看懂的。
+   任务详情页「定时规则」下面挂一行灰色小字描述，看不出 cron 也能懂这任务啥时候跑。
+   翻不出来的（步长 / 复合模式）就返回 null，调用方退化成「只显示 cron 字面量」。
+   一些不直白的模式（步长写法比如「15 分钟一次」而不是「每小时的第 15 分钟」）
+   是有意保留的：cron 跨度的解读不止一种，按字面来最稳。
+   注意：注释里别写带斜杠星号的 cron 示例 —— 那会提前闭合块注释。 */
+function cronHumanize(sch) {
+  if (!sch) return null;
+  var mi = sch.mi, ho = sch.ho, dm = sch.dm, mo = sch.mo, dw = sch.dw;
+  var isAllMi = mi.size === 60, isAllHo = ho.size === 24,
+      isAllDm = dm.size === 31, isAllMo = mo.size === 12, isAllDw = dw.size === 7;
+  var singleMi = mi.size === 1, singleHo = ho.size === 1,
+      singleDm = dm.size === 1, singleMo = mo.size === 1;
+  var pad2 = function (n) { return n < 10 ? '0' + n : '' + n; };
+  var hm = function (h, m) { return pad2(h) + ':' + pad2(m); };
+  var miVal = mi.values().next().value, hoVal = ho.values().next().value,
+      dmVal = dm.values().next().value;
+
+  /* 全 * = 每分钟（最常见的「全部打开」） */
+  if (isAllMi && isAllHo && isAllDm && isAllMo && isAllDw) return '每分钟';
+  /* 每小时整点：m = 0, h = * */
+  if (singleMi && miVal === 0 && isAllHo) return '每小时整点';
+  /* 每 N 小时的整点：分钟固定为 0、小时按步长走 */
+  if (singleMi && miVal === 0 && ho.size > 1 && ho.size < 24) {
+    var stepH = stepOf(ho, 24);
+    if (stepH) return '每 ' + stepH + ' 小时的整点';
+  }
+  /* 每 N 分钟：分钟按步长走、小时不限（要求步长能整除 60，好整覆盖 0..59） */
+  if (mi.size > 1 && mi.size < 60 && isAllHo) {
+    var stepM = stepOf(mi, 60);
+    if (stepM) return '每 ' + stepM + ' 分钟';
+  }
+  /* 每天 HH:MM：m = M, h = H, d m o 都 *，周 也 *（或者周也忽略） */
+  if (singleMi && singleHo && isAllDm && isAllMo && isAllDw) {
+    return '每天 ' + hm(hoVal, miVal);
+  }
+  /* 周一至周五 HH:MM */
+  if (singleMi && singleHo && isAllDm && isAllMo && dw.size === 5) {
+    var arr = Array.from(dw).sort(function (a, b) { return a - b; });
+    if (arr[0] === 1 && arr[4] === 5) return '周一至周五 ' + hm(hoVal, miVal);
+  }
+  /* 周末 HH:MM */
+  if (singleMi && singleHo && isAllDm && isAllMo && dw.size === 2) {
+    var arr2 = Array.from(dw).sort(function (a, b) { return a - b; });
+    if (arr2[0] === 0 && arr2[1] === 6) return '周末 ' + hm(hoVal, miVal);
+  }
+  /* 单个周几：M H * * dow */
+  if (singleMi && singleHo && isAllDm && isAllMo && dw.size === 1) {
+    var names = ['日', '一', '二', '三', '四', '五', '六'];
+    return '每周' + (names[dw.values().next().value] || '?') + ' ' + hm(hoVal, miVal);
+  }
+  /* 每月 X 号 HH:MM */
+  if (singleMi && singleHo && singleDm && isAllMo && isAllDw) {
+    return '每月 ' + dmVal + ' 号 ' + hm(hoVal, miVal);
+  }
+  /* 翻不出来的（步长 / 复合模式 / 周+日期同时限定）就返回 null */
+  return null;
+}
+
+/* helper：set 是不是 {0, step, 2*step, ...} 一直到底？仅当 size >= 2 才返回非零步长。 */
+function stepOf(set, n) {
+  var arr = Array.from(set).sort(function (a, b) { return a - b; });
+  if (arr.length < 2) return null;
+  var step = arr[1] - arr[0];
+  if (step < 2) return null;
+  for (var i = 1; i < arr.length; i++) {
+    if (arr[i] - arr[i - 1] !== step) return null;
+  }
+  /* 步长整除 n + 包含 0 + 末项 = n - step 才算「从 0 开始覆盖整个区间」 */
+  if (arr[0] !== 0 || arr[arr.length - 1] + step !== n) return null;
+  return step;
+}
+
 /* ================= 登录 / 登出 ================= */
 
 /* 令牌失效后自动重登的次数锁。密码要是改了，不加锁会一直重试。 */
@@ -2464,6 +2538,12 @@ function renderCronDetail(t) {
 
   h += '<div class="secttl">调度</div><div class="card">';
   h += kv('定时规则', t.schedule || '—');
+  /* 1.0.28：定时规则下面挂一行人话描述（「每天 8:00」「周一至周五 9:30」）。
+     cron 表达式 `0 8 * * *` 光看是看不出意图的，解析完再翻回去才一眼能懂。
+     翻不出来（步长 / 复合模式）时 cronHumanize 返回 null，这行就不显示 ——
+     宁可什么都不说，也别说错的。 */
+  var human = cronHumanize(parseCron(t.schedule));
+  if (human) h += '<div class="f11 t3" style="padding:0 14px 8px">' + esc(human) + '</div>';
   if (next) h += kv('下次执行', next);
   /* 这两个字段的单位都跟字段名给人的直觉相反，详见 cronMs / fmtDur 的注释。
      last_execution_time 是秒级时间戳（要 ×1000）；
@@ -4437,7 +4517,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.27';
+var APP_VER = '1.0.28';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

@@ -254,6 +254,14 @@ FEATURES = [
     ("下次时间 去秒数（HH:MM，不是 HH:MM:SS）",
      r"return prefix \+ ' ' \+ pad\(d\.getHours\(\)\) \+ ':' \+ pad\(d\.getMinutes\(\)\)"),
     ("下次时间 nextRunText 走 fmtNext", r"  return fmtNext\(d\);"),
+
+    # 1.0.28：cron 表达式翻人话（`0 8 * * *` → 「每天 08:00」），
+    # 详情页「定时规则」下面挂一行灰色小字。翻不出来时返回 null（不显示）。
+    ("定时规则 人话描述 函数", r"function cronHumanize\(sch\) \{"),
+    ("定时规则 人话描述 stepOf helper", r"function stepOf\(set, n\) \{"),
+    ("定时规则 详情页挂人话", r"var human = cronHumanize\(parseCron\(t\.schedule\)\);"),
+    ("定时规则 翻不出来不挂（if human）",
+     r"if \(human\) h \+= '<div class=\"f11 t3\" style=\"padding:0 14px 8px\">' \+ esc\(human\) \+ '</div>';"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

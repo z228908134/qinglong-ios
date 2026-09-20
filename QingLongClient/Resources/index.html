@@ -90,8 +90,8 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* overflow-x:hidden 是保险：内容万一还是宽了，也不让整页左右晃（各文本框自带滚动）。 */
 #main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(96px + var(--bot))}
 /* 批量操作栏两行、比底栏高一截，列表底部的留白要跟着加，否则最后一张卡片被盖住。
-   任务页和变量页的批量栏同高，共用一条。 */
-#main.cronedit,#main.envsedit,#main.depsedit{padding-bottom:calc(168px + var(--bot))}
+   任务 / 变量 / 依赖 / 订阅四个页面的批量栏同高，共用一条。 */
+#main.cronedit,#main.envsedit,#main.depsedit,#main.subsedit{padding-bottom:calc(168px + var(--bot))}
 .view{display:none} .view.on{display:block}
 #ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
   font-size:calc(12px*var(--fs));color:var(--text2);transition:height .18s,opacity .18s;opacity:0}
@@ -142,9 +142,9 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
    所以不用去猜它有多高，两者也不会互相压住。 */
 /* 批量操作栏：拆成两行（主操作 / 状态操作）。一行塞 6 个按钮在 390px 上每个只剩
    ~57px，「取消全选」四个字直接折成两行 —— 拆行比缩字号强。
-   任务页和变量页共用这一套样式（两条栏的按钮数不同，但外形、贴底方式、
-   安全区处理完全一样，各写一份迟早会不一致）。 */
-#cronEditBar,#envEditBar,#depEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
+   四个页面（任务 / 变量 / 依赖 / 订阅）共用这一套样式（各条栏的按钮数不同，
+   但外形、贴底方式、安全区处理完全一样，各写一份迟早会不一致）。 */
+#cronEditBar,#envEditBar,#depEditBar,#subEditBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:block;
   padding:10px 16px calc(10px + var(--bot));
   background:var(--card);border-top:1px solid var(--sep)}
 /* 「跳到最新」：日志框往上翻过之后（自动跟随已停）才出现的小按钮。
@@ -738,6 +738,12 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
 
     <section class="view" id="v-subs">
       <div class="searchbar"><input id="subSearch" type="search" placeholder="搜索订阅名 / 链接" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 工具条：「编辑」进批量模式（全选 / 运行 / 停止 / 启用 / 禁用 / 删除），
+           照任务页 / 依赖页那套。订阅攒多了之后，换一批仓库地址、或者把几个
+           停掉的重新拉一遍，逐个点卡片要点 N 次还各等一次接口。 -->
+      <div class="cronbar">
+        <button class="cfbtn" id="btnSubEdit">编辑</button>
+      </div>
       <div class="list" id="subList"></div>
       <div style="margin-top:12px"><button class="btn" id="btnNewSub" style="width:100%">+ 新建订阅</button></div>
     </section>
@@ -813,12 +819,14 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
     <button data-tab="scripts"><span class="ti">⌘</span>脚本</button>
     <button data-tab="me"><span class="ti av" id="tabAv">◍</span>我的</button>
   </nav>
-  <!-- 任务页批量编辑时的底部操作栏。fixed 贴底，编辑模式下底栏（#tabbar）整体让位
-       —— 这样就不用去猜底栏有多高，也不会互相压住。见 renderCronEditBar()。
-       变量页同理，见 renderEnvEditBar()。两条栏共用同一套 CSS。 -->
+  <!-- 批量编辑时的底部操作栏（任务 / 变量 / 依赖 / 订阅四个页面各一条）。
+       fixed 贴底，编辑模式下底栏（#tabbar）整体让位 —— 这样就不用去猜底栏有多高，
+       也不会互相压住。分别见 renderCronEditBar() / renderEnvEditBar() /
+       renderDepEditBar() / renderSubEditBar()。四条栏共用同一套 CSS。 -->
   <div id="cronEditBar" class="hidden"></div>
   <div id="envEditBar" class="hidden"></div>
   <div id="depEditBar" class="hidden"></div>
+  <div id="subEditBar" class="hidden"></div>
   <!-- 「跳到最新」：日志框往上翻过之后（自动跟随已停）才出现，见 syncLogTail()。
        页面级 fixed 元素 —— 弹层 #sheet 是 z-index 40，这条给 46 才压得住它。
        放在日志框上方的工具条里不行：日志框有 70vh 高，翻到中间时工具条早滚出屏幕了。 -->
@@ -1260,7 +1268,8 @@ var S = {
        用户期望的还是上次那个区间，不该每次都弹回默认的 7 天。 */
     trendDays: 7, tday: null
   },
-  subs: { list: [], q: '', loading: false },
+  /* edit / sel：1.0.34 订阅页批量操作，跟任务 / 变量 / 依赖三页同一套。 */
+  subs: { list: [], q: '', loading: false, edit: false, sel: {} },
   /* edit / sel：1.0.31 依赖页批量操作，跟任务页 / 变量页同一套
      open：1.0.31 依赖卡片折叠 —— 按 id 记，默认全折起来（只显示名称 + 状态） */
   deps: { list: [], type: 'nodejs', q: '', loading: false, edit: false, sel: {}, open: {} },
@@ -2027,6 +2036,13 @@ function setTab(tab, force) {
     if (eb) { eb.classList.add('hidden'); eb.innerHTML = ''; }
     var tbar = $('#tabbar');
     if (tbar) tbar.classList.remove('hidden');
+    /* 1.0.34 补：上面那两行只管「藏栏 + 还底栏」，漏了列表底部那份留白和按钮文案 ——
+       切走再回来，「编辑」还写着「完成」，页面底下还多出 168px 空白。
+       变量 / 依赖 / 订阅三页的退出块都有这两句，就任务页漏了。 */
+    var mnC = $('#main');
+    if (mnC) mnC.classList.remove('cronedit');
+    var bC = $('#btnCronEdit');
+    if (bC) bC.textContent = '编辑';
   }
   if (tab !== 'envs' && S.envs.edit) {
     S.envs.edit = false;
@@ -2051,6 +2067,19 @@ function setTab(tab, force) {
     if (mn3) mn3.classList.remove('depsedit');
     var b3 = $('#btnDepEdit');
     if (b3) b3.textContent = '编辑';
+  }
+  /* 订阅页的批量模式同理（1.0.34）。 */
+  if (tab !== 'subs' && S.subs.edit) {
+    S.subs.edit = false;
+    S.subs.sel = {};
+    var eb4 = $('#subEditBar');
+    if (eb4) { eb4.classList.add('hidden'); eb4.innerHTML = ''; }
+    var tbar4 = $('#tabbar');
+    if (tbar4) tbar4.classList.remove('hidden');
+    var mn4 = $('#main');
+    if (mn4) mn4.classList.remove('subsedit');
+    var b4 = $('#btnSubEdit');
+    if (b4) b4.textContent = '编辑';
   }
   $('#main').scrollTop = 0;
   syncBack();
@@ -2432,9 +2461,21 @@ function cronSelectAll(on) {
   renderCrons();
 }
 
-/* 批量操作完的提示。任务页 / 变量页共用 —— 各写一份的话，改了一处忘了另一处，
-   用户看到的就是「已删除 3 个」和「已删除」两种文案。 */
-function batchDone(label, ids) { toast(label + ' ' + ids.length + ' 个'); }
+/* 批量操作完的提示。四个页面共用 —— 各写一份的话，改了一处忘了另一处，
+   用户看到的就是「已删除 3 个」和「已删除」两种文案。
+   1.0.34：多一个 skipped —— 按状态过滤之后有些没发出去，得说清楚，
+   否则用户以为全都做了（比如选 5 个、3 个本来就在跑，实际只启动了 2 个）。 */
+function batchDone(label, ids, skipped) {
+  toast(label + ' ' + ids.length + ' 个' + (skipped ? '（跳过 ' + skipped + ' 个）' : ''));
+}
+
+/* 批量栏右边那句「已选 N」的细分（1.0.34）。四个页面共用。
+   光看「已选 5」不知道点「运行」会发几个出去，把其中「跑着 / 已启用 / 已装」
+   的数量带出来，点之前心里有数。 */
+function selHint(n, extra, extraLabel) {
+  if (!n) return '已选 0';
+  return '已选 ' + n + (extra ? ' · ' + extraLabel + ' ' + extra : '');
+}
 
 /* 批量动作。接口跟单个的一样，只是 body 传一组 id（青龙支持）。
    「运行 / 停止」是 1.0.23 补的：编辑模式以前只能改状态和删，最常用的
@@ -2442,16 +2483,36 @@ function batchDone(label, ids) { toast(label + ' ' + ids.length + ' 个'); }
 async function cronBatch(act) {
   var ids = cronSelIds();
   if (!ids.length) { toast('先选几个任务', true); return; }
-  if (act === 'delete' && !confirm('删除选中的 ' + ids.length + ' 个任务？删除后不可恢复。')) return;
+  var picked = S.crons.list.filter(function (t) { return ids.indexOf(t.id) >= 0; });
+  /* 1.0.34：先按选中项的状态过滤，只发有用的那些（跟依赖页 1.0.31 一个思路）。
+     以前是原样全发 —— 选 10 个、里面有 3 个正在跑，点「运行」会把那 3 个再触发一遍；
+     给一批已经启用的点「启用」也是白跑一趟接口。 */
+  var go = picked, why = '';
+  if (act === 'run') {
+    go = picked.filter(function (t) { return !isBusy(t); });
+    why = '选中的都在运行中，不用再启动';
+  } else if (act === 'stop') {
+    go = picked.filter(isBusy);
+    why = '选中的都没在运行，不用停';
+  } else if (act === 'enable') {
+    go = picked.filter(function (t) { return cronBucket(t) === 'disabled'; });
+    why = '选中的都已经启用了';
+  } else if (act === 'disable') {
+    go = picked.filter(function (t) { return cronBucket(t) !== 'disabled'; });
+    why = '选中的都已经禁用了';
+  }
+  if (!go.length) { toast(why, true); return; }
+  var send = go.map(function (t) { return t.id; });
+  if (act === 'delete' && !confirm('删除选中的 ' + send.length + ' 个任务？删除后不可恢复。')) return;
   var label = '';
   try {
-    if (act === 'run') { label = '已启动'; await api('/api/crons/run', { method: 'PUT', body: ids }); }
-    else if (act === 'stop') { label = '已停止'; await api('/api/crons/stop', { method: 'PUT', body: ids }); }
-    else if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: ids }); }
-    else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: ids }); }
-    else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: ids }); }
+    if (act === 'run') { label = '已启动'; await api('/api/crons/run', { method: 'PUT', body: send }); }
+    else if (act === 'stop') { label = '已停止'; await api('/api/crons/stop', { method: 'PUT', body: send }); }
+    else if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: send }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: send }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: send }); }
     else return;
-    batchDone(label, ids);
+    batchDone(label, send, ids.length - send.length);
     toggleCronEdit(false);
     await loadCrons(true);
   } catch (e) {
@@ -2483,6 +2544,11 @@ function renderCronEditBar() {
   var bar = $('#cronEditBar');
   var n = cronSelCount();
   var allOn = n > 0 && n === cronFiltered().length;
+  /* 1.0.34：右边那句「已选 N」带上细分 —— 其中几个正在跑 / 几个已禁用。
+     光看「已选 5」不知道点「运行」会发几个出去（批量动作现在会按状态过滤）。 */
+  var picked = S.crons.list.filter(function (t) { return S.crons.sel[t.id]; });
+  var busy = picked.filter(isBusy).length;
+  var offN = picked.filter(function (t) { return cronBucket(t) === 'disabled'; }).length;
   /* 两行：上行是「跑不跑」（运行 / 停止），下行是「改不改状态」（启用 / 禁用 / 删除）。
      单行 6 个按钮在 390px 上每个只剩 ~57px，「取消全选」直接折行。 */
   bar.innerHTML =
@@ -2496,7 +2562,8 @@ function renderCronEditBar() {
       '<button class="btn" data-cbatch="enable" style="flex:1;padding:9px 4px">启用</button>' +
       '<button class="btn" data-cbatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
       '<button class="btn danger" data-cbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
-      '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
+      '<span class="f11 t3" style="white-space:nowrap">' +
+        (busy ? selHint(n, busy, '运行中') : selHint(n, offN, '已禁用')) + '</span>' +
     '</div>';
 }
 
@@ -3413,17 +3480,30 @@ function envSelectAll(on) {
 async function envBatch(act) {
   var ids = envSelIds();
   if (!ids.length) { toast('先选几个变量', true); return; }
-  if (act === 'delete' && !confirm('删除选中的 ' + ids.length + ' 个变量？删除后不可恢复。')) return;
+  var picked = S.envs.list.filter(function (v) { return ids.indexOf(v.id) >= 0; });
+  /* 1.0.34：启用 / 禁用先按状态过滤（status 0 = 已启用，1 = 已禁用）。
+     给一批已经启用的点「启用」是白跑一趟接口。 */
+  var go = picked, why = '';
+  if (act === 'enable') {
+    go = picked.filter(function (v) { return v.status === 1; });
+    why = '选中的都已经启用了';
+  } else if (act === 'disable') {
+    go = picked.filter(function (v) { return v.status !== 1; });
+    why = '选中的都已经禁用了';
+  }
+  if (!go.length) { toast(why, true); return; }
+  var send = go.map(function (v) { return v.id; });
+  if (act === 'delete' && !confirm('删除选中的 ' + send.length + ' 个变量？删除后不可恢复。')) return;
   var label = '';
   try {
-    if (act === 'enable') { label = '已启用'; await api('/api/envs/enable', { method: 'PUT', body: ids }); }
-    else if (act === 'disable') { label = '已禁用'; await api('/api/envs/disable', { method: 'PUT', body: ids }); }
-    else if (act === 'delete') { label = '已删除'; await api('/api/envs', { method: 'DELETE', body: ids }); }
+    if (act === 'enable') { label = '已启用'; await api('/api/envs/enable', { method: 'PUT', body: send }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/envs/disable', { method: 'PUT', body: send }); }
+    else if (act === 'delete') { label = '已删除'; await api('/api/envs', { method: 'DELETE', body: send }); }
     /* 1.0.29：批量复制 —— 换 cookie 时经常要一次抠多个值（标签筛「京东」后批量复制走人）。
        单选：复制值；多选：复制「名=值」格式（一眼能分清哪个 cookie 是哪个账号，
-       且能直接 export 到 bash）。复制完不退出编辑、不刷新列表 —— 用户可能接着启/删。 */
+       且能直接 export 到 bash）。复制完不退出编辑、不刷新列表 —— 用户可能接着启/删。
+       复制不过滤：要复制的就是**选中的全部**，跟启没启用无关。 */
     else if (act === 'copy') {
-      var picked = S.envs.list.filter(function (v) { return ids.indexOf(v.id) >= 0; });
       var text = picked.length === 1
         ? (picked[0].value || '')
         : picked.map(function (v) { return v.name + '=' + (v.value || ''); }).join('\n');
@@ -3432,7 +3512,7 @@ async function envBatch(act) {
       return;
     }
     else return;
-    batchDone(label, ids);
+    batchDone(label, send, ids.length - send.length);
     toggleEnvEdit(false);
     await loadEnvs();
   } catch (e) { toast(e.message, true); }
@@ -3444,6 +3524,9 @@ function renderEnvEditBar() {
   var bar = $('#envEditBar');
   var n = envSelCount();
   var allOn = n > 0 && n === envFiltered().length;
+  /* 1.0.34：细分 —— 选中的里面几个是「已启用」的（点「禁用」会发这几个）。 */
+  var picked = S.envs.list.filter(function (v) { return S.envs.sel[v.id]; });
+  var onN = picked.filter(function (v) { return v.status !== 1; }).length;
   /* 1.0.29：加「复制」按钮（第二行左）。第一行「全选 / 启用 / 禁用」全是状态类动作，
      第二行「复制 / 删除」左轻右重 —— 复制完用户接着操作，删完直接退出。 */
   bar.innerHTML =
@@ -3456,7 +3539,7 @@ function renderEnvEditBar() {
     '<div class="row" style="gap:8px">' +
       '<button class="btn" data-ebatch="copy" style="flex:1;padding:9px 4px">复制值</button>' +
       '<button class="btn danger" data-ebatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
-      '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
+      '<span class="f11 t3" style="white-space:nowrap">' + selHint(n, onN, '已启用') + '</span>' +
     '</div>';
 }
 
@@ -4357,7 +4440,7 @@ async function depBatch(act) {
     else if (act === 'delete') { label = '已删除'; await api('/api/dependencies', { method: 'DELETE', body: send }); }
     else if (act === 'force') { label = '已强制删除'; await api('/api/dependencies/force', { method: 'DELETE', body: send }); }
     else return;
-    batchDone(label, send);
+    batchDone(label, send, picked.length - send.length);
     toggleDepEdit(false);
     await loadDeps();
   } catch (e) { toast(e.message, true); }
@@ -4372,6 +4455,9 @@ function renderDepEditBar() {
   var bar = $('#depEditBar');
   var n = depSelCount();
   var allOn = n > 0 && n === S.deps.list.length;
+  /* 1.0.34：细分 —— 选中的里面几个是「已安装」的（点「删除」会发这几个）。 */
+  var picked = S.deps.list.filter(function (x) { return S.deps.sel[x.id]; });
+  var instN = picked.filter(function (x) { return x.status === 1; }).length;
   bar.innerHTML =
     '<div class="row" style="gap:8px;margin-bottom:8px">' +
       '<button class="btn" id="btnDepAll" style="flex:1;padding:9px 4px">' +
@@ -4381,7 +4467,7 @@ function renderDepEditBar() {
     '<div class="row" style="gap:8px">' +
       '<button class="btn" data-dbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
       '<button class="btn danger" data-dbatch="force" style="flex:1;padding:9px 4px">强制删除</button>' +
-      '<span class="f11 t3" style="white-space:nowrap">已选 ' + n + '</span>' +
+      '<span class="f11 t3" style="white-space:nowrap">' + selHint(n, instN, '已装') + '</span>' +
     '</div>';
 }
 
@@ -4586,37 +4672,156 @@ function subScheduleText(x) {
   return x.schedule || '—';
 }
 
+/* ---------- 订阅页批量操作（1.0.34）----------
+   订阅接口本来就收一组 id（`PUT /api/subscriptions/run` 的 body 是数组），
+   单个操作传的也是 [id] —— 所以批量不用新接口，跟任务 / 变量 / 依赖三页同一套做法。 */
+
+function toggleSubEdit(on) {
+  S.subs.edit = (on == null ? !S.subs.edit : !!on);
+  if (!S.subs.edit) S.subs.sel = {};
+  var b = $('#btnSubEdit');
+  if (b) b.textContent = S.subs.edit ? '完成' : '编辑';
+  renderSubs();
+}
+
+function subSelCount() {
+  var n = 0;
+  for (var k in S.subs.sel) { if (S.subs.sel[k]) n++; }
+  return n;
+}
+
+function subSelIds() {
+  var out = [];
+  for (var k in S.subs.sel) { if (S.subs.sel[k]) out.push(Number(k)); }
+  return out;
+}
+
+function toggleSubSel(id) {
+  if (S.subs.sel[id]) delete S.subs.sel[id];
+  else S.subs.sel[id] = true;
+  renderSubs();
+}
+
+/* 全选 / 取消全选。只作用于**当前筛出来的那些**（搜索之后的）。 */
+function subSelectAll(on) {
+  if (on) S.subs.list.forEach(function (x) { S.subs.sel[x.id] = true; });
+  else S.subs.sel = {};
+  renderSubs();
+}
+
+/* 订阅在不在拉取。0 = 运行中，3 = 排队中，两个都算「正在跑」——
+   renderSubs 里「运行 / 停止」按钮也是这么判的，抽出来一处维护。 */
+function subRunning(x) { return !!x && (x.status === 0 || x.status === 3); }
+
+/* 批量动作。跟依赖页（1.0.31）一个思路：**先按状态过滤，只发有用的**。
+   已经在拉的不用再点「运行」，已经启用的不用再点「启用」—— 以前是原样全发，
+   轻则白跑一趟接口，重则同一个订阅被重复触发。 */
+async function subBatch(act) {
+  var ids = subSelIds();
+  if (!ids.length) { toast('先选几个订阅', true); return; }
+  var picked = S.subs.list.filter(function (x) { return ids.indexOf(Number(x.id)) >= 0; });
+  var go = picked, why = '';
+  if (act === 'run') {
+    go = picked.filter(function (x) { return !subRunning(x); });
+    why = '选中的都在拉取中，不用再启动';
+  } else if (act === 'stop') {
+    go = picked.filter(subRunning);
+    why = '选中的都没在拉取，不用停';
+  } else if (act === 'enable') {
+    go = picked.filter(function (x) { return x.status === 2; });
+    why = '选中的都已经启用了';
+  } else if (act === 'disable') {
+    go = picked.filter(function (x) { return x.status !== 2; });
+    why = '选中的都已经禁用了';
+  }
+  if (!go.length) { toast(why, true); return; }
+  var send = go.map(function (x) { return Number(x.id); });
+  if (act === 'delete' && !confirm('删除选中的 ' + send.length + ' 个订阅？已下载的脚本文件会保留。')) return;
+  var label = '';
+  try {
+    if (act === 'run') { label = '已开始拉取'; await api('/api/subscriptions/run', { method: 'PUT', body: send }); }
+    else if (act === 'stop') { label = '已停止'; await api('/api/subscriptions/stop', { method: 'PUT', body: send }); }
+    else if (act === 'enable') { label = '已启用'; await api('/api/subscriptions/enable', { method: 'PUT', body: send }); }
+    else if (act === 'disable') { label = '已禁用'; await api('/api/subscriptions/disable', { method: 'PUT', body: send }); }
+    else if (act === 'delete') { label = '已删除（保留文件）'; await api('/api/subscriptions', { method: 'DELETE', body: send }); }
+    else return;
+    batchDone(label, send, ids.length - send.length);
+    toggleSubEdit(false);
+    await loadSubs();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+/* 底部批量操作栏（订阅页）。两行布局跟任务页那条一样：
+   上行「拉不拉」（全选 / 运行 / 停止），下行「改不改状态」（启用 / 禁用 / 删除）。 */
+function renderSubEditBar() {
+  var on = !!S.subs.edit;
+  if (!openEditShell('#subEditBar', on, 'subsedit')) return;
+  var bar = $('#subEditBar');
+  var n = subSelCount();
+  var allOn = n > 0 && n === S.subs.list.length;
+  var picked = S.subs.list.filter(function (x) { return S.subs.sel[x.id]; });
+  var running = picked.filter(subRunning).length;
+  var disabled = picked.filter(function (x) { return x.status === 2; }).length;
+  bar.innerHTML =
+    '<div class="row" style="gap:8px;margin-bottom:8px">' +
+      '<button class="btn" id="btnSubAll" style="flex:1;padding:9px 4px">' +
+        (allOn ? '取消全选' : '全选') + '</button>' +
+      '<button class="btn pri" data-sbatch="run" style="flex:1;padding:9px 4px">运行</button>' +
+      '<button class="btn" data-sbatch="stop" style="flex:1;padding:9px 4px">停止</button>' +
+    '</div>' +
+    '<div class="row" style="gap:8px">' +
+      '<button class="btn" data-sbatch="enable" style="flex:1;padding:9px 4px">启用</button>' +
+      '<button class="btn" data-sbatch="disable" style="flex:1;padding:9px 4px">禁用</button>' +
+      '<button class="btn danger" data-sbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
+      '<span class="f11 t3" style="white-space:nowrap">' +
+        (running ? selHint(n, running, '拉取中') : selHint(n, disabled, '已禁用')) + '</span>' +
+    '</div>';
+}
+
 function renderSubs() {
   var s = S.subs;
   $('#sub').textContent = s.list.length ? (s.list.length + ' 个订阅') : '';
   var box = $('#subList');
   if (s.loading && !s.list.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
+    renderSubEditBar();
     return;
   }
   if (!s.list.length) {
     box.innerHTML = '<div class="empty"><span class="ei">⇅</span>' + (s.q ? '没有匹配的订阅' : '还没有订阅') + '</div>';
+    renderSubEditBar();
     return;
   }
+  /* 编辑模式下整张卡片是勾选用的：左边多个勾选圈，行内那三个按钮收起来
+     （避免批量操作时误触、也腾出位置），点卡片 = 勾选 / 取消勾选。
+     跟任务页 / 变量页 / 依赖页一致。 */
+  var editing = !!s.edit;
   box.innerHTML = s.list.map(function (x) {
     var st = subStatus(x.status);
-    var running = x.status === 0 || x.status === 3;
+    var running = subRunning(x);
+    var on = editing && !!s.sel[x.id];
     var tags = '<span class="tag">' + esc(subTypeName(x.type)) + '</span>' +
                '<span class="tag">' + esc(subScheduleText(x)) + '</span>';
     if (x.branch) tags += '<span class="tag">' + esc(x.branch) + '</span>';
     if (x.autoAddCron === false) tags += '<span class="tag">不自动加任务</span>';
-    return '<div class="item">' +
-      '<div class="row"><div class="nm sp">' + esc(x.name || x.alias || '未命名订阅') + '</div>' + pill(st) + '</div>' +
+    return '<div class="item' + (on ? ' on' : '') + '" data-sub="' + x.id + '">' +
+      '<div class="row">' +
+        (editing ? '<span class="ckb">✓</span>' : '') +
+        '<div class="nm sp">' + esc(x.name || x.alias || '未命名订阅') + '</div>' + pill(st) + '</div>' +
       '<div class="tags">' + tags + '</div>' +
       '<div class="f11 t2 mono ell" style="margin-top:6px">' + esc(x.url || '') + '</div>' +
       (x.updatedAt ? '<div class="f11 t3" style="margin-top:4px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' : '') +
+      (editing ? '' :
       '<div class="row" style="gap:8px;margin-top:10px">' +
         '<button class="btn" style="flex:1;padding:8px" data-subact="' + (running ? 'stop' : 'run') + '" data-id="' + x.id + '">' + (running ? '停止' : '运行') + '</button>' +
         '<button class="btn" style="flex:1;padding:8px" data-subact="log" data-id="' + x.id + '">日志</button>' +
         '<button class="btn" style="flex:1;padding:8px" data-subact="more" data-id="' + x.id + '">更多</button>' +
-      '</div>' +
+      '</div>') +
     '</div>';
   }).join('');
+  renderSubEditBar();
 }
 
 async function loadSubs() {
@@ -4997,7 +5202,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.33';
+var APP_VER = '1.0.34';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -6943,6 +7148,8 @@ function onClick(ev) {
     /* 1.0.33：任务页 / 脚本页搜索结果的上 / 下一个 */
     '[data-cronjump],' +
     '[data-scrjump],' +
+    /* 1.0.34：订阅页的整行（勾选 / 取消勾选）与批量栏按钮 */
+    '[data-sub],[data-sbatch],' +
     /* 面板设置三页：应用的增删改 / 权限标签 / 复制 / 显隐密钥；
        其他设置的字段确认 / 备份模块勾选。 */
     '[data-appedit],[data-appsecret],[data-appdel],[data-reveal],[data-copy],' +
@@ -7331,6 +7538,17 @@ function onClick(ev) {
   if (el.id === 'btnDepLogReload') return openDepLog(el.dataset.id);
 
   /* ---------- 订阅管理 ---------- */
+  /* 1.0.34：批量编辑 —— 「编辑」按钮、全选、批量动作，以及编辑模式下点整行勾选。
+     整行勾选要排在 data-subact 之前判（卡片的属性是 data-sub、按钮是 data-subact，
+     两个不一样，但顺序写清楚更不容易在以后加属性时踩坑）。 */
+  if (el.id === 'btnSubEdit') return toggleSubEdit();
+  if (el.id === 'btnSubAll') return subSelectAll(subSelCount() !== S.subs.list.length);
+  if (el.dataset.sbatch) return subBatch(el.dataset.sbatch);
+  if (el.dataset.sub) {
+    /* 非编辑模式点整行不做动作：订阅没有详情页，动作都在卡片里那两个按钮上。 */
+    if (S.subs.edit) return toggleSubSel(Number(el.dataset.sub));
+    return;
+  }
   if (el.dataset.subact) {
     var suact = el.dataset.subact;
     var sx = S.subs.list.filter(function (y) { return y.id === Number(el.dataset.id); })[0];

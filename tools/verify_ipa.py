@@ -332,6 +332,42 @@ FEATURES = [
     ("变量全折叠 分支", r"if \(el\.id === 'btnEnvFold'\) return envFoldAll\(\);"),
     ("变量全折叠 有展开的就全折起来", r"if \(anyOpen\) e\.collapsed\[g\.key\] = true;"),
     ("变量全折叠 文案跟着状态变", r"fb\.textContent = envAnyOpen\(\) \? '全部折叠' : '全部展开';"),
+
+    # 1.0.34：订阅页补上批量操作（跟任务 / 变量 / 依赖三页一套做法），
+    #         批量动作改成**先按选中项状态过滤、只发有用的那些**（以前原样全发，
+    #         选 10 个里面有 3 个正在跑，点「运行」会再触发一遍），
+    #         批量栏右边那句带上细分（其中几个在跑 / 已启用 / 已装）。
+    ("订阅批量 委托钩子", r"\[data-sub\],\[data-sbatch\],"),
+    ("订阅批量 编辑按钮分支", r"if \(el\.id === 'btnSubEdit'\) return toggleSubEdit\(\);"),
+    ("订阅批量 全选分支", r"if \(el\.id === 'btnSubAll'\) return subSelectAll\(subSelCount\(\) !== S\.subs\.list\.length\);"),
+    ("订阅批量 动作分支", r"if \(el\.dataset\.sbatch\) return subBatch\(el\.dataset\.sbatch\);"),
+    ("订阅批量 点整行勾选", r"if \(S\.subs\.edit\) return toggleSubSel\(Number\(el\.dataset\.sub\)\);"),
+    ("订阅批量 卡片挂 data-sub", r'" data-sub="' \+ x\.id'),
+    ("订阅批量 编辑态勾选圈", r"\(editing \? '<span class=\"ckb\">✓</span>' : ''\) \+\s*'<div class=\"nm sp\">' \+ esc\(x\.name \|\| x\.alias \|\| '未命名订阅'\)"),
+    ("订阅批量 编辑态行内按钮收起", r"\(editing \? '' :\s*'<div class=\"row\" style=\"gap:8px;margin-top:10px\">' \+\s*'<button class=\"btn\" style=\"flex:1;padding:8px\" data-subact="),
+    ("订阅批量 退出清勾选", r"if \(!S\.subs\.edit\) S\.subs\.sel = \{\};"),
+    ("订阅批量 运行过滤在拉取的", r"go = picked\.filter\(function \(x\) \{ return !subRunning\(x\); \}\);"),
+    ("订阅批量 停止只发在拉取的", r"go = picked\.filter\(subRunning\);"),
+    ("订阅批量 启用只发已禁用的", r"go = picked\.filter\(function \(x\) \{ return x\.status === 2; \}\);"),
+    ("订阅批量 禁用只发没禁用的", r"go = picked\.filter\(function \(x\) \{ return x\.status !== 2; \}\);"),
+    ("订阅批量 排队中也算在拉取", r"function subRunning\(x\) \{ return !!x && \(x\.status === 0 \|\| x\.status === 3\); \}"),
+    ("订阅批量 批量栏 HTML", r'id="subEditBar"'),
+    ("订阅批量 栏内按钮", r'data-sbatch="run"'),
+    ("订阅批量 贴底 CSS", r"#cronEditBar,#envEditBar,#depEditBar,#subEditBar\{position:fixed"),
+    ("订阅批量 列表底部留白", r"#main\.cronedit,#main\.envsedit,#main\.depsedit,#main\.subsedit\{padding-bottom"),
+    ("批量按状态过滤 任务运行跳过在跑的", r"go = picked\.filter\(function \(t\) \{ return !isBusy\(t\); \}\);"),
+    ("批量按状态过滤 任务启用只发禁用的", r"go = picked\.filter\(function \(t\) \{ return cronBucket\(t\) === 'disabled'; \}\);"),
+    ("批量按状态过滤 变量启用只发禁用的", r"go = picked\.filter\(function \(v\) \{ return v\.status === 1; \}\);"),
+    ("批量按状态过滤 发的是滤过的", r"var send = go\.map\(function \(x\) \{ return Number\(x\.id\); \}\);"),
+    ("批量按状态过滤 空则拦住", r"if \(!go\.length\) \{ toast\(why, true\); return; \}"),
+    ("批量细分提示 公共件", r"function selHint\(n, extra, extraLabel\) \{"),
+    ("批量细分提示 任务栏", r"\(busy \? selHint\(n, busy, '运行中'\) : selHint\(n, offN, '已禁用'\)\)"),
+    ("批量细分提示 变量栏", r"selHint\(n, onN, '已启用'\)"),
+    ("批量细分提示 依赖栏", r"selHint\(n, instN, '已装'\)"),
+    ("批量细分提示 订阅栏", r"running \? selHint\(n, running, '拉取中'\) : selHint\(n, disabled, '已禁用'\)"),
+    ("批量完成提示 带跳过数", r"\(skipped \? '（跳过 ' \+ skipped \+ ' 个）' : ''\)"),
+    ("任务页切走清留白", r"var mnC = \$\('#main'\);"),
+    ("任务页切走还原文案", r"var bC = \$\('#btnCronEdit'\);"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

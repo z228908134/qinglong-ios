@@ -15,24 +15,25 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35487571897`，commit `a03380a`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.33-trollstore.ipa`（187799 字节） |
-| SHA256 | `841f4cc93a4d8e76d2ce948a6685905f92d16d0ef5285f6cee46b807b4f1a703` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.33-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35490985882`，commit `b3b2121`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.34-trollstore.ipa`（190569 字节） |
+| SHA256 | `2790688a6815c4eeb27e8b58ff4cb7641ac243125e6b034d80b8684bad16250c` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.34-trollstore`（保留 30 天） |
 
-> **1.0.33：搜索跳转铺到任务页 / 脚本树，变量页能按状态筛、一键全展开**：
-> - **任务页、脚本树也各多一条「↑ n/N ↓」**（1.0.32 只做了变量页）。
->   任务页跳的是「筛完之后的那批」；脚本树跳的身份是**完整相对路径** ——
->   同一个 `jdCookie.js` 在 `jdpro/` 和根目录各有一个，靠路径才分得清。
-> - **脚本树搜索现在一律显示父目录**（以前只在目录名本身命中时才画），
->   否则搜出来两个同名文件、界面上看不出区别，跳了也白跳。
-> - **变量页多一条状态筛选**：全部 / 已启用 / 已禁用，再点同一档取消。
->   跟搜索叠着用，「搜 jd 里还没启用的」这种一眼就出来。
-> - **变量页多一个「全部展开 / 折叠」**：分组之后十几个组，一个个点太费劲；
->   文案跟着当前状态走（有展开的就叫「全部折叠」）。按标签分组时这个按钮不显示。
-> - 黄边、回车 / Shift+回车、跳完自动展开折叠组 —— 跟 1.0.32 变量页那套完全一致。
+> **1.0.34：订阅页也能批量了，批量动作不再「原样全发」**：
+> - **订阅页补上批量操作**（底栏「编辑」→ 勾选 → 两行操作栏）：
+>   全选 / 运行 / 停止 ｜ 启用 / 禁用 / 删除。跟任务 / 变量 / 依赖三页一套做法，
+>   接口也没变 —— 青龙的订阅接口本来就收一组 id。
+> - **批量动作按选中项的状态过滤，只发有用的那些**（四个页面都改了）。
+>   以前是原样全发：选 10 个、里面有 3 个正在跑，点「运行」会把那 3 个再触发一遍；
+>   给一批已经启用的点「启用」也是白跑一趟接口。跳过的部分会写进提示
+>   （「已启动 7 个（跳过 3 个）」）；一个都发不出去时干脆拦下来并说明原因。
+> - **批量栏右边那句带上细分**：「已选 5 · 运行中 2」——
+>   点「运行」之前就知道只会发 3 个出去。四个页面都有（依赖那页是「已装」）。
+> - **顺修**：从任务页批量模式切走时，列表底部那块留白和「完成」文案没清干净
+>   （变量 / 依赖 / 订阅三页都有这两句，就任务页漏了）。
 >
-> **装 1.0.33，别装 1.0.32 及更早的**。
+> **装 1.0.34，别装 1.0.33 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -46,13 +47,14 @@
 > 1.0.30 加了变量页按第一标签分组 + 每组可折叠；
 > 1.0.31 加了依赖卡片可折叠 + 依赖页批量操作（重装 / 删除 / 强制删除）；
 > 1.0.32 加了变量搜索结果的上 / 下一个跳转（命中项逐个跳，折叠组自动展开）；
-> 1.0.33 把「搜索跳转」铺到任务页 / 脚本树，变量页另加按状态筛选 + 一键全部展开 / 折叠。
+> 1.0.33 把「搜索跳转」铺到任务页 / 脚本树，变量页另加按状态筛选 + 一键全部展开 / 折叠；
+> 1.0.34 给订阅页补上批量操作，四个页面的批量动作改成按状态过滤 + 批量栏细分提示。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.33-trollstore.ipa
-# 应该得到 841f4cc93a4d8e76d2ce948a6685905f92d16d0ef5285f6cee46b807b4f1a703
+sha256sum QingLongClient-1.0.34-trollstore.ipa
+# 应该得到 2790688a6815c4eeb27e8b58ff4cb7641ac243125e6b034d80b8684bad16250c
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -222,7 +224,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.33-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.34-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -234,15 +236,15 @@ qinglong-ios/out/QingLongClient-1.0.33-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.33-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.34-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 402767 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.33（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 414686 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.34（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -344,6 +346,37 @@ python tools/verify_ipa.py out/QingLongClient-1.0.33-trollstore.ipa
 | 1.0.33 新增：变量全折叠分支（`envFoldAll()`） | ✅ 1 个锚点全在 |
 | 1.0.33 新增：有展开的就全折起来（`if (anyOpen) e.collapsed[g.key] = true;`） | ✅ 1 个锚点全在 |
 | 1.0.33 新增：折叠按钮文案跟着状态变（`envAnyOpen() ? '全部折叠' : '全部展开'`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅批量委托钩子（`[data-sub],[data-sbatch],`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅「编辑」按钮分支（`toggleSubEdit()`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅「全选」分支（`subSelectAll(subSelCount() !== ...)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅批量动作分支（`subBatch(el.dataset.sbatch)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：编辑模式点整行勾选（`toggleSubSel(Number(el.dataset.sub))`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅卡片挂 data-sub（`" data-sub=" + x.id`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：编辑态勾选圈（`class="ckb"` + `未命名订阅`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：编辑态行内按钮收起（`(editing ? '' :` + `data-subact=`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：退出编辑模式清勾选（`if (!S.subs.edit) S.subs.sel = {};`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：运行前滤掉在拉取的（`!subRunning(x)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：停止只发在拉取的（`picked.filter(subRunning)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅「启用」只发已禁用的（`x.status === 2`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅「禁用」只发还没禁用的（`x.status !== 2`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：排队中也算在拉取（`status === 0 \|\| status === 3`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅批量栏（`id="subEditBar"`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅栏内批量按钮（`data-sbatch="run"`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅批量栏进贴底 CSS（`#cronEditBar,…,#subEditBar{position:fixed`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅页列表底部留白（`#main.subsedit{padding-bottom`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：任务「运行」跳过在跑的（`!isBusy(t)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：任务「启用」只发禁用的（`cronBucket(t) === 'disabled'`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：变量「启用」只发禁用的（`v.status === 1`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：发出去的是滤过的那批（`var send = go.map(...)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：一个都发不出去就拦住（`if (!go.length) { toast(why, true); return; }`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：细分提示是公共件（`function selHint(n, extra, extraLabel)`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：任务批量栏细分（`busy ? selHint(n, busy, '运行中') : …`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：变量批量栏细分（`selHint(n, onN, '已启用')`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：依赖批量栏细分（`selHint(n, instN, '已装')`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：订阅批量栏细分（`running ? selHint(n, running, '拉取中') : …`） | ✅ 1 个锚点全在 |
+| 1.0.34 新增：完成提示带跳过数（`skipped ? '（跳过 ' + skipped + ' 个）' : ''`） | ✅ 1 个锚点全在 |
+| 1.0.34 修复：任务页切走清列表留白（`var mnC = $('#main');`） | ✅ 1 个锚点全在 |
+| 1.0.34 修复：任务页切走还原按钮文案（`var bC = $('#btnCronEdit');`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -351,7 +384,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.33-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.33 (33) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.34 (34) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

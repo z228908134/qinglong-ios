@@ -157,12 +157,12 @@ FEATURES = [
     ("批量 运行按钮", r'data-cbatch="run"'),
     ("批量 停止按钮", r'data-cbatch="stop"'),
     ("批量 拆两行", r"gap:8px;margin-bottom:8px"),
-    ("批量 运行走 run 接口", r"await api\('/api/crons/run', \{ method: 'PUT', body: ids \}\)"),
-    ("批量 停止走 stop 接口", r"await api\('/api/crons/stop', \{ method: 'PUT', body: ids \}\)"),
+    ("批量 运行走 run 接口", r"await api\('/api/crons/run', \{ method: 'PUT', body: send \}\)"),
+    ("批量 停止走 stop 接口", r"await api\('/api/crons/stop', \{ method: 'PUT', body: send \}\)"),
     # 批量栏比底栏高一截，列表底部留白要跟着加，不然最后一张卡片被盖住。
     # 1.0.24：变量页也加了批量栏，两条栏同高，这条规则并成了一条选择器 ——
     # 锚点绑字面量，CSS 改写法就得跟着改，不然出包后这里报一项缺失。
-    ("批量 编辑模式加留白", r"#main\.cronedit,#main\.envsedit,#main\.depsedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
+    ("批量 编辑模式加留白", r"#main\.cronedit,#main\.envsedit,#main\.depsedit,#main\.subsedit\{padding-bottom:calc\(168px \+ var\(--bot\)\)\}"),
     # 1.0.23 新增：② 任务列表搜索命中高亮（复用日志那套 logHi，体验统一）
     ("列表 命中高亮复用 logHi", r"logHi\(t\.name \|\| '未命名任务', c\.q\)"),
     ("列表 标签也高亮", r"logHi\(l, c\.q\)"),
@@ -195,9 +195,9 @@ FEATURES = [
     ("变量 编辑按钮", r'id="btnEnvEdit"'),
     ("变量 批量栏容器", r'id="envEditBar"'),
     ("变量 批量删除按钮", r'data-ebatch="delete"'),
-    ("变量 批量启用接口", r"await api\('/api/envs/enable', \{ method: 'PUT', body: ids \}\)"),
-    ("变量 批量禁用接口", r"await api\('/api/envs/disable', \{ method: 'PUT', body: ids \}\)"),
-    ("变量 批量删除接口", r"await api\('/api/envs', \{ method: 'DELETE', body: ids \}\)"),
+    ("变量 批量启用接口", r"await api\('/api/envs/enable', \{ method: 'PUT', body: send \}\)"),
+    ("变量 批量禁用接口", r"await api\('/api/envs/disable', \{ method: 'PUT', body: send \}\)"),
+    ("变量 批量删除接口", r"await api\('/api/envs', \{ method: 'DELETE', body: send \}\)"),
     # 全选只作用于**筛出来的**那些：筛了「京东」再点全选，用户想处理的就是这些
     ("变量 全选按筛选结果", r"function envFiltered\("),
     # 两条批量栏（任务 / 变量）共用外壳与样式 —— 各写一份迟早会出现
@@ -342,7 +342,7 @@ FEATURES = [
     ("订阅批量 全选分支", r"if \(el\.id === 'btnSubAll'\) return subSelectAll\(subSelCount\(\) !== S\.subs\.list\.length\);"),
     ("订阅批量 动作分支", r"if \(el\.dataset\.sbatch\) return subBatch\(el\.dataset\.sbatch\);"),
     ("订阅批量 点整行勾选", r"if \(S\.subs\.edit\) return toggleSubSel\(Number\(el\.dataset\.sub\)\);"),
-    ("订阅批量 卡片挂 data-sub", r'" data-sub="' \+ x\.id'),
+    ("订阅批量 卡片挂 data-sub", r'" data-sub="\' \+ x\.id'),
     ("订阅批量 编辑态勾选圈", r"\(editing \? '<span class=\"ckb\">✓</span>' : ''\) \+\s*'<div class=\"nm sp\">' \+ esc\(x\.name \|\| x\.alias \|\| '未命名订阅'\)"),
     ("订阅批量 编辑态行内按钮收起", r"\(editing \? '' :\s*'<div class=\"row\" style=\"gap:8px;margin-top:10px\">' \+\s*'<button class=\"btn\" style=\"flex:1;padding:8px\" data-subact="),
     ("订阅批量 退出清勾选", r"if \(!S\.subs\.edit\) S\.subs\.sel = \{\};"),

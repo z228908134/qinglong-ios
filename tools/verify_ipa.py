@@ -400,6 +400,37 @@ FEATURES = [
     ("配置搜索 输入框绑定", r"\$\('#cfgSearch'\)\.addEventListener\('input', function \(e\) \{"),
     ("配置搜索 只重画不打接口", r"S\.configs\.q = e\.target\.value\.trim\(\); renderConfigs\(\);"),
     ("配置搜索 状态带 q", r"configs: \{ list: \[\], q: '', loading: false \}"),
+
+    # 1.0.36：登录日志页补「只看失败」+ 搜索。
+    #   面板的登录日志最多 100 条，翻起来清一色「成功」，真正要看的那几条失败
+    #   混在中间；自己搭的面板挂在公网上，失败登录值得一眼看见。
+    #   按钮上带失败条数（不点开就知道今天有没有人试过），筛完副标题说
+    #   「命中 / 总数」，命中处上黄底。列表整份在手上，所以纯本地过滤、不重打接口。
+    ("登录日志 搜索框", r'id="loginSearch"'),
+    ("登录日志 只看失败按钮", r'id="btnLoginFail"'),
+    ("登录日志 筛选状态", r"loginlog: \{ list: \[\], loading: false, err: '', onlyFail: false, q: '' \},"),
+    ("登录日志 失败判据函数", r"function loginlogFail\(x\) \{"),
+    ("登录日志 失败判据是 1", r"return Number\(x && x\.status\) === 1;"),
+    ("登录日志 筛选函数", r"function loginlogFiltered\(\) \{"),
+    ("登录日志 只看失败要真滤", r"if \(l\.onlyFail && !loginlogFail\(x\)\) return false;"),
+    ("登录日志 搜索覆盖三个字段", r"return \[x\.ip, x\.address, x\.platform\]\.some\(function \(v\) \{"),
+    ("登录日志 搜索忽略大小写", r"return String\(v == null \? '' : v\)\.toLowerCase\(\)\.indexOf\(q\) >= 0;"),
+    ("登录日志 关键字去空格", r"var q = String\(l\.q \|\| ''\)\.trim\(\)\.toLowerCase\(\);"),
+    ("登录日志 列表按筛完的画", r"box\.innerHTML = rows\.map\(function \(x, i\) \{"),
+    ("登录日志 副标题给命中总数", r"\? \(filtered \? \(rows\.length \+ ' / ' \+ l\.list\.length \+ ' 条记录'\)"),
+    ("登录日志 按钮带失败条数", r"\(failN \? '（' \+ failN \+ '）' : ''\)"),
+    ("登录日志 按钮高亮跟状态", r"fb\.classList\.toggle\('on', !!l\.onlyFail\);"),
+    ("登录日志 开关函数", r"function toggleLoginFail\(\) \{"),
+    ("登录日志 开关能翻回来", r"S\.loginlog\.onlyFail = !S\.loginlog\.onlyFail;"),
+    ("登录日志 空态分开说（两个都没命中）", r"\(l\.onlyFail && q \? '没有匹配「' \+ esc\(q\) \+ '」的失败登录'"),
+    ("登录日志 空态分开说（没有失败）", r": \(l\.onlyFail \? '没有失败的登录记录'"),
+    ("登录日志 IP 命中上黄底", r"logHi\(x\.ip \|\| '—', q\)"),
+    ("登录日志 地址命中上黄底", r"logHi\(x\.address \|\| '—', q\)"),
+    ("登录日志 设备命中上黄底", r"logHi\(x\.platform \|\| '—', q\)"),
+    ("登录日志 按钮进委托选择器", r"'#btnLoginFail,' \+"),
+    ("登录日志 委托分支", r"if \(el\.id === 'btnLoginFail'\) return toggleLoginFail\(\);"),
+    ("登录日志 搜索框绑定", r"\$\('#loginSearch'\)\.addEventListener\('input', function \(e\) \{"),
+    ("登录日志 搜索本地重画", r"S\.loginlog\.q = e\.target\.value\.trim\(\); renderLoginLog\(\);"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

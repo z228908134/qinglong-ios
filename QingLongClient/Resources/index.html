@@ -800,6 +800,15 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
 
     <!-- 登录日志：面板「系统设置 → 登录日志」的移动版。 -->
     <section class="view" id="v-loginlog">
+      <!-- 1.0.36：最多 100 条，翻起来清一色「成功」，真正要看的那几条失败混在中间。
+           自己搭的面板挂在公网上，失败登录值得一眼看见 —— 给个「只看失败」开关
+           （按钮上带条数，不点开就知道今天有没有人试过）+ 一条搜索（IP / 地址 / 设备）。
+           列表是一次性整份拉回来的，所以纯本地过滤，不重打接口。 -->
+      <div class="searchbar"><input id="loginSearch" type="search" placeholder="搜索 IP / 地址 / 设备"
+        autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="cronbar">
+        <button class="cfbtn" id="btnLoginFail">只看失败</button>
+      </div>
       <div class="list" id="loginlogList"></div>
     </section>
 
@@ -1288,7 +1297,7 @@ var S = {
   /* 其他设置：cfg 是 GET /api/system/config 回来的 data.info。
      mods 是备份时勾选的模块（base 恒为真，见 BACKUP_MODULES）。 */
   sysconf: { cfg: null, loading: false, err: '', mods: { base: 1 } },
-  loginlog: { list: [], loading: false, err: '' },
+  loginlog: { list: [], loading: false, err: '', onlyFail: false, q: '' },
   /* 面板日志（面板「系统设置 → 系统日志」）。GET /api/system/log 回的是把区间内
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
@@ -5223,7 +5232,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.35';
+var APP_VER = '1.0.36';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -6589,11 +6598,55 @@ async function loadLoginLog(force) {
   renderLoginLog();
 }
 
+/* ---------- 登录日志的本地筛选（1.0.36） ----------
+   面板的 status 是 0 = 成功、1 = 失败（跟面板前端一样按下标取）。
+   单独抽一个函数：渲染、空态文案、按钮上的条数都要用它，
+   三处各写一遍 `Number(x.status) === 1` 迟早会有一处写歪。 */
+function loginlogFail(x) {
+  return Number(x && x.status) === 1;
+}
+/* 整份列表最多 100 条，所以「只看失败」和搜索都在本地做 —— 不重打接口。
+   搜索覆盖 IP / 登录地址 / 登录设备三个字段：面板上是分开的三栏，
+   但用户手里只有「这个 IP 是不是我」这一个念头。 */
+function loginlogFiltered() {
+  var l = S.loginlog;
+  var q = String(l.q || '').trim().toLowerCase();
+  return l.list.filter(function (x) {
+    if (l.onlyFail && !loginlogFail(x)) return false;
+    if (!q) return true;
+    return [x.ip, x.address, x.platform].some(function (v) {
+      return String(v == null ? '' : v).toLowerCase().indexOf(q) >= 0;
+    });
+  });
+}
+/* 「只看失败」开关。跟面板日志的「只看错误」一个意思，
+   区别是那边是纯文本流、这边是结构化列表，本地筛一遍就行。 */
+function toggleLoginFail() {
+  S.loginlog.onlyFail = !S.loginlog.onlyFail;
+  renderLoginLog();
+}
+
 function renderLoginLog() {
   var box = $('#loginlogList');
   if (!box) return;
   var l = S.loginlog;
-  $('#sub').textContent = l.list.length ? (l.list.length + ' 条记录') : '';
+  var q = String(l.q || '').trim();
+  var rows = loginlogFiltered();
+  var failN = l.list.filter(loginlogFail).length;
+  /* 筛过就说「命中 / 总数」—— 光说「N 条记录」看不出筛掉了多少。
+     没筛的时候也别写成「N / N」，那样反而像被筛过。 */
+  var filtered = !!l.onlyFail || !!q;
+  $('#sub').textContent = l.list.length
+    ? (filtered ? (rows.length + ' / ' + l.list.length + ' 条记录')
+                : (l.list.length + ' 条记录'))
+    : '';
+  /* 按钮文案 / 高亮跟着状态走，**顺带带上失败条数** ——
+     不点开就知道今天有没有人试过你的面板，这是这个开关一半的价值。 */
+  var fb = $('#btnLoginFail');
+  if (fb) {
+    fb.textContent = l.onlyFail ? '看全部' : ('只看失败' + (failN ? '（' + failN + '）' : ''));
+    fb.classList.toggle('on', !!l.onlyFail);
+  }
   if (l.loading && !l.list.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>读取登录日志…</div>';
     return;
@@ -6607,18 +6660,29 @@ function renderLoginLog() {
     box.innerHTML = '<div class="empty"><span class="ei">▤</span>还没有登录记录</div>';
     return;
   }
-  box.innerHTML = l.list.map(function (x, i) {
+  /* 三种「空」要分开说：只筛失败 / 只搜词 / 两个一起。
+     笼统一句「没有记录」的话，用户会以为日志被清掉了。 */
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">▤</span>' +
+      (l.onlyFail && q ? '没有匹配「' + esc(q) + '」的失败登录'
+        : (l.onlyFail ? '没有失败的登录记录'
+          : '没有匹配「' + esc(q) + '」的登录记录')) + '</div>';
+    return;
+  }
+  box.innerHTML = rows.map(function (x, i) {
     /* 0 = 成功，1 = 失败。跟面板前端一样按下标取，认不出的值原样显示。 */
     var ok = Number(x.status) === 0;
     var st = (x.status === 0 || x.status === 1) ? { t: ok ? '成功' : '失败', c: ok ? 'green' : 'red' }
                                                 : { t: '状态 ' + x.status, c: 'gray' };
+    /* 序号按**筛完的列表**数：「第 3 条」= 你正在看的第 3 行。
+       三个字段都过一遍高亮 —— 搜完只是列表变短、命中在哪还得自己找的话，等于没搜。 */
     return '<div class="item">' +
       '<div class="row"><div class="nm sp">' + esc(fmtFull(x.timestamp)) + '</div>' + pill(st) + '</div>' +
       '<div class="f11 t3" style="margin-top:6px">第 ' + (i + 1) + ' 条</div>' +
       '<div class="meta">' +
-        '<div class="kv"><span class="k">登录地址</span><span class="v">' + esc(x.address || '—') + '</span></div>' +
-        '<div class="kv"><span class="k">登录 IP</span><span class="v mono">' + esc(x.ip || '—') + '</span></div>' +
-        '<div class="kv"><span class="k">登录设备</span><span class="v">' + esc(x.platform || '—') + '</span></div>' +
+        '<div class="kv"><span class="k">登录地址</span><span class="v">' + logHi(x.address || '—', q) + '</span></div>' +
+        '<div class="kv"><span class="k">登录 IP</span><span class="v mono">' + logHi(x.ip || '—', q) + '</span></div>' +
+        '<div class="kv"><span class="k">登录设备</span><span class="v">' + logHi(x.platform || '—', q) + '</span></div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -7114,6 +7178,13 @@ function bind() {
     clearTimeout(t5);
     t5 = setTimeout(function () { S.configs.q = e.target.value.trim(); renderConfigs(); }, 350);
   });
+  /* 1.0.36：登录日志的搜索。同样**不用 loadLoginLog()** —— 最多 100 条，
+     整份已经在手上，重打接口只是白等一次；直接重画。 */
+  var t6 = null;
+  $('#loginSearch').addEventListener('input', function (e) {
+    clearTimeout(t6);
+    t6 = setTimeout(function () { S.loginlog.q = e.target.value.trim(); renderLoginLog(); }, 350);
+  });
 
   /* 脚本页的「+」：只负责开合下拉菜单，具体动作交给事件委托（菜单项带 data-sact）。
      stopPropagation 是为了不让这次点击冒泡到下面的「点别处收菜单」监听里。 */
@@ -7233,6 +7304,8 @@ function onClick(ev) {
     '#btnDepEdit,#btnDepAll,' +
     /* 1.0.33：变量页「全部折叠 / 全部展开」 */
     '#btnEnvFold,' +
+    /* 1.0.36：登录日志的「只看失败」开关 */
+    '#btnLoginFail,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
     '#btnCronLogErr,#btnSysLogErr,#btnSysLogCopy,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
@@ -7646,6 +7719,12 @@ function onClick(ev) {
   }
   if (el.id === 'btnSaveCfg') return saveConfig(el.dataset.name);
   if (el.id === 'btnNewCfgOk') return createConfig();
+
+  /* ---------- 登录日志 ---------- */
+  /* 1.0.36：「只看失败」开关。跟面板日志那个「只看错误」不是一套代码
+     （那边是纯文本流要重新分行筛选，这边是结构化列表本地 filter 一遍），
+     但按钮的位置和手感对齐。 */
+  if (el.id === 'btnLoginFail') return toggleLoginFail();
 
   /* 「所有功能」网格里的跳转卡片（依赖 / 配置 / 日志没有底栏 tab，从这里进）。
      切页之前**必须先关弹层** —— 这几张卡原来也在系统设置弹层里出现过（1.0.15 已撤），

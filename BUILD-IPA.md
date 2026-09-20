@@ -15,10 +15,24 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35502447792`，commit `17bc384`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.37-trollstore.ipa`（197375 字节） |
-| SHA256 | `6d86a555bbb535a18a821d0a64405b6f835184826a4ead7a76c118f74a87d64e` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.37-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35507058754`，commit `16ada4b`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.38-trollstore.ipa`（199901 字节） |
+| SHA256 | `fb5e61099152c76c0b3856df830f69f69db3e4bbda9683483030f7ef30929350` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.38-trollstore`（保留 30 天） |
+
+> **1.0.38：任务详情里加一行「日志历史」**：
+> - **详情「其他 → 日志历史」**：跳到独立的历史日志页（不再像以前那样跳日志页 +
+>   停在任务目录里 —— 那条路不直观）。
+> - **数据不用新接口**：日志树（GET /api/logs）里这个任务的目录节点就带着
+>   `children`（含 `size` / `createTime`），跟 `/api/crons/{id}/logs` 返回的是同一批文件。
+>   少打一个接口，也就没有「老面板不支持这个接口」那一档要处理。
+> - **文件按名字倒序**（最新在前）。文件名形如
+>   `2026-09-18-08-00-03-118.log`，字典序就是时间序，
+>   比解析日期可靠（不同版本格式还不一样）。
+> - **顶卡显示日志目录名**：任务可以自定义 `log_name`，出问题时要在面板上对得上路径。
+> - **「一份都没有」是空态**（「跑一次之后这里就有」），不甩一片空白。
+> - **详情页那行也跟新**：先写「查看历史日志」，树拉完就地换「N 个文件」，
+>   不点开就知道这个任务攒了多少份。
 
 > **1.0.37：多实例任务能看运行实例了 —— 起了几个、哪个卡住了、停哪一个**：
 > - **任务详情「其他 → 运行实例」**（只给开了「允许同时运行多个实例」的任务）：
@@ -33,7 +47,7 @@
 > - **老面板没这个接口时明说**（`/api/crons/{id}/instances` 是较新版本才有的）：
 >   页面写「这个面板版本还不支持运行实例列表」，不把「服务器错误 HTTP 404」甩给用户。
 >
-> **装 1.0.37，别装 1.0.36 及更早的**。
+> **装 1.0.38，别装 1.0.37 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -52,12 +66,13 @@
 > 1.0.35 加了「我的」页的「最近打开」、订阅 / 依赖两页的搜索命中高亮、配置文件页搜索。
 > 1.0.36 给登录日志加了「只看失败」（带条数）+ 按 IP / 地址 / 设备的搜索。
 > 1.0.37 给多实例任务加了运行实例列表（看几个在跑、单独停掉某一个）。
+> 1.0.38 给任务详情加了「日志历史」直达页（按时间倒序挑出这个任务的所有日志文件）。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.37-trollstore.ipa
-# 应该得到 6d86a555bbb535a18a821d0a64405b6f835184826a4ead7a76c118f74a87d64e
+sha256sum QingLongClient-1.0.38-trollstore.ipa
+# 应该得到 fb5e61099152c76c0b3856df830f69f69db3e4bbda9683483030f7ef30929350
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -227,7 +242,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.37-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.38-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -239,15 +254,15 @@ qinglong-ios/out/QingLongClient-1.0.37-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.37-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.38-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 435442 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.37（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 444275 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.38（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -261,7 +276,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.37-trollstore.ipa
 | 1.0.16 新增：面板卡头像 `class="hav"` | ✅ |
 | 1.0.16 新增：日志搜索 `id="logSearch"` + `logKeyPath()` | ✅ |
 | 1.0.17 新增：头像走 fetch（`await fetch(avStaticUrl(`）/ `blobToDataUrl` / `paintAvatars` / `class="avbig"` | ✅ 4 个锚点全在 |
-| 1.0.17 新增：任务详情三处直达（`data-goscript=` / `data-gocronlog=` / `data-gocronlogdir=` / `scriptPathOf` / `shortPath` / `ensureLogTree`） | ✅ 6 个锚点全在 |
+| 1.0.17 新增：任务详情三处直达（`data-goscript=` / `data-gocronlog=` / `data-gocronlogs=` / `scriptPathOf` / `shortPath` / `ensureLogTree`） | ✅ 6 个锚点全在 |
 | 1.0.18 修复：`.kvrow .v` 的 `min-width:0` / `.btn` 的 `white-space:nowrap` | ✅ 都在 |
 | 1.0.19 新增：日志级别上色 `logBoxHtml` / 「只看错误」`id="btnLogErr"` / 行号列 `.logbox .ln{` | ✅ 都在 |
 | 1.0.19 新增：日志文件倒序 `sortLogNodes` / 运行后滚到日志区 `scrollToCronLog` | ✅ 都在 |
@@ -457,6 +472,36 @@ python tools/verify_ipa.py out/QingLongClient-1.0.37-trollstore.ipa
 | 1.0.37 新增：运行实例 委托选择器（`[data-goinst],[data-inststop]`） | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 委托分支 跳转（`el.dataset.goinst`） | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 委托分支 停止（`el.dataset.inststop`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 视图（`<section class="view" id="v-cronlogs">`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 标题（`cronlogs: '历史日志'`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 状态字段（`id` / `name` / `list` / `loading` / `err` / `dirKey` / `dirName`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 挑文件只要文件（`x.type !== 'directory'`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 文件按名字倒序（最新在前） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 没目录返回空数组 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 详情页文案（树未拉） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 详情页文案（无日志） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 跳转函数（`gotoCronLogs`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 跳走前记来源 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 切到 `cronlogs` 页 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 任务不在列表要给说得清的错 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 `force` 清日志树缓存 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 拉完把文件填进列表 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 记住目录 `key`（给「在日志目录里浏览」用） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 跳日志目录要真的停在那层 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 副标题「N 个日志文件」 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 顶卡显示日志目录名 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 「在日志目录里浏览」按钮 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 空态（跑一次之后这里就有） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 列表项存树节点完整 `key` | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 每条显示文件大小 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 委托选择器（`gocronlogs` / `cronlogopen`） | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 委托分支 跳转 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 委托分支 打开某一份 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 三个按钮进 `closest` 选择器 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 `refresh` 管这一页 | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 详情页那行可补数字的 `id` | ✅ 1 个锚点全在 |
+| 1.0.38 新增：历史日志 树拉完补「N 个文件」到那行 | ✅ 1 个锚点全在 |
+| 1.0.38 跟进：运行实例 选择器锚点改成带 `,' +`（后加新末行） | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 刷新 / 重试按钮进 closest 选择器 | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 refresh 管这一页（下拉刷新重拉） | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 换任务先清旧列表（`S.instances.list = []`） | ✅ 1 个锚点全在 |

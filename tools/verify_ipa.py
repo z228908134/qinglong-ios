@@ -485,7 +485,9 @@ FEATURES = [
     ("历史日志 没目录返回空", r"var files = \(\(dir && dir\.children\) \|\| \[\]\)\.filter"),
     ("历史日志 详情页未拉树文案", r"if \(!S\.logs\.tree\.length\) return '查看历史日志';"),
     ("历史日志 详情页无日志文案", r"return n \? \(n \+ ' 个文件'\) : '暂无日志';"),
-    ("历史日志 跳走记来源", r"S\.backTo = from;\n  S\.cronlogs\.id = t\.id;"),
+    # 跨行的锚点得容忍 \r\n：ipa 里的页面是 build.py 用文本模式写的（默认 CRLF），
+    # 而 verify 是把字节当 str 解码出来（不做换行归一化），pattern 里写死 \n 就漏了。
+    ("历史日志 跳走记来源", r"S\.backTo = from;[\r\n]+  S\.cronlogs\.id = t\.id;"),
     ("历史日志 切到这一页", r"setTab\('cronlogs'\);"),
     ("历史日志 任务不在列表", r"v\.err = '这个任务已经不在当前列表里了';"),
     ("历史日志 刷新清日志树缓存", r"if \(force\) S\.logs\.tree = \[\];"),

@@ -15,11 +15,28 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35507058754`，commit `16ada4b`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.38-trollstore.ipa`（199901 字节） |
-| SHA256 | `fb5e61099152c76c0b3856df830f69f69db3e4bbda9683483030f7ef30929350` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.38-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35515955275`，commit `dc80a81`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.39-trollstore.ipa`（201867 字节） |
+| SHA256 | `3147823f159b95705e75d70977facb1d2bf0b21935a29db740db0c3ff22c46b3` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.39-trollstore`（保留 30 天） |
 
+## 1.0.39：批量加 / 删标签（任务页 + 变量页）
+
+任务页 / 变量页批量栏各加一行「加标签 / 删标签」—— 以前标签只能一条条加
+（详情 → 编辑 → 粘贴标签 → 保存），想把「京东」一类任务全贴上得逐个点；
+现在批量栏勾几个点一下，弹层输入标签一次搞定。
+
+- 走 POST/DELETE `/api/{crons,envs}/labels`，跟面板 web 端同一条路，不用新接口。
+- 标签动作**不按状态过滤**：已禁用任务也能贴标签 ——「用标签找回已禁用任务」这条路不断。
+- `splitLabels` 拆用户输入：逗号 / 空格 / 中文逗号 / `#` 都算分隔，
+  `#京东` 这种面板学来的写法也兼容；空字符串自动忽略。
+- `promptLabels` 弹层两页共用，点「确定」取标签，「取消」啥也不发。
+  选了几条、给任务还是给变量、贴还是撕，弹层标题都说清。
+- 测试 **1892** 项全过；全量变异 **644** 条 0 MISS / 0 SKIP / 0 BROKEN（31 分钟）。
+  FEATURES **359** 条 0 失配；逐字节一致。
+- ipa **201867** 字节 sha256 `3147823f…`；三方 450302 字节 / `2ca77d76…`（android +50）。
+
+## 1.0.38：任务的历史日志列表
 > **1.0.38：任务详情里加一行「日志历史」**：
 > - **详情「其他 → 日志历史」**：跳到独立的历史日志页（不再像以前那样跳日志页 +
 >   停在任务目录里 —— 那条路不直观）。
@@ -47,7 +64,7 @@
 > - **老面板没这个接口时明说**（`/api/crons/{id}/instances` 是较新版本才有的）：
 >   页面写「这个面板版本还不支持运行实例列表」，不把「服务器错误 HTTP 404」甩给用户。
 >
-> **装 1.0.38，别装 1.0.37 及更早的**。
+> **装 1.0.39，别装 1.0.38 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -67,12 +84,13 @@
 > 1.0.36 给登录日志加了「只看失败」（带条数）+ 按 IP / 地址 / 设备的搜索。
 > 1.0.37 给多实例任务加了运行实例列表（看几个在跑、单独停掉某一个）。
 > 1.0.38 给任务详情加了「日志历史」直达页（按时间倒序挑出这个任务的所有日志文件）。
+> 1.0.39 给任务 / 变量页批量栏加了「加 / 删标签」两个按钮（共用 promptLabels 弹层）。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.38-trollstore.ipa
-# 应该得到 fb5e61099152c76c0b3856df830f69f69db3e4bbda9683483030f7ef30929350
+sha256sum QingLongClient-1.0.39-trollstore.ipa
+# 应该得到 3147823f159b95705e75d70977facb1d2bf0b21935a29db740db0c3ff22c46b3
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -242,7 +260,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.38-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.39-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -254,15 +272,15 @@ qinglong-ios/out/QingLongClient-1.0.38-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.38-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.39-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 444275 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.38（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 450302 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.39（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -501,6 +519,24 @@ python tools/verify_ipa.py out/QingLongClient-1.0.38-trollstore.ipa
 | 1.0.38 新增：历史日志 `refresh` 管这一页 | ✅ 1 个锚点全在 |
 | 1.0.38 新增：历史日志 详情页那行可补数字的 `id` | ✅ 1 个锚点全在 |
 | 1.0.38 新增：历史日志 树拉完补「N 个文件」到那行 | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 `splitLabels` 顶层函数（拆用户输入的标签串） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 `splitLabels` 拆分规则（逗号 / 空格 / 中文逗号 / `#` 都算分隔） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 `splitLabels` 去掉空串（用户输入「,,,」光有分隔符时为空数组） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 `promptLabels` 顶层函数（任务页 / 变量页共用弹层） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 弹层输入框 `id="plInput"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 确定按钮 `id="plOk"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 取消按钮 `id="plCancel"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 弹层标题说清「给选中的 N 个任务 / 变量 添加 / 删除 标签」 | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 任务页 加标签按钮 `data-cbatch="addlabel"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 任务页 删标签按钮 `data-cbatch="removelabel"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 变量页 加标签按钮 `data-ebatch="addlabel"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 变量页 删标签按钮 `data-ebatch="removelabel"` | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 任务页 method 三元 + `/api/crons/labels`（POST/DELETE 切换） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 变量页 method 三元 + `/api/envs/labels`（POST/DELETE 切换） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 任务页 不过滤（已禁用任务也能贴标签） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 变量页 不过滤（已禁用变量也能贴标签） | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 任务页 `promptLabels('cron', ...)` 调弹层 | ✅ 1 个锚点全在 |
+| 1.0.39 新增：批量标签 变量页 `promptLabels('env', ...)` 调弹层 | ✅ 1 个锚点全在 |
 | 1.0.38 跟进：运行实例 选择器锚点改成带 `,' +`（后加新末行） | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 刷新 / 重试按钮进 closest 选择器 | ✅ 1 个锚点全在 |
 | 1.0.37 新增：运行实例 refresh 管这一页（下拉刷新重拉） | ✅ 1 个锚点全在 |

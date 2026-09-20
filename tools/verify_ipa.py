@@ -343,7 +343,7 @@ FEATURES = [
     ("订阅批量 动作分支", r"if \(el\.dataset\.sbatch\) return subBatch\(el\.dataset\.sbatch\);"),
     ("订阅批量 点整行勾选", r"if \(S\.subs\.edit\) return toggleSubSel\(Number\(el\.dataset\.sub\)\);"),
     ("订阅批量 卡片挂 data-sub", r'" data-sub="\' \+ x\.id'),
-    ("订阅批量 编辑态勾选圈", r"\(editing \? '<span class=\"ckb\">✓</span>' : ''\) \+\s*'<div class=\"nm sp\">' \+ esc\(x\.name \|\| x\.alias \|\| '未命名订阅'\)"),
+    ("订阅批量 编辑态勾选圈", r"\(editing \? '<span class=\"ckb\">✓</span>' : ''\) \+\s*'<div class=\"nm sp\">' \+ logHi\(x\.name \|\| x\.alias \|\| '未命名订阅', s\.q\)"),
     ("订阅批量 编辑态行内按钮收起", r"\(editing \? '' :\s*'<div class=\"row\" style=\"gap:8px;margin-top:10px\">' \+\s*'<button class=\"btn\" style=\"flex:1;padding:8px\" data-subact="),
     ("订阅批量 退出清勾选", r"if \(!S\.subs\.edit\) S\.subs\.sel = \{\};"),
     ("订阅批量 运行过滤在拉取的", r"go = picked\.filter\(function \(x\) \{ return !subRunning\(x\); \}\);"),

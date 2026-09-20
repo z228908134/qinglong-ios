@@ -2545,9 +2545,13 @@ async function cronBatch(act) {
   var picked = S.crons.list.filter(function (t) { return ids.indexOf(t.id) >= 0; });
   /* 1.0.34：先按选中项的状态过滤，只发有用的那些（跟依赖页 1.0.31 一个思路）。
      以前是原样全发 —— 选 10 个、里面有 3 个正在跑，点「运行」会把那 3 个再触发一遍；
-     给一批已经启用的点「启用」也是白跑一趟接口。 */
+     给一批已经启用的点「启用」也是白跑一趟接口。
+     1.0.39：标签动作（addlabel / removelabel）不过滤 —— 已禁用的也得能贴 / 撕，
+     不然「用标签找回已禁用任务」这条路就断了。 */
   var go = picked, why = '';
-  if (act === 'run') {
+  if (act === 'addlabel' || act === 'removelabel') {
+    /* 走原样的 picked，不按状态过滤 */
+  } else if (act === 'run') {
     go = picked.filter(function (t) { return !isBusy(t); });
     why = '选中的都在运行中，不用再启动';
   } else if (act === 'stop') {
@@ -2570,6 +2574,17 @@ async function cronBatch(act) {
     else if (act === 'enable') { label = '已启用'; await api('/api/crons/enable', { method: 'PUT', body: send }); }
     else if (act === 'disable') { label = '已禁用'; await api('/api/crons/disable', { method: 'PUT', body: send }); }
     else if (act === 'delete') { label = '已删除'; await api('/api/crons', { method: 'DELETE', body: send }); }
+    /* 1.0.39：批量加 / 删标签。复用 POST/DELETE /api/crons/labels
+       （body = { ids: [], labels: [] }）。弹层里让用户输入标签，
+       拆分后连同筛选过的 id 一起发。标签动作不按状态过滤 —— 已禁用的
+       任务也要能贴标签（贴完还得用这个标签去找回它）。 */
+    else if (act === 'addlabel' || act === 'removelabel') {
+      var labels = await promptLabels('cron', send.length, act);
+      if (!labels) return;
+      label = act === 'addlabel' ? '已添加标签' : '已删除标签';
+      var method = act === 'addlabel' ? 'POST' : 'DELETE';
+      await api('/api/crons/labels', { method: method, body: { ids: send, labels: labels } });
+    }
     else return;
     batchDone(label, send, ids.length - send.length);
     toggleCronEdit(false);
@@ -2623,6 +2638,14 @@ function renderCronEditBar() {
       '<button class="btn danger" data-cbatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
       '<span class="f11 t3" style="white-space:nowrap">' +
         (busy ? selHint(n, busy, '运行中') : selHint(n, offN, '已禁用')) + '</span>' +
+    '</div>' +
+    /* 1.0.39 第三行：加 / 删标签。
+       「已选 N」挪到这一行尾巴上 —— 状态那行的「运行中/已禁用」只关心跑不跑 / 启不启用，
+       标签动作不挑状态，放一起没意义。 */
+    '<div class="row" style="gap:8px;margin-top:8px">' +
+      '<button class="btn" data-cbatch="addlabel" style="flex:1;padding:9px 4px">加标签</button>' +
+      '<button class="btn" data-cbatch="removelabel" style="flex:1;padding:9px 4px">删标签</button>' +
+      '<span class="f11 t3" style="white-space:nowrap">' + selHint(n, 0, '已选') + '</span>' +
     '</div>';
 }
 
@@ -3534,6 +3557,60 @@ function openCronMore(id) {
    还有 POST/DELETE /api/envs/labels 可以批量加删。这里只做「显示 + 筛选 + 编辑」，
    批量加删标签先不做 —— 手机上多选操作体验不好。 */
 
+/* 用户在批量加 / 删标签弹层里输入的标签字符串拆成数组 —— 逗号（中英都行）、
+   空格、换行都算分隔，**带不带「#」都行**（用户从面板学来的「#京东」这种写法）。
+
+   没有 `.map(trim)`：**所有空白本身就在分隔符里**，切出来的 token 不可能带空白，
+   trim 是死代码。留着它的代价是「改不动」—— 变异把 `.map(trim)` 删掉之后
+   `return` 后头直接换行，ASI 插一个分号，下一行的 `.filter` 变成
+   `SyntaxError: Unexpected token '.'`，整份脚本挂掉（1.0.39 实测 BROKEN）。
+   filter 去空串是必须的：输入「,,,」光有分隔符，split 出来一串空串。 */
+function splitLabels(text) {
+  return String(text || '').split(/[,，\s#]+/)
+    .filter(function (s) { return s.length > 0; });
+}
+
+/* 批量加 / 删标签用的输入弹层。共用一份，任务页 / 变量页都用。
+   返回 Promise：用户点了「确定」且至少填了一个标签 → resolve(数组)；
+   点了「取消」或没填 → resolve(null)（调用方当取消处理）。
+   kind = 'cron' | 'env'：标题 / 接口前缀不一样。act = 'addlabel' | 'removelabel'：标题用词。 */
+function promptLabels(kind, count, act) {
+  return new Promise(function (resolve) {
+    var what = kind === 'cron' ? '任务' : '变量';
+    var verb = act === 'addlabel' ? '添加' : '删除';
+    var h = '';
+    h += '<div style="padding:6px 4px 14px">' +
+      '<div class="f13 t2" style="margin-bottom:10px">' +
+      '给选中的 <b>' + count + '</b> 个' + what + ' ' + verb + '标签</div>' +
+      '<input id="plInput" placeholder="多个标签用逗号 / 空格分隔" ' +
+      'autocapitalize="off" autocorrect="off" spellcheck="false" ' +
+      'style="width:100%;padding:9px 10px;border:1px solid #d0d0d0;' +
+      'border-radius:6px;background:#fff;outline:none">' +
+      '<div class="f11 t3" style="margin-top:8px">标签会按字面写入（不去前后空格），空字符串会被忽略。</div>' +
+      '</div>';
+    h += '<div class="row" style="gap:8px">' +
+      '<button class="btn pri" id="plOk" style="flex:1;padding:9px 4px">确定</button>' +
+      '<button class="btn" id="plCancel" style="flex:1;padding:9px 4px">取消</button>' +
+      '</div>';
+    openSheet(verb + '标签', h);
+    var input = $('#plInput');
+    if (input) {
+      input.focus();
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); ok(); }
+      });
+    }
+    function ok() {
+      var labels = splitLabels(input ? input.value : '');
+      if (!labels.length) { toast('至少填一个标签', true); return; }
+      closeSheet();
+      resolve(labels);
+    }
+    $('#plOk').addEventListener('click', ok);
+    $('#plCancel').addEventListener('click', function () { closeSheet(); resolve(null); });
+  });
+}
+
 /* 标签色号：按名字算 hash 取模。同名一定同色，不需要维护映射表。 */
 function tagCls(name) {
   var s = String(name == null ? '' : name), h = 0;
@@ -3863,9 +3940,12 @@ async function envBatch(act) {
   if (!ids.length) { toast('先选几个变量', true); return; }
   var picked = S.envs.list.filter(function (v) { return ids.indexOf(v.id) >= 0; });
   /* 1.0.34：启用 / 禁用先按状态过滤（status 0 = 已启用，1 = 已禁用）。
-     给一批已经启用的点「启用」是白跑一趟接口。 */
+     给一批已经启用的点「启用」是白跑一趟接口。
+     1.0.39：标签动作（addlabel / removelabel）不过滤 —— 已禁用的变量也能贴 / 撕。 */
   var go = picked, why = '';
-  if (act === 'enable') {
+  if (act === 'addlabel' || act === 'removelabel') {
+    /* 走原样的 picked */
+  } else if (act === 'enable') {
     go = picked.filter(function (v) { return v.status === 1; });
     why = '选中的都已经启用了';
   } else if (act === 'disable') {
@@ -3880,6 +3960,17 @@ async function envBatch(act) {
     if (act === 'enable') { label = '已启用'; await api('/api/envs/enable', { method: 'PUT', body: send }); }
     else if (act === 'disable') { label = '已禁用'; await api('/api/envs/disable', { method: 'PUT', body: send }); }
     else if (act === 'delete') { label = '已删除'; await api('/api/envs', { method: 'DELETE', body: send }); }
+    /* 1.0.39：批量加 / 删标签（同任务页）。变量页原来的注释说
+       「批量加删标签先不做 —— 手机上多选操作体验不好」，
+       但用户实际用下来：「双11」/「过期」这种场景一次贴一组比一个个点省太多事。
+       体验问题改成弹个输入层解决：选了之后弹一个，输完即生效。 */
+    else if (act === 'addlabel' || act === 'removelabel') {
+      var labels = await promptLabels('env', send.length, act);
+      if (!labels) return;
+      label = act === 'addlabel' ? '已添加标签' : '已删除标签';
+      var method = act === 'addlabel' ? 'POST' : 'DELETE';
+      await api('/api/envs/labels', { method: method, body: { ids: send, labels: labels } });
+    }
     /* 1.0.29：批量复制 —— 换 cookie 时经常要一次抠多个值（标签筛「京东」后批量复制走人）。
        单选：复制值；多选：复制「名=值」格式（一眼能分清哪个 cookie 是哪个账号，
        且能直接 export 到 bash）。复制完不退出编辑、不刷新列表 —— 用户可能接着启/删。
@@ -3921,6 +4012,12 @@ function renderEnvEditBar() {
       '<button class="btn" data-ebatch="copy" style="flex:1;padding:9px 4px">复制值</button>' +
       '<button class="btn danger" data-ebatch="delete" style="flex:1;padding:9px 4px">删除</button>' +
       '<span class="f11 t3" style="white-space:nowrap">' + selHint(n, onN, '已启用') + '</span>' +
+    '</div>' +
+    /* 1.0.39 第三行：加 / 删标签（同任务页）。 */
+    '<div class="row" style="gap:8px;margin-top:8px">' +
+      '<button class="btn" data-ebatch="addlabel" style="flex:1;padding:9px 4px">加标签</button>' +
+      '<button class="btn" data-ebatch="removelabel" style="flex:1;padding:9px 4px">删标签</button>' +
+      '<span class="f11 t3" style="white-space:nowrap">' + selHint(n, 0, '已选') + '</span>' +
     '</div>';
 }
 
@@ -5596,7 +5693,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.38';
+var APP_VER = '1.0.39';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

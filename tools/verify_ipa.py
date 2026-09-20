@@ -472,6 +472,34 @@ FEATURES = [
     ("运行实例 refresh 管这一页", r"if \(S\.tab === 'instances'\) return loadInstances\(S\.instances\.id, true\);"),
     ("运行实例 换任务先清旧列表", r"S\.instances\.list = \[\];"),
 
+    # 1.0.39：批量加 / 删标签（任务页 + 变量页）。以前标签只能一条条加，
+    #   想把「京东」一类任务全贴上得逐个点详情、编辑、保存。批量标签
+    #   走 POST/DELETE /api/{crons,envs}/labels，跟面板 web 端同一条路。
+    ("批量标签 splitLabels 顶层函数", r"function splitLabels\(text\) \{"),
+    ("批量标签 拆分规则 含#", r"split\(\/\[,，\\s#\]\+\/\)"),
+    ("批量标签 去掉空串", r"\.filter\(function \(s\) \{ return s\.length > 0; \}\)"),
+    ("批量标签 promptLabels 顶层", r"function promptLabels\(kind, count, act\) \{"),
+    ("批量标签 弹层输入框", r'id="plInput"'),
+    ("批量标签 确定按钮", r'id="plOk"'),
+    ("批量标签 取消按钮", r'id="plCancel"'),
+    ("批量标签 提示条目数", r"'给选中的 <b>' \+ count \+ '</b> 个'"),
+    ("批量标签 任务页 加标签 按钮", r'data-cbatch="addlabel"'),
+    ("批量标签 任务页 删标签 按钮", r'data-cbatch="removelabel"'),
+    ("批量标签 变量页 加标签 按钮", r'data-ebatch="addlabel"'),
+    ("批量标签 变量页 删标签 按钮", r'data-ebatch="removelabel"'),
+    # method 三元表达式 + 端点 + body 都得在源码里。两条分页锚。
+    ("批量标签 任务 method 切换", r"var method = act === 'addlabel' \? 'POST' : 'DELETE';"
+                                  r"\s*await api\('\/api\/crons\/labels', \{ method: method, body: \{ ids: send, labels: labels \} \}"),
+    ("批量标签 变量 method 切换", r"var method = act === 'addlabel' \? 'POST' : 'DELETE';"
+                                  r"\s*await api\('\/api\/envs\/labels', \{ method: method, body: \{ ids: send, labels: labels \} \}"),
+    # 标签动作不过滤：「如果 addlabel/removelabel 也被过滤」会导致已禁用任务
+    # 永远贴不上标签 → 用标签找回已禁用任务这条路断了。
+    ("批量标签 任务页 不过滤", r"if \(act === 'addlabel' \|\| act === 'removelabel'\) \{\s*\/\* 走原样的 picked，不按状态过滤 \*\/\s*\} else if \(act === 'run'\)"),
+    ("批量标签 变量页 不过滤", r"if \(act === 'addlabel' \|\| act === 'removelabel'\) \{\s*\/\* 走原样的 picked \*\/\s*\} else if \(act === 'enable'\)"),
+    # cronBatch / envBatch 调 promptLabels（不弹层也行，但表达式得在）。
+    ("批量标签 任务页 调 promptLabels", r"promptLabels\('cron', send\.length, act\)"),
+    ("批量标签 变量页 调 promptLabels", r"promptLabels\('env', send\.length, act\)"),
+
     # 1.0.38：任务的历史日志列表。
     #   「最新日志」只有一条，想看昨天那次跑成什么样得自己在日志目录里翻，
     #   文件名都是 2026-09-18-08-00-03-118.log 这种，找「昨天那次」得逐个认。

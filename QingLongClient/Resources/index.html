@@ -398,14 +398,16 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   font-size:calc(14px*var(--fs));line-height:1;font-family:inherit}
 .grphdr .gcoll:focus{outline:none}
 .grplist{display:flex;flex-direction:column;gap:10px}
-/* 1.0.32：变量搜索的「上 / 下一个」。搜「jd」能出二十来条，分组之后还散在各组里，
-   有的组还折着 —— 逐个滑着找很累，点箭头直接跳过去并把它圈出来。 */
-.envjump{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin:-4px 0 12px}
-.envjump .jb{min-width:32px;height:30px;padding:0 8px;border:none;border-radius:9px;background:var(--fill);
+/* 1.0.32：搜索结果的「上 / 下一个」，1.0.33 起**三处共用**（任务 / 变量 / 脚本树）。
+   搜「jd」能出二十来条，还散在各组各层里 —— 逐个滑着找很累，
+   点箭头直接跳过去并把它圈出来。三处长得一模一样是故意的：
+   学会一次，三处都会用。 */
+.hitjump{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin:-4px 0 12px}
+.hitjump .jb{min-width:32px;height:30px;padding:0 8px;border:none;border-radius:9px;background:var(--fill);
   color:var(--text);font-size:calc(14px*var(--fs));line-height:1;cursor:pointer;font-family:inherit}
-.envjump .jb:focus{outline:none}
+.hitjump .jb:focus{outline:none}
 /* 计数用等宽数字：从 9 跳到 10 时不会左右抖一下 */
-.envjump .jn{min-width:52px;text-align:center;font-size:calc(12px*var(--fs));color:var(--text2);
+.hitjump .jn{min-width:52px;text-align:center;font-size:calc(12px*var(--fs));color:var(--text2);
   font-variant-numeric:tabular-nums}
 /* 当前跳到的那条套一圈黄边。用 outline 而不是 background —— 背景会跟编辑模式的
    选中态 .item.on 撞在一起，看不出到底跳没跳。黄边沿用命中的那个黄，不跟主题变量。 */
@@ -671,6 +673,13 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
            拉不到（老面板没这个接口）或一个视图都没有时整条藏起来，任务页照常可用。 -->
       <div class="viewtabs hidden" id="cronViewTabs"></div>
       <div class="searchbar"><input id="cronSearch" type="search" placeholder="搜索任务名 / 命令 / 标签" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <!-- 1.0.33：搜出结果后逐个跳，跟变量页 1.0.32 那一套一模一样。
+           没搜东西 / 没结果时整条藏起来（renderCrons 控制显隐）。 -->
+      <div class="hitjump hidden" id="cronJump">
+        <button class="jb" data-cronjump="-1" aria-label="上一个匹配">↑</button>
+        <span class="jn" id="cronJumpN">-/0</span>
+        <button class="jb" data-cronjump="1" aria-label="下一个匹配">↓</button>
+      </div>
       <!-- 工具条：左边「编辑」（进批量模式），右边四个状态筛选，排布照青龙网页版。
            四个筛选跟后端 status 字段一一对应 —— 运行中 0 / 未使用 1 / 已禁用 2
            （排队中 3 归进「运行中」，它也是「在用」）。见 cronBucket()。 -->
@@ -685,7 +694,7 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
     <section class="view" id="v-envs">
       <div class="searchbar"><input id="envSearch" type="search" placeholder="搜索变量名" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <!-- 1.0.32：搜出结果后逐个跳。没搜东西 / 没结果时整条藏起来（renderEnvs 控制显隐）。 -->
-      <div class="envjump hidden" id="envJump">
+      <div class="hitjump hidden" id="envJump">
         <button class="jb" data-envjump="-1" aria-label="上一个匹配">↑</button>
         <span class="jn" id="envJumpN">-/0</span>
         <button class="jb" data-envjump="1" aria-label="下一个匹配">↓</button>
@@ -695,10 +704,17 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
            是换 cookie 时的常规操作。 -->
       <div class="cronbar">
         <button class="cfbtn" id="btnEnvEdit">编辑</button>
+        <!-- 1.0.33：一键全部展开 / 全部折叠。一组一组点太慢 ——
+             「京东 / 京东2 / 京东bk」混一堆时，常常想直接收起来看顶层。
+             文案跟着状态变（有展开的就叫「全部折叠」，全折着就叫「全部展开」）。 -->
+        <button class="cfbtn" id="btnEnvFold">全部折叠</button>
       </div>
       <!-- 标签筛选条：点一个标签就只看带这个标签的变量，选中态高亮。
            没有标签时不占位置（renderEnvs 里控制显隐）。 -->
       <div class="tagbar hidden" id="envTagBar"></div>
+      <!-- 1.0.33：按**状态**筛选。变量一多（几百个 cookie），最常做的不是「按名字找」，
+           是「找出哪些被禁用了」—— 光靠标签筛不出来（标签是用途，不是开关状态）。 -->
+      <div class="tagbar" id="envStatBar"></div>
       <div class="list" id="envList"></div>
       <div style="margin-top:12px"><button class="btn" id="btnNewEnv" style="width:100%">+ 新建环境变量</button></div>
     </section>
@@ -707,6 +723,13 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div class="searchbar wi">
         <span class="si">⌕</span>
         <input id="scrSearch" type="search" placeholder="搜索脚本名称或路径…" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <!-- 1.0.33：搜出结果后逐个跳（跟变量页 1.0.32 / 任务页同一套）。
+           脚本树的命中会散在各层目录里，滑着找最容易漏。 -->
+      <div class="hitjump hidden" id="scrJump">
+        <button class="jb" data-scrjump="-1" aria-label="上一个匹配">↑</button>
+        <span class="jn" id="scrJumpN">-/0</span>
+        <button class="jb" data-scrjump="1" aria-label="下一个匹配">↓</button>
       </div>
       <div class="list stree" id="scrList"></div>
       <!-- 文件选择器：点「上传脚本」时用 JS 触发它，选完在 change 里直接上传 -->
@@ -1188,14 +1211,20 @@ var S = {
      手机上编那种多条件表单太局促，要改去面板网页版改，切回来就能看到。
      viewsFailed：/api/crons/views 是较新版本才有的接口，拉失败就置真、
      整条 tab 栏藏起来。视图是锦上添花，**不能因为它把任务页也带崩**。 */
+  /* hit / hitId：1.0.33 起的「搜索结果上 / 下一个」当前位置（见 envJump 那套）。
+     hit 是下标（-1 = 还没跳过），hitId 是那条任务的 id —— 列表重拉后拿 id 对一下，
+     对不上就说明原来的下标已经指到别的任务上了。 */
   crons: { list: [], total: 0, page: 1, size: 20, q: '', loading: false,
-           filter: 'all', edit: false, sel: {},
+           filter: 'all', edit: false, sel: {}, hit: -1, hitId: null,
            views: [], view: null, viewsFailed: false },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
   /* envs.collapsed：1.0.30 起的「分组折叠」状态，键是组名（标签名 / 未分类的哨兵）。
      **放 S 上而不是闭包里** —— 折叠按钮走全局事件委托，委托拿不到闭包变量。
      切页面不清空：用户折起来的组通常是不关心的那几组，来回切一次就全展开会很烦。 */
-  envs: { list: [], q: '', tag: '', loading: false, edit: false, sel: {}, collapsed: {}, hit: -1, hitId: null },
+  /* stat：1.0.33 起的「按状态筛选」，'' = 全部 / 'on' = 已启用 / 'off' = 已禁用。
+     跟 tag（按标签筛选）是两条独立的筛选，可以同时生效。 */
+  envs: { list: [], q: '', tag: '', stat: '', loading: false, edit: false, sel: {},
+          collapsed: {}, hit: -1, hitId: null },
   /* logs.q：文件名搜索词。空串 = 正常目录浏览；非空 = 跨目录找整棵树。
      日志树是一次性整棵拉回来的，所以搜索不用再打接口。 */
   logs: { tree: [], path: [], q: '', loading: false },
@@ -1215,7 +1244,10 @@ var S = {
      默认全收起 —— 脚本目录动辄几百项，一进来全展开会卡。
      path 保留但恒为空数组：改成树形展开后不再逐层下钻，留着是为了不改动一堆
      loadScripts(S.scripts.path, true) 的调用点。 */
-  scripts: { nodes: [], path: [], loading: false, expanded: {}, q: '' },
+  /* hit / hitKey：1.0.33 起的「搜索结果上 / 下一个」当前位置。
+     这里存的不是 id 而是**完整相对路径**（不同目录下可以有同名文件，
+     只记 title 会跳到别的目录里的同名文件上）。 */
+  scripts: { nodes: [], path: [], loading: false, expanded: {}, q: '', hit: -1, hitKey: null },
   /* 「我的」页的面板概览（/api/dashboard/*）。字段全部按「有就显示、没有就藏」处理，
      因为不同版本的面板返回的字段不完全一样，硬取会崩。 */
   /* seq 是「第几轮请求」：一轮没回来时又点刷新，旧的结果要丢掉，
@@ -2067,6 +2099,50 @@ function cronFiltered() {
   return S.crons.list.filter(function (t) { return cronBucket(t) === f; });
 }
 
+/* 1.0.33：任务搜索结果的上 / 下一个。跟变量页 1.0.32 那一套同一个模样
+   （三处长得一样是故意的：学会一次，三处都会用）。
+   任务页没有分组，所以顺序就是当前筛出来的顺序 —— 比变量页那份单纯得多。 */
+function cronHitList() {
+  return cronFiltered().map(function (t) { return t.id; });
+}
+
+/* 没搜东西 / 没结果 → null。顺手校验一次：列表重拉过之后
+   原来的下标可能已经指到别的任务上了，拿 id 对一下，对不上就当没跳过。 */
+function cronJumpInfo() {
+  var c = S.crons;
+  if (!c.q) return null;
+  var hits = cronHitList();
+  if (!hits.length) return null;
+  var cur = hits[c.hit];
+  if (c.hitId == null || cur !== c.hitId) { c.hit = -1; c.hitId = null; }
+  return { n: hits.length, cur: c.hit, hits: hits };
+}
+
+function cronJump(step) {
+  var ji = cronJumpInfo();
+  if (!ji) return;
+  var c = S.crons;
+  var n = ji.n;
+  /* 还没跳过时：↓ 从头开始，↑ 从最后一个开始 */
+  c.hit = c.hit < 0 ? (step > 0 ? 0 : n - 1) : (c.hit + step + n) % n;
+  c.hitId = ji.hits[c.hit];
+  renderCrons();
+  scrollToCronHit();
+}
+
+function scrollToCronHit() {
+  var el = document.querySelector('#cronList .item.hitcur');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+}
+
+function renderCronJump() {
+  var ji = cronJumpInfo();
+  var bar = $('#cronJump');
+  if (!ji) { bar.classList.add('hidden'); return; }
+  $('#cronJumpN').textContent = (ji.cur < 0 ? '-' : ji.cur + 1) + '/' + ji.n;
+  bar.classList.remove('hidden');
+}
+
 function renderCronFilters() {
   var box = $('#cronFilters');
   if (!box) return;
@@ -2182,6 +2258,9 @@ function renderCrons() {
      放在下面的话，列表一空（加载中 / 筛出来是 0 条）它们就停在旧状态上了。 */
   renderCronFilters();
   renderCronEditBar();
+  /* 跳转条也放在早退分支之前：它读的是同一份列表（顺序 + 总数），
+     列表一空（加载中 / 筛出来 0 条）就该跟着藏起来，不能停在旧状态上。 */
+  renderCronJump();
 
   $('#sub').textContent = c.total
     ? ('共 ' + c.total + ' 个' + (c.filter && c.filter !== 'all'
@@ -2223,7 +2302,9 @@ function renderCrons() {
     /* 编辑模式下卡片左边多个勾选圈，「运行 / 更多」两个按钮收起来：
        一是避免批量操作时误触，二是腾出位置。点整张卡片 = 勾选 / 取消勾选。 */
     var on = editing && !!c.sel[t.id];
-    return '<div class="item' + (on ? ' on' : '') + '" data-cron="' + t.id + '">' +
+    /* 1.0.33：搜索跳转圈出来的那一条（没搜东西时不圈） */
+    var cur = !!c.q && c.hitId === t.id;
+    return '<div class="item' + (on ? ' on' : '') + (cur ? ' hitcur' : '') + '" data-cron="' + t.id + '">' +
       '<div class="row">' +
         (editing ? '<span class="ckb">✓</span>' : '') +
         '<div class="nm sp">' + (t.isPinned === 1 ? '📌 ' : '') + logHi(t.name || '未命名任务', c.q) + '</div>' + pill(s) + '</div>' +
@@ -3112,12 +3193,35 @@ function envRow(v) {
   '</div>';
 }
 
-/* 变量页当前筛出来的那些（标签筛选之后的）。批量「全选」只作用于它们 ——
-   筛了「京东」再点全选，用户想处理的就是这些。 */
+/* 变量页当前筛出来的那些（状态筛选 + 标签筛选之后的）。批量「全选」只作用于它们 ——
+   筛了「京东」再点全选，用户想处理的就是这些。
+   1.0.33 加了状态那道：status === 1 是「已禁用」（面板那一套，0 = 启用中）。 */
 function envFiltered() {
   var e = S.envs;
-  if (!e.tag) return e.list;
-  return e.list.filter(function (v) { return envLabels(v).indexOf(e.tag) >= 0; });
+  var list = e.list;
+  if (e.stat === 'on') list = list.filter(function (v) { return v.status !== 1; });
+  else if (e.stat === 'off') list = list.filter(function (v) { return v.status === 1; });
+  if (!e.tag) return list;
+  return list.filter(function (v) { return envLabels(v).indexOf(e.tag) >= 0; });
+}
+
+/* 1.0.33：一键全部展开 / 全部折叠。一组一组点太慢。
+   规则是「只要还有展开的就全折起来，否则全展开」—— 比做两个按钮省地方，
+   而且用户的心智就是「收起来 / 放开来」两个动作来回切。 */
+function envFoldAll() {
+  var e = S.envs;
+  var groups = envGrouped();
+  var anyOpen = groups.some(function (g) { return !e.collapsed[g.key]; });
+  groups.forEach(function (g) {
+    if (anyOpen) e.collapsed[g.key] = true;
+    else delete e.collapsed[g.key];
+  });
+  renderEnvs();
+}
+
+/* 有没有展开着的组（决定那个按钮叫「全部折叠」还是「全部展开」） */
+function envAnyOpen() {
+  return envGrouped().some(function (g) { return !S.envs.collapsed[g.key]; });
 }
 
 /* 1.0.32：搜索跳转要走的**顺序** —— 就是页面上从上往下看见的顺序。
@@ -3205,6 +3309,22 @@ function renderEnvs() {
     bar.classList.add('hidden');
   }
 
+  /* 1.0.33：状态筛选条（三档）。跟标签筛选是两条独立的筛选，可以同时生效 ——
+     「京东标签下、被禁用的那几个」是换 cookie 时最常见的组合。 */
+  var sb = $('#envStatBar');
+  sb.innerHTML = [['', '全部'], ['on', '已启用'], ['off', '已禁用']].map(function (x) {
+    return '<button data-envstat="' + x[0] + '" class="' + (e.stat === x[0] ? 'on' : '') + '">' +
+      x[1] + '</button>';
+  }).join('');
+
+  /* 1.0.33：「全部折叠 / 全部展开」按钮：文案看当前有没有展开着的组；
+     筛了标签时列表是平铺的，没有组可折 —— 这时把按钮藏起来，别留个点了没反应的。 */
+  var fb = $('#btnEnvFold');
+  if (fb) {
+    fb.textContent = envAnyOpen() ? '全部折叠' : '全部展开';
+    fb.classList.toggle('hidden', !!e.tag);
+  }
+
   /* 跳转条要在列表重画前摆好：它读的是同一份列表（顺序 + 总数） */
   renderEnvJump();
 
@@ -3218,7 +3338,9 @@ function renderEnvs() {
   }
   if (!list.length) {
     box.innerHTML = '<div class="empty"><span class="ei">⚿</span>' +
-      (e.tag ? '「' + esc(e.tag) + '」标签下没有变量' : (e.q ? '没有匹配的变量' : '还没有环境变量')) + '</div>';
+      (e.stat ? '没有「' + (e.stat === 'on' ? '已启用' : '已禁用') + '」的变量'
+              : (e.tag ? '「' + esc(e.tag) + '」标签下没有变量'
+                       : (e.q ? '没有匹配的变量' : '还没有环境变量'))) + '</div>';
     renderEnvEditBar();
     return;
   }
@@ -3669,6 +3791,63 @@ function countScripts(nodes) {
   return n;
 }
 
+/* 当前要画的那一行行。搜索时**全摊平**（不管展开状态），
+   否则收起目录里的文件永远搜不到 —— 这正是 1.0.25 补脚本搜索的原因。
+   1.0.33 把它抽成函数：跳转条要的是**同一份顺序**，各算一遍迟早不一致。 */
+function scrRows() {
+  var sc = S.scripts;
+  var q = String(sc.q || '').trim().toLowerCase();
+  if (!q) return flattenScripts(sc.nodes, '', 0, false, []);
+  /* 按**完整相对路径 + 名字**匹配：只按 title 找的话，
+     搜目录名时「jdpro/backup」这种二级目录下的文件一个都出不来。 */
+  return flattenScripts(sc.nodes, '', 0, true, []).filter(function (r) {
+    return (r.key + ' ' + r.n.title).toLowerCase().indexOf(q) >= 0;
+  });
+}
+
+/* 1.0.33：脚本搜索结果的上 / 下一个。顺序就是 scrRows 那一份
+   （深度优先：目录在前、它的子文件紧跟着）。
+   每条用**完整相对路径**当身份 —— 不同目录下可以有同名文件，
+   只按 title 认会跳到别的目录里的同名文件上。 */
+function scrHitList() {
+  return scrRows().map(function (r) { return r.key; });
+}
+
+function scrJumpInfo() {
+  var sc = S.scripts;
+  if (!String(sc.q || '').trim()) return null;
+  var hits = scrHitList();
+  if (!hits.length) return null;
+  var cur = hits[sc.hit];
+  if (sc.hitKey == null || cur !== sc.hitKey) { sc.hit = -1; sc.hitKey = null; }
+  return { n: hits.length, cur: sc.hit, hits: hits };
+}
+
+function scrJump(step) {
+  var ji = scrJumpInfo();
+  if (!ji) return;
+  var sc = S.scripts;
+  var n = ji.n;
+  /* 还没跳过时：↓ 从头开始，↑ 从最后一个开始 */
+  sc.hit = sc.hit < 0 ? (step > 0 ? 0 : n - 1) : (sc.hit + step + n) % n;
+  sc.hitKey = ji.hits[sc.hit];
+  renderScripts();
+  scrollToScrHit();
+}
+
+function scrollToScrHit() {
+  var el = document.querySelector('#scrList .item.hitcur');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+}
+
+function renderScrJump() {
+  var ji = scrJumpInfo();
+  var bar = $('#scrJump');
+  if (!ji) { bar.classList.add('hidden'); return; }
+  $('#scrJumpN').textContent = (ji.cur < 0 ? '-' : ji.cur + 1) + '/' + ji.n;
+  bar.classList.remove('hidden');
+}
+
 function scrRow(r) {
   var n = r.n, isDir = r.isDir;
   var meta = [];
@@ -3679,15 +3858,19 @@ function scrRow(r) {
   var open = isDir && scrExpanded(r.key);
   /* 1.0.25：搜索命中上黄底 —— 任务列表（1.0.23）和变量页早就有了，
      脚本树一直只是「列表变短了」，命中的是哪几个字还得自己找。同一个 logHi。
-     搜索是按**完整路径**匹配的（见 renderScripts），命中可能只落在某一级目录名上；
-     这时文件名里一个命中都没有，用户会不知道它为什么出现在结果里 ——
-     所以那种情况下把父目录也画出来（同样上黄底）。 */
+     搜索是按**完整路径**匹配的（见 scrRows），命中可能只落在某一级目录名上；
+     这时文件名里一个命中都没有，用户会不知道它为什么出现在结果里。
+     1.0.33 起改成「搜索态只要有父目录就画出来」，两个原因：
+     ① 上面那种「不知道它为什么出现」；② 脚本库里同名文件很常见
+     （jdpro/jdCookie.js 和根目录的 jdCookie.js 都可能存在），
+     搜索结果里两个一样的名字排在一起，不写父目录根本分不清是哪个 ——
+     跳转是按完整路径跳的，界面上却看不出区别，那功能等于白做。 */
   var q = String(S.scripts.q || '');
-  var ql = q.toLowerCase();
-  var hitTitle = q && String(n.title || '').toLowerCase().indexOf(ql) >= 0;
-  var hitDir = q && !hitTitle && r.dir && String(r.dir).toLowerCase().indexOf(ql) >= 0;
+  var hitDir = q && r.dir;
+  /* 1.0.33：搜索跳转圈出来的那一条（没搜东西时不圈） */
+  var cur = !!q && S.scripts.hitKey === r.key;
   /* 缩进用行内 --d 传给 CSS 的 padding-left（卡片背景跟着一起缩，不会被推窄）。 */
-  return '<div class="item row ind" style="--d:' + r.depth + ';gap:8px">' +
+  return '<div class="item row ind' + (cur ? ' hitcur' : '') + '" style="--d:' + r.depth + ';gap:8px">' +
     '<div class="fi2">' + (isDir ? '📁' : '📄') + '</div>' +
     '<button class="sp" style="text-align:left;min-width:0" data-scr="' + esc(n.title) +
       '" data-path="' + esc(r.dir) + '" data-scrtype="' + n.type + '">' +
@@ -3705,17 +3888,17 @@ function renderScripts() {
   var sc = S.scripts;
   var q = String(sc.q || '').trim().toLowerCase();
   var box = $('#scrList');
-  var rows;
+  /* 1.0.33：顺序统一由 scrRows 给（跳转条用的是同一份） */
+  var rows = scrRows();
 
   if (q) {
-    rows = flattenScripts(sc.nodes, '', 0, true, []).filter(function (r) {
-      return (r.key + ' ' + r.n.title).toLowerCase().indexOf(q) >= 0;
-    });
     $('#sub').textContent = rows.length ? (rows.length + ' 项匹配') : '';
   } else {
-    rows = flattenScripts(sc.nodes, '', 0, false, []);
     $('#sub').textContent = sc.nodes.length ? (countScripts(sc.nodes) + ' 个文件 / 目录') : '';
   }
+
+  /* 跳转条跟列表同源，一起摆 */
+  renderScrJump();
 
   if (sc.loading && !sc.nodes.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
@@ -4814,7 +4997,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.32';
+var APP_VER = '1.0.33';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -6599,7 +6782,22 @@ function bind() {
   var t1 = null;
   $('#cronSearch').addEventListener('input', function (e) {
     clearTimeout(t1);
-    t1 = setTimeout(function () { S.crons.q = e.target.value.trim(); loadCrons(true); }, 350);
+    t1 = setTimeout(function () {
+      S.crons.q = e.target.value.trim();
+      /* 换了关键字，原来跳到第几个就不算数了 */
+      S.crons.hit = -1; S.crons.hitId = null;
+      loadCrons(true);
+    }, 350);
+  });
+  /* 1.0.33：回车 = 下一个匹配（Shift+回车 = 上一个），跟变量页一个意思。
+     同样要先把这次输入落下去再跳 —— 否则跳的是防抖还没生效时的旧结果。 */
+  $('#cronSearch').addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    clearTimeout(t1);
+    S.crons.q = ev.target.value.trim();
+    S.crons.hit = -1; S.crons.hitId = null;
+    loadCrons(true).then(function () { cronJump(ev.shiftKey ? -1 : 1); });
   });
   var t2 = null;
   $('#envSearch').addEventListener('input', function (e) {
@@ -6681,7 +6879,24 @@ function bind() {
   $('#scrSearch').addEventListener('input', function (e) {
     var v = e.target.value;
     clearTimeout(tScr);
-    tScr = setTimeout(function () { S.scripts.q = v; renderScripts(); }, 180);
+    tScr = setTimeout(function () {
+      S.scripts.q = v;
+      /* 换了关键字，原来跳到第几条就不算数了 */
+      S.scripts.hit = -1; S.scripts.hitKey = null;
+      renderScripts();
+    }, 180);
+  });
+  /* 1.0.33：回车 = 下一个匹配（Shift+回车 = 上一个）。
+     这里是**本地过滤**（整棵树早在内存里），不用像任务页那样等接口回来，
+     把防抖落下去直接跳就行。 */
+  $('#scrSearch').addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    clearTimeout(tScr);
+    S.scripts.q = ev.target.value;
+    S.scripts.hit = -1; S.scripts.hitKey = null;
+    renderScripts();
+    scrJump(ev.shiftKey ? -1 : 1);
   });
   $('#btnNewSub').addEventListener('click', function () { openSubEdit(null); });
   $('#btnNewDep').addEventListener('click', function () { openDepEdit(null); });
@@ -6718,11 +6933,16 @@ function onClick(ev) {
     '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-envcoll],[data-theme-set],[data-log],[data-preset],[data-path],' +
+    /* 1.0.33：变量按状态筛选（已启用 / 已禁用） */
+    '[data-envstat],' +
     /* 1.0.32：变量搜索结果的上 / 下一个 */
     '[data-envjump],' +
     '[data-scr],[data-sact],[data-scrtog],[data-depact],[data-subact],[data-cfg],[data-cfgsample],[data-goto],' +
     /* 1.0.31：依赖页的整行（勾选 / 展开收起）与批量栏 */
     '[data-deps],[data-dbatch],' +
+    /* 1.0.33：任务页 / 脚本页搜索结果的上 / 下一个 */
+    '[data-cronjump],' +
+    '[data-scrjump],' +
     /* 面板设置三页：应用的增删改 / 权限标签 / 复制 / 显隐密钥；
        其他设置的字段确认 / 备份模块勾选。 */
     '[data-appedit],[data-appsecret],[data-appdel],[data-reveal],[data-copy],' +
@@ -6736,6 +6956,8 @@ function onClick(ev) {
        于是「一条都不报错」= 那条变异被悄悄废掉（1.0.24 就是这么出来的 2 条 MISS）。 */
     '#btnEnvEdit,#btnEnvAll,#btnLogTail,' +
     '#btnDepEdit,#btnDepAll,' +
+    /* 1.0.33：变量页「全部折叠 / 全部展开」 */
+    '#btnEnvFold,' +
     '#btnSaveCron,#btnDelEnv,#btnSaveEnv,#btnLogReload,#btnLogCopy,#btnCopyLog,#btnLogErr,#btnDelLog,' +
     '#btnCronLogErr,#btnSysLogErr,#btnSysLogCopy,' +
     '#btnSaveServer,#btnLogout,#logUp,#btnDiag,#btnDiagLogin,' +
@@ -6818,6 +7040,9 @@ function onClick(ev) {
      必须排在下面的「任务列表」分支之前 —— 这些按钮都在任务页里，
      顺序反了会被 data-cron 之类的分支先截走。 */
   if (el.id === 'btnCronEdit') return toggleCronEdit();
+  /* 1.0.33：任务搜索结果的上 / 下一个（跟变量页 1.0.32 同一套） */
+  if (el.dataset.cronjump) return cronJump(Number(el.dataset.cronjump));
+
   if (el.dataset.cf) return setCronFilter(el.dataset.cf);
   /* 视图 id 用 != null 判而不是真值判：id 是后端自增主键，虽然目前从 1 起，
      但真值判会顺手把 '0' 也吞掉，以后面板改了主键起点就是个哑 bug。 */
@@ -6923,6 +7148,19 @@ function onClick(ev) {
     renderEnvs();
     return;
   }
+
+  /* 1.0.33：变量按状态筛选（全部 / 已启用 / 已禁用）。再点一次同一个 = 取消。
+     筛选一变，跳转的下标就不算数了（顺序和总数都变了），顺手清掉。 */
+  if (el.dataset.envstat != null) {
+    var st = el.dataset.envstat;
+    S.envs.stat = (st === '' || S.envs.stat === st) ? '' : st;
+    S.envs.hit = -1; S.envs.hitId = null;
+    renderEnvs();
+    return;
+  }
+
+  /* 1.0.33：一键全部展开 / 全部折叠（见 envFoldAll） */
+  if (el.id === 'btnEnvFold') return envFoldAll();
 
   /* 1.0.30：变量分组的折叠 / 展开。折起来的是「不关心的那几组」，
      状态放 S.envs.collapsed 上，切页面不清空（来回切一次就全展开会很烦）。
@@ -7050,6 +7288,9 @@ function onClick(ev) {
     if (act === 'delete') return delScript(sd, sf, el.dataset.scrtype);
     return;
   }
+  /* 1.0.33：脚本搜索结果的上 / 下一个（跟变量页 / 任务页同一套） */
+  if (el.dataset.scrjump) return scrJump(Number(el.dataset.scrjump));
+
   /* 文件夹右边的「⌄」：只在本机展开/收起 */
   if (el.dataset.scrtog != null) return toggleScrDir(el.dataset.scrtog);
   if (el.dataset.scr) {

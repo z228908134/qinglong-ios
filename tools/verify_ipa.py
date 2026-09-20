@@ -307,6 +307,31 @@ FEATURES = [
     ("搜索跳转 回车跳下一个", r"#envSearch.*addEventListener\('keydown'"),
     ("搜索跳转 Shift+回车是上一个", r"envJump\(ev\.shiftKey \? -1 : 1\)"),
     ("搜索跳转 换关键字时清位置", r"S\.envs\.hit = -1; S\.envs\.hitId = null;\s*loadEnvs\(\)"),
+
+    # 1.0.33：同一套「搜索跳转」铺到任务页 / 脚本树（三处各写一份，不硬抽公共函数
+    #         —— 变量页有分组、任务页没有、脚本页是树形，硬抽三处都变复杂），
+    #         变量页另加「按状态筛选」+「一键全部展开 / 折叠」。
+    ("任务跳转 委托钩子", r"\[data-cronjump\],"),
+    ("任务跳转 分支传 ±1", r"if \(el\.dataset\.cronjump\) return cronJump\(Number\(el\.dataset\.cronjump\)\);"),
+    ("任务跳转 顺序取筛完的", r"return cronFiltered\(\)\.map\(function \(t\) \{ return t\.id; \}\);"),
+    ("任务跳转 列表换过后下标失效", r"if \(c\.hitId == null \|\| cur !== c\.hitId\) \{ c\.hit = -1; c\.hitId = null; \}"),
+    ("任务跳转 跳转条 HTML", r'id="cronJump"'),
+    ("任务跳转 渲染给当前那条加类", r"\(on \? ' on' : ''\) \+ \(cur \? ' hitcur' : ''\)"),
+    ("任务跳转 回车要等接口回来再跳", r"loadCrons\(true\)\.then\(function \(\) \{ cronJump\(ev\.shiftKey \? -1 : 1\); \}\)"),
+    ("脚本跳转 委托钩子", r"\[data-scrjump\],"),
+    ("脚本跳转 分支传 ±1", r"if \(el\.dataset\.scrjump\) return scrJump\(Number\(el\.dataset\.scrjump\)\);"),
+    ("脚本跳转 列表渲染与跳转条同源", r"var rows = scrRows\(\);"),
+    ("脚本跳转 身份用完整相对路径", r"return scrRows\(\)\.map\(function \(r\) \{ return r\.key; \}\);"),
+    ("脚本跳转 跳转条 HTML", r'id="scrJump"'),
+    ("脚本跳转 搜索态写父目录", r"var hitDir = q && r\.dir;"),
+    ("变量状态筛选 委托钩子", r"\[data-envstat\],"),
+    ("变量状态筛选 分支", r"if \(el\.dataset\.envstat != null\) \{"),
+    ("变量状态筛选 已启用 / 已禁用", r"if \(e\.stat === 'on'\) list = list\.filter\(function \(v\) \{ return v\.status !== 1; \}\);"),
+    ("变量状态筛选 再点同一档取消", r"S\.envs\.stat = \(st === '' \|\| S\.envs\.stat === st\) \? '' : st;"),
+    ("变量全折叠 委托钩子", r"#btnEnvFold,"),
+    ("变量全折叠 分支", r"if \(el\.id === 'btnEnvFold'\) return envFoldAll\(\);"),
+    ("变量全折叠 有展开的就全折起来", r"if \(anyOpen\) e\.collapsed\[g\.key\] = true;"),
+    ("变量全折叠 文案跟着状态变", r"fb\.textContent = envAnyOpen\(\) \? '全部折叠' : '全部展开';"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

@@ -431,6 +431,43 @@ FEATURES = [
     ("登录日志 委托分支", r"if \(el\.id === 'btnLoginFail'\) return toggleLoginFail\(\);"),
     ("登录日志 搜索框绑定", r"\$\('#loginSearch'\)\.addEventListener\('input', function \(e\) \{"),
     ("登录日志 搜索本地重画", r"S\.loginlog\.q = e\.target\.value\.trim\(\); renderLoginLog\(\);"),
+
+    # 1.0.37：多实例任务的运行实例列表。
+    #   开了「允许同时运行多个实例」的任务，跑起来之后任务列表上只有一个「运行中」；
+    #   到底起了几个、哪个卡住了、要停哪一个，面板网页版的任务详情里能看，
+    #   手机上之前看不了。入口在任务详情的「其他 → 运行实例」。
+    #   状态判据**只看 finished_at**（后端各版本的 status 枚举编号未必一致，
+    #   认数值会把「正在跑」的实例说成「已完成」，而这种错在界面上看不出来）。
+    ("运行实例 视图", r'<section class="view" id="v-instances">'),
+    ("运行实例 标题", r"instances: '运行实例',"),
+    ("运行实例 页面状态", r"instances: \{ id: null, name: '', list: \[\], loading: false, err: '', busy: \{\} \},"),
+    ("运行实例 在跑判据函数", r"function instRunning\(x\) \{"),
+    ("运行实例 判据只看 finished_at", r"return !\(Number\(x && x\.finished_at\) > 0\);"),
+    ("运行实例 状态文案函数", r"function instState\(x\) \{"),
+    ("运行实例 143 说已停止", r"if \(code === 143\) return \{ t: '已停止', c: 'gray' \};"),
+    ("运行实例 出错带上退出码", r"return \{ t: '出错 ' \+ code, c: 'red' \};"),
+    ("运行实例 时长函数", r"function instDurSec\(x\) \{"),
+    ("运行实例 跑着的按现在算", r"var end = instRunning\(x\) \? Math\.floor\(Date\.now\(\) \/ 1000\)"),
+    ("运行实例 在跑计数函数", r"function instRunningCount\(list\) \{"),
+    ("运行实例 跳转函数", r"function gotoInstances\(t\) \{"),
+    ("运行实例 加载函数", r"async function loadInstances\(id, force\) \{"),
+    ("运行实例 列表接口", r"'\/api\/crons\/' \+ encodeURIComponent\(v\.id\) \+ '\/instances'"),
+    ("运行实例 停止函数", r"async function stopInstance\(iid\) \{"),
+    ("运行实例 停止走 POST", r"encodeURIComponent\(iid\) \+ '\/stop', \{ method: 'POST' \}\)"),
+    ("运行实例 停完重拉列表", r"await loadInstances\(v\.id, true\);"),
+    ("运行实例 渲染函数", r"function renderInstances\(\) \{"),
+    ("运行实例 副标题给总数在跑数", r"v\.list\.length \+ ' 个实例' \+ \(runN \? ' · ' \+ runN \+ ' 个在跑' : ''\)"),
+    ("运行实例 停止只给在跑的", r"\(running \? '<div class=\"row\" style=\"margin-top:10px\">' \+"),
+    ("运行实例 404 说版本不支持", r"'这个面板版本还不支持运行实例列表'"),
+    ("运行实例 详情页入口", r'id="cdInst" data-goinst="'),
+    ("运行实例 入口只给多实例", r"if \(t\.allow_multiple_instances === 1\) \{"),
+    ("运行实例 详情页那行补在跑数", r"el\.textContent = n \? \(n \+ ' 个在跑'\) : '暂无在跑';"),
+    ("运行实例 委托选择器", r"'\[data-goinst\],\[data-inststop\],' \+"),
+    ("运行实例 委托分支 跳转", r"if \(el\.dataset\.goinst\) return gotoInstances\(cronById\(el\.dataset\.goinst\)\);"),
+    ("运行实例 委托分支 停止", r"if \(el\.dataset\.inststop\) return stopInstance\(Number\(el\.dataset\.inststop\)\);"),
+    ("运行实例 刷新按钮进选择器", r"'#btnInstReload,#btnInstRetry'"),
+    ("运行实例 refresh 管这一页", r"if \(S\.tab === 'instances'\) return loadInstances\(S\.instances\.id, true\);"),
+    ("运行实例 换任务先清旧列表", r"S\.instances\.list = \[\];"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

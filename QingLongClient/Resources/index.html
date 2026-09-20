@@ -784,6 +784,15 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div class="list" id="logList"></div>
     </section>
 
+    <!-- 运行实例：多实例任务（allow_multiple_instances）跑起来之后，任务列表上
+         只有一个「运行中」，到底起了几个、哪个卡住了、要停哪一个，面板网页版的
+         任务详情里能看，手机上之前看不了。入口在任务详情的「其他」区。
+         接口是较新版本才有的（/api/crons/{id}/instances），拉不到就说明白，
+         别让它把详情页也带崩。 -->
+    <section class="view" id="v-instances">
+      <div id="instBody"></div>
+    </section>
+
     <!-- 应用设置：面板「系统设置 → 应用设置」的移动版。管理开放接口的
          Client ID / Secret 和权限。入口在「我的 → 系统设置」里的面板设置区块。 -->
     <section class="view" id="v-apps">
@@ -1298,6 +1307,12 @@ var S = {
      mods 是备份时勾选的模块（base 恒为真，见 BACKUP_MODULES）。 */
   sysconf: { cfg: null, loading: false, err: '', mods: { base: 1 } },
   loginlog: { list: [], loading: false, err: '', onlyFail: false, q: '' },
+  /* 运行实例页（1.0.37）。id / name 记「当前在看哪个任务」——
+     接口要 cron id，页面标题和空态也要带上任务名，不然从别处跳进来不知道在看谁。
+     busy 是「正在停哪一个实例」（键是实例 id，值是 true）：
+     停止要 kill 进程、等接口回来，几百毫秒里按钮得有个「停止中…」的样子，
+     连点两次会发两个请求（第二次必然回「实例不存在或已停止」，纯属噪音）。 */
+  instances: { id: null, name: '', list: [], loading: false, err: '', busy: {} },
   /* 面板日志（面板「系统设置 → 系统日志」）。GET /api/system/log 回的是把区间内
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
@@ -2002,6 +2017,9 @@ var TITLES = {
   crons: '定时任务', envs: '环境变量', scripts: '脚本管理',
   subs: '订阅管理', deps: '依赖管理', configs: '配置文件',
   logs: '日志文件', me: '所有功能',
+  /* 1.0.37：多实例任务的运行实例列表。二级页 —— 没有底栏入口，
+     只能从任务详情的「其他 → 运行实例」进，所以顶栏会自动出现返回按钮。 */
+  instances: '运行实例',
   /* 这三个对应面板网页版「系统设置」里的同名页签，入口在系统设置弹层里。
      名字照面板的叫法，不要改 —— 用户是照面板的名字找的。 */
   apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志', syslog: '面板日志'
@@ -2117,6 +2135,9 @@ async function refresh() {
   if (S.tab === 'sysconf') return loadSysconf();
   if (S.tab === 'loginlog') return loadLoginLog();
   if (S.tab === 'syslog') return loadSysLog();
+  /* 1.0.37：实例列表要「刷新」（下拉刷新 / 切回这一页）时强制重拉 ——
+     实例是随时起随时停的，缓存一份只会看到过期的「运行中」。 */
+  if (S.tab === 'instances') return loadInstances(S.instances.id, true);
   if (S.tab === 'me') return loadDash();
 }
 
@@ -2744,6 +2765,176 @@ async function gotoCronLogDir(t) {
   await loadLogs(dir ? logKeyPath(dir.key) : [], false);
 }
 
+/* ================= 运行实例（1.0.37） =================
+   面板给「允许同时运行多个实例」的任务记了一张 running_instances 表：
+     GET  /api/crons/{id}/instances             → 这个任务的所有实例（按启动时间倒序）
+     POST /api/crons/{id}/instances/{iid}/stop  → 停掉其中一个（后端 kill 它的 pid）
+   开了多实例之后任务列表上只有一个「运行中」：到底起了几个、哪个卡住了、
+   要停的是哪一个，网页版的任务详情里能看，手机上之前看不了。
+
+   **状态判据只看 finished_at，不看 status 数值。**
+   finished_at 是结束那一刻才写进去的秒级时间戳（后端 dayjs().unix()），
+   没结束就是 null / undefined / 0 —— 语义自明。
+   status 是后端的 InstanceStatus 枚举（running / finished / error / stopped），
+   各版本编号未必一致，猜错一个数字就会把「正在跑」的实例说成「已完成」，
+   而这种错在界面上完全看不出来。exit_code 只在「已经结束」之后才有意义。 */
+
+/* 还在跑吗。注意别写成 `x.finished_at === null` —— 后端没写这个字段时是 undefined。 */
+function instRunning(x) {
+  return !(Number(x && x.finished_at) > 0);
+}
+/* 状态文案 + 徽标颜色。143 = 128 + 15，SIGTERM（面板自己 kill 的，
+   见后端 stopInstance 里写死的 exit_code: 143），按「已停止」显示；
+   其余非 0 一律算「出错」，把码带上，省得再点进去查。 */
+function instState(x) {
+  if (instRunning(x)) return { t: '运行中', c: 'green' };
+  var code = Number(x && x.exit_code) || 0;
+  if (!code) return { t: '已完成', c: 'gray' };
+  if (code === 143) return { t: '已停止', c: 'gray' };
+  return { t: '出错 ' + code, c: 'red' };
+}
+/* 这一趟跑了多久（秒）：跑着的按「现在 − 启动」实时算，结束的按「结束 − 启动」定格。
+   started_at 是秒级时间戳，别拿去 new Date() 之前忘了 ×1000。 */
+function instDurSec(x) {
+  var st = Number(x && x.started_at) || 0;
+  if (!st) return 0;
+  var end = instRunning(x) ? Math.floor(Date.now() / 1000) : (Number(x.finished_at) || st);
+  return Math.max(0, end - st);
+}
+/* 「N 个在跑」：详情页那行、页面副标题、统计条都用它，别各写一遍 filter。 */
+function instRunningCount(list) {
+  return (list || []).filter(instRunning).length;
+}
+
+/* 从任务详情跳过来。跟 gotoCronLogDir 一个套路：记住来源，关掉弹层，再切页 ——
+   不记 backTo 的话，从详情跳走就再也回不去那个任务了（弹层已经关了）。 */
+function gotoInstances(t) {
+  if (!t) return;
+  var from = S.detailId;
+  closeSheet();
+  S.backTo = from;
+  S.instances.id = t.id;
+  S.instances.name = t.name || ('任务 ' + t.id);
+  S.instances.list = [];
+  S.instances.err = '';
+  S.instances.busy = {};
+  setTab('instances');
+  /* setTab 结尾自己会 refresh() 一次（也会走到 loadInstances），
+     这里显式再调一次是为了不依赖那条隐式路径；重复的那次被 loading 挡掉。 */
+  loadInstances(t.id, true);
+}
+
+async function loadInstances(id, force) {
+  var v = S.instances;
+  if (id != null) v.id = id;
+  if (v.id == null) return;
+  if (v.loading) return;
+  /* 已经拉到过就不重复打接口（从别的页切回来重画即可）。force 是「刷新」按钮走的。 */
+  if (v.list.length && !force) { renderInstances(); return; }
+  v.loading = true;
+  v.err = '';
+  renderInstances();
+  var seq = (v.seq = (v.seq || 0) + 1);
+  try {
+    var r = await api('/api/crons/' + encodeURIComponent(v.id) + '/instances');
+    /* 期间又刷了一次 / 换了任务：这次的结果已经过期，丢掉（同 loadSysLog 的 seq 手法） */
+    if (seq !== v.seq) return;
+    v.list = (r.data && r.data.length !== undefined) ? r.data : [];
+  } catch (e) {
+    if (seq !== v.seq) return;
+    v.err = e.message;
+    v.list = [];
+  }
+  v.loading = false;
+  renderInstances();
+}
+
+/* 停掉单个实例。后端只认「还在 running」的实例，停了之后如果这个任务再没有别的
+   在跑实例，它会顺手把任务的 status 也置回 idle —— 所以回来要重拉一遍，
+   不然页面上还挂着「运行中」，跟任务列表对不上。 */
+async function stopInstance(iid) {
+  var v = S.instances;
+  if (iid == null || v.busy[iid]) return;
+  v.busy[iid] = true;
+  renderInstances();
+  try {
+    await api('/api/crons/' + encodeURIComponent(v.id) + '/instances/' +
+      encodeURIComponent(iid) + '/stop', { method: 'POST' });
+    toast('已停止实例 #' + iid);
+  } catch (e) {
+    toast(e.message, true);
+  }
+  delete v.busy[iid];
+  await loadInstances(v.id, true);
+}
+
+function renderInstances() {
+  var box = $('#instBody');
+  if (!box) return;
+  var v = S.instances;
+  var runN = instRunningCount(v.list);
+  /* 副标题只说数量，不说任务名 —— 任务名在下面那张卡的标题里，
+     顶栏的 #sub 是共用的，塞长了会把标题挤掉。 */
+  $('#sub').textContent = v.list.length
+    ? (v.list.length + ' 个实例' + (runN ? ' · ' + runN + ' 个在跑' : ''))
+    : '';
+
+  var h = '';
+  h += '<div class="card" style="padding:14px">' +
+    '<div class="row"><div class="nm sp" style="font-size:calc(17px*var(--fs))">' +
+      esc(v.name || ('任务 ' + (v.id == null ? '' : v.id))) + '</div>' +
+      (v.list.length ? pill({ t: runN + ' 个在跑', c: runN ? 'green' : 'gray' }) : '') +
+    '</div>' +
+    '<div class="row" style="margin-top:10px;gap:8px">' +
+      '<button class="btn" id="btnInstReload" style="padding:8px 12px">刷新</button>' +
+    '</div>' +
+    '</div>';
+
+  if (v.loading && !v.list.length) {
+    box.innerHTML = h + '<div class="center"><span class="spin"></span>读取运行实例…</div>';
+    return;
+  }
+  if (v.err) {
+    /* 老面板没有这个接口（404），别把「服务器错误 HTTP 404」直接甩给用户 ——
+       他不一定知道这是版本问题。 */
+    var miss = /404|not found/i.test(v.err);
+    box.innerHTML = h + '<div class="empty"><span class="ei">!</span>' +
+      (miss ? '这个面板版本还不支持运行实例列表' : esc(v.err)) +
+      '<div style="margin-top:16px"><button class="btn" id="btnInstRetry" style="padding:8px 22px">重试</button></div></div>';
+    return;
+  }
+  if (!v.list.length) {
+    box.innerHTML = h + '<div class="empty"><span class="ei">▤</span>这个任务还没有运行实例记录' +
+      '<div class="f11 t3" style="margin-top:10px">面板记录实例的版本起，跑过之后这里就有</div></div>';
+    return;
+  }
+  box.innerHTML = h + '<div class="list">' + v.list.map(function (x) {
+    var st = instState(x);
+    var running = instRunning(x);
+    var busy = !!v.busy[x.id];
+    /* 启动时间用完整日期：实例可能跨天，只给 HH:mm:ss 的话「昨天 23:50 起的」
+       和「今天 00:10 起的」看起来一样。 */
+    var rows = '';
+    /* 不再单列一行「实例 ID」—— 卡片标题就是「实例 #412」，重复一遍只是占高度。 */
+    if (x.pid) rows += kv('进程号', x.pid);
+    rows += kv('启动时间', fmtFull(Number(x.started_at) * 1000));
+    rows += kv(running ? '已运行' : '运行时长', fmtDur(instDurSec(x)));
+    if (!running) {
+      rows += kv('结束时间', x.finished_at ? fmtFull(Number(x.finished_at) * 1000) : '—');
+      rows += kv('退出码', x.exit_code == null ? '—' : String(x.exit_code));
+    }
+    return '<div class="item">' +
+      '<div class="row"><div class="nm sp">实例 #' + esc(x.id) + '</div>' + pill(st) + '</div>' +
+      '<div class="meta">' + rows + '</div>' +
+      /* 只有还在跑的才给「停止」：后端对已结束的实例会回「实例不存在或已停止」，
+         点下去只会弹个错，不如干脆不给。 */
+      (running ? '<div class="row" style="margin-top:10px">' +
+        '<button class="btn danger" data-inststop="' + esc(x.id) + '"' + (busy ? ' disabled' : '') +
+        ' style="padding:8px 16px">' + (busy ? '停止中…' : '停止这个实例') + '</button></div>' : '') +
+    '</div>';
+  }).join('') + '</div>';
+}
+
 function renderCronDetail(t) {
   var s = statusOf(t);
   var next = nextRunText(t.schedule);
@@ -2839,6 +3030,15 @@ function renderCronDetail(t) {
   if (t.task_before) h += kv('前置脚本', t.task_before);
   if (t.task_after) h += kv('后置脚本', t.task_after);
   h += kv('多实例', t.allow_multiple_instances === 1 ? '允许' : '不允许');
+  /* 1.0.37：允许同时跑多个实例的任务，多一行直达实例列表 ——
+     能看现在到底有几个在跑、分别起了多久，还能单独停掉某一个。
+     **只给多实例任务**：单实例任务点「停止」就完了，多一层入口反而绕。 */
+  if (t.allow_multiple_instances === 1) {
+    h += '<button class="kvrow" id="cdInst" data-goinst="' + t.id + '">' +
+      '<span class="k" style="flex:0 0 56px">运行实例</span>' +
+      '<span class="v ell" id="cdInstV">查看</span><span class="t3">›</span>' +
+    '</button>';
+  }
   h += '</div>';
 
   $('#shB').innerHTML = h;
@@ -2860,6 +3060,20 @@ function renderCronDetail(t) {
       var v = $('#cdLogNewV');
       if (v && S.detailId === t.id) v.textContent = logNewHint(t);
     });
+  }
+
+  /* 1.0.37：「运行实例」那行先写「查看」，再把「N 个在跑」补上。
+     多实例任务最想知道的就是「现在到底几个在跑」，不点开就能看见值这个接口。
+     **不 await**（详情页要立刻能看）；回来先挡一道 S.detailId —— 等回来时
+     用户可能已经关掉弹层或换到别的任务了，那时这行已经不是他的了。
+     拉失败就保持「查看」：老面板没这个接口，点进去才说得清（renderInstances）。 */
+  if (t.allow_multiple_instances === 1) {
+    api('/api/crons/' + encodeURIComponent(t.id) + '/instances').then(function (r) {
+      var list = (r.data && r.data.length !== undefined) ? r.data : [];
+      var n = instRunningCount(list);
+      var el = $('#cdInstV');
+      if (el && S.detailId === t.id) el.textContent = n ? (n + ' 个在跑') : '暂无在跑';
+    }).catch(function () { /* 静默：这行只是锦上添花，不能因为它弹错误 */ });
   }
 }
 
@@ -5232,7 +5446,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.36';
+var APP_VER = '1.0.37';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -7275,6 +7489,9 @@ function onClick(ev) {
     '[data-tdays],[data-tday],[data-gocrons],' +
     '[data-ebatch],' +
     '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
+    /* 1.0.37：任务详情的「运行实例」直达 + 实例列表里的「停止这个实例」。
+       另起一行加 —— 上面那行被锚着（整条一起比）。 */
+    '[data-goinst],[data-inststop],' +
     '[data-acct],[data-acctdel],' +
     '[data-env],[data-eact],[data-envtag],[data-envcoll],[data-theme-set],[data-log],[data-preset],[data-path],' +
     /* 1.0.33：变量按状态筛选（已启用 / 已禁用） */
@@ -7313,7 +7530,10 @@ function onClick(ev) {
     '#btnSaveDep,#btnDepLogReload,#btnSaveSub,#btnSubLogReload,#btnSaveCfg,#btnNewCfgOk,' +
     '#btnAcct,#btnSettings,#btnTheme,#btnFs,#btnFsDown,#btnFsUp,#btnFsReset,' +
     '#btnNewApp,#btnAppSave,#btnAppRetry,#btnScExport,#btnScImport,#btnScCheck,#btnScReload,' +
-    '#btnScRetry,#btnLogRetry,#btnCopyNewSec'
+    '#btnScRetry,#btnLogRetry,#btnCopyNewSec,' +
+    /* 1.0.37：运行实例页的「刷新」/「重试」。**必须加进这个 closest 选择器** ——
+       漏了的症状是「点了完全没反应」，不报错，最难查。 */
+    '#btnInstReload,#btnInstRetry'
   ) : null;
   if (!el) return;
 
@@ -7416,6 +7636,11 @@ function onClick(ev) {
   if (el.dataset.goscript) return gotoScript(el.dataset.goscript);
   if (el.dataset.gocronlog) return openCronLog(cronById(el.dataset.gocronlog));
   if (el.dataset.gocronlogdir) return gotoCronLogDir(cronById(el.dataset.gocronlogdir));
+  /* 1.0.37：任务详情 → 运行实例列表；列表里停掉某一个实例。 */
+  if (el.dataset.goinst) return gotoInstances(cronById(el.dataset.goinst));
+  if (el.dataset.inststop) return stopInstance(Number(el.dataset.inststop));
+  if (el.id === 'btnInstReload') return loadInstances(S.instances.id, true);
+  if (el.id === 'btnInstRetry') return loadInstances(S.instances.id, true);
 
   /* 任务列表 */
   if (el.dataset.act) {

@@ -15,26 +15,24 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35494965773`，commit `d9f795c`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.35-trollstore.ipa`（191900 字节） |
-| SHA256 | `e80daa02a985257740e41cb089968be817bfc5625de271bde8d2e5b885cc6297` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.35-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35498197316`，commit `65bd173`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.36-trollstore.ipa`（193336 字节） |
+| SHA256 | `dff60f2f3e7d27afbb8d14bfb5a8e2b733a7393ca0f891637848a5925438885d` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.36-trollstore`（保留 30 天） |
 
-> **1.0.35：「我的」页会记路了，订阅 / 依赖 / 配置三处搜完能看见命中在哪**：
-> - **「我的」页顶部加「最近打开」**：记下最近点过的 3 个功能模块，放在 12 张
->   功能卡片上面，第二次进来直接点。底栏只有四个 tab（任务 / 变量 / 脚本 / 我的），
->   订阅 / 依赖 / 配置 / 日志都得从这一页进 —— 常用的那两三个每次都要重新找一遍。
->   只记「能当 tab 用的」（系统设置那张走弹层，记下来也跳不过去）；读的时候顺手把
->   「现在已经没有的模块」滤掉，不然会留一张点不动的空卡。
-> - **订阅 / 依赖两页补上搜索命中高亮**：任务 / 变量 / 脚本三页一直有，这两页搜完
->   只是「列表变短了」，命中的是哪几个字还得自己一行行找。订阅那页名字、链接、
->   类型标签、排期、分支都圈；依赖那页名称和备注一起圈（备注展开后才看得到）。
-> - **配置文件页补搜索**：面板自带的就 `auth.json` / `config.sh` 那几个，但装过插件、
->   自己加过 `extra.sh` 的能堆到十几个。列表是整份拉回来的，所以**纯本地过滤、
->   不重打接口**；副标题给「命中 / 总数」（「2 / 6 个文件」），一条都没命中时
->   空态带上你敲的字，而不是笼统一句「没有配置文件」。
+> **1.0.36：登录日志能筛了 —— 一眼看出有没有人在试你的面板**：
+> - **「只看失败」开关**：面板的登录日志最多 100 条，翻起来清一色「成功」，
+>   真正要看的那几条失败混在中间。按钮上**带着失败条数**（「只看失败（2）」），
+>   不点开就知道今天有没有人试过你的面板；点开之后按钮变「看全部」并高亮。
+> - **一条搜索**：按登录 IP / 登录地址 / 登录设备搜（三个字段一起），
+>   命中的那一段单独上黄底 —— 只圈 `45.155`，不是把整格涂黄。
+> - **筛过之后副标题说「命中 / 总数」**（「2 / 6 条记录」），
+>   不然光一个数字看不出筛掉了多少；没筛的时候照旧只写总数，不写「6 / 6」。
+> - **三种「空」分开说**：真的没有记录 / 没有失败的记录 / 没有匹配关键字的记录，
+>   笼统一句「没有记录」会让人以为日志被清掉了。
+> - 列表是一次性整份拉回来的，所以两个筛选都是**本地过滤、不重打接口**。
 >
-> **装 1.0.35，别装 1.0.34 及更早的**。
+> **装 1.0.36，别装 1.0.35 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -51,12 +49,13 @@
 > 1.0.33 把「搜索跳转」铺到任务页 / 脚本树，变量页另加按状态筛选 + 一键全部展开 / 折叠；
 > 1.0.34 给订阅页补上批量操作，四个页面的批量动作改成按状态过滤 + 批量栏细分提示。
 > 1.0.35 加了「我的」页的「最近打开」、订阅 / 依赖两页的搜索命中高亮、配置文件页搜索。
+> 1.0.36 给登录日志加了「只看失败」（带条数）+ 按 IP / 地址 / 设备的搜索。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.35-trollstore.ipa
-# 应该得到 e80daa02a985257740e41cb089968be817bfc5625de271bde8d2e5b885cc6297
+sha256sum QingLongClient-1.0.36-trollstore.ipa
+# 应该得到 dff60f2f3e7d27afbb8d14bfb5a8e2b733a7393ca0f891637848a5925438885d
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -226,7 +225,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.35-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.36-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -238,7 +237,7 @@ qinglong-ios/out/QingLongClient-1.0.35-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.35-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.36-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
@@ -246,7 +245,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.35-trollstore.ipa
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
 | `index.html` | ✅ 414686 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.35（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| 页面 `APP_VER` | ✅ 1.0.36（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -404,6 +403,31 @@ python tools/verify_ipa.py out/QingLongClient-1.0.35-trollstore.ipa
 | 1.0.35 新增：搜索只重画不重打接口（`S.configs.q = …; renderConfigs()`） | ✅ 1 个锚点全在 |
 | 1.0.35 新增：`configs` 状态带 `q` | ✅ 1 个锚点全在 |
 | 1.0.34 跟进：编辑态勾选圈改锚 `logHi`（订阅名换了高亮渲染） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：登录日志搜索框（`id="loginSearch"`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：「只看失败」按钮（`id="btnLoginFail"`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：筛选状态登记（`onlyFail` / `q`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：失败判据函数（`function loginlogFail(x)`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：失败判据是 `status === 1`（不是 `!== 0`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：筛选函数（`function loginlogFiltered()`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：「只看失败」要真的滤（`if (l.onlyFail && !loginlogFail(x))`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：搜索覆盖 IP / 地址 / 设备三个字段 | ✅ 1 个锚点全在 |
+| 1.0.36 新增：搜索忽略大小写（关键字和值两边都转小写） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：关键字去首尾空格（`String(l.q || '').trim()`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：列表按筛完的画（`box.innerHTML = rows.map(...)`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：副标题给「命中 / 总数」（`rows.length + ' / ' + l.list.length`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：按钮上带失败条数（`failN ? '（' + failN + '）' : ''`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：按钮高亮跟状态走（`fb.classList.toggle('on', !!l.onlyFail)`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：开关函数（`function toggleLoginFail()`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：开关能翻回来（`= !S.loginlog.onlyFail`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：空态分开说（两个筛选都没命中） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：空态分开说（一条失败都没有） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：IP 命中上黄底（`logHi(x.ip || '—', q)`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：登录地址命中上黄底 | ✅ 1 个锚点全在 |
+| 1.0.36 新增：登录设备命中上黄底 | ✅ 1 个锚点全在 |
+| 1.0.36 新增：「只看失败」进委托选择器（`'#btnLoginFail,'`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：委托分支（`if (el.id === 'btnLoginFail') return toggleLoginFail();`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：搜索框挂 input 事件（`$('#loginSearch')`） | ✅ 1 个锚点全在 |
+| 1.0.36 新增：搜索本地重画不重打接口（`S.loginlog.q = …; renderLoginLog()`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -411,7 +435,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.35-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.35 (35) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.36 (36) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

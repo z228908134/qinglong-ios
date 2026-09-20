@@ -15,25 +15,24 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35448984429`，commit `eb91d41`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.32-trollstore.ipa`（184368 字节） |
-| SHA256 | `c03e585a6934b0880d4136314844a1d4870be6fe8d2b2f3f43cf68553a8c830e` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.32-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35487571897`，commit `a03380a`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.33-trollstore.ipa`（187799 字节） |
+| SHA256 | `841f4cc93a4d8e76d2ce948a6685905f92d16d0ef5285f6cee46b807b4f1a703` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.33-trollstore`（保留 30 天） |
 
-> **1.0.32 就一件事：搜出来的变量不用自己滑着找了**：
-> - **搜索框下多一条「↑ 2/4 ↓」**。搜「jd」能出二十来条，分组之后还散在各组里、
->   有的组还折着 —— 以前只能自己滑着找，现在点箭头逐个跳过去，跳到的那条套一圈黄边。
-> - **圈的是黄边 outline 不是背景**：背景会跟编辑模式的选中态（`.item.on`）撞在一起，
->   看不出到底跳没跳。黄边沿用「命中」那个黄，两套主题下都看得清。
-> - **跳的顺序是页面上看见的顺序**，不是列表原顺序 —— 分组会把顺序重排，
->   照列表顺序跳会「跳回去」（比如跳到第 2 个却是列表里第 4 条）。
-> - **目标在折叠的组里会先展开再跳**，否则跳过去是一片空白。
-> - **回车 = 下一个、Shift+回车 = 上一个**，跟电脑上「查找下一个」一个意思；
->   回车会先把防抖落下去再跳，不然跳的是上一批旧结果。
-> - **换关键字后原来的位置不算数**（拿 id 对一下，对不上就清掉），
->   不会「跳到另一个变量上还圈着它」。
+> **1.0.33：搜索跳转铺到任务页 / 脚本树，变量页能按状态筛、一键全展开**：
+> - **任务页、脚本树也各多一条「↑ n/N ↓」**（1.0.32 只做了变量页）。
+>   任务页跳的是「筛完之后的那批」；脚本树跳的身份是**完整相对路径** ——
+>   同一个 `jdCookie.js` 在 `jdpro/` 和根目录各有一个，靠路径才分得清。
+> - **脚本树搜索现在一律显示父目录**（以前只在目录名本身命中时才画），
+>   否则搜出来两个同名文件、界面上看不出区别，跳了也白跳。
+> - **变量页多一条状态筛选**：全部 / 已启用 / 已禁用，再点同一档取消。
+>   跟搜索叠着用，「搜 jd 里还没启用的」这种一眼就出来。
+> - **变量页多一个「全部展开 / 折叠」**：分组之后十几个组，一个个点太费劲；
+>   文案跟着当前状态走（有展开的就叫「全部折叠」）。按标签分组时这个按钮不显示。
+> - 黄边、回车 / Shift+回车、跳完自动展开折叠组 —— 跟 1.0.32 变量页那套完全一致。
 >
-> **装 1.0.32，别装 1.0.31 及更早的**。
+> **装 1.0.33，别装 1.0.32 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -46,13 +45,14 @@
 > 1.0.29 加了变量页批量复制（换 cookie 时一次抠多个值）；
 > 1.0.30 加了变量页按第一标签分组 + 每组可折叠；
 > 1.0.31 加了依赖卡片可折叠 + 依赖页批量操作（重装 / 删除 / 强制删除）；
-> 1.0.32 加了变量搜索结果的上 / 下一个跳转（命中项逐个跳，折叠组自动展开）。
+> 1.0.32 加了变量搜索结果的上 / 下一个跳转（命中项逐个跳，折叠组自动展开）；
+> 1.0.33 把「搜索跳转」铺到任务页 / 脚本树，变量页另加按状态筛选 + 一键全部展开 / 折叠。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.32-trollstore.ipa
-# 应该得到 c03e585a6934b0880d4136314844a1d4870be6fe8d2b2f3f43cf68553a8c830e
+sha256sum QingLongClient-1.0.33-trollstore.ipa
+# 应该得到 841f4cc93a4d8e76d2ce948a6685905f92d16d0ef5285f6cee46b807b4f1a703
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -222,7 +222,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.31-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.33-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -234,15 +234,15 @@ qinglong-ios/out/QingLongClient-1.0.31-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.32-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.33-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 391050 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.32（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 402767 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.33（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -323,6 +323,27 @@ python tools/verify_ipa.py out/QingLongClient-1.0.32-trollstore.ipa
 | 1.0.32 新增：搜索框挂回车跳转（`addEventListener('keydown'`） | ✅ 1 个锚点全在 |
 | 1.0.32 新增：Shift+回车是上一个（`envJump(ev.shiftKey ? -1 : 1)`） | ✅ 1 个锚点全在 |
 | 1.0.32 新增：换关键字时清掉跳转位置（`S.envs.hit = -1`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务跳转委托钩子（`[data-cronjump],`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务跳转分支传 ±1（`cronJump(Number(el.dataset.cronjump))`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务跳转顺序取筛完的（`return cronFiltered().map(...)`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务跳转列表换过后下标失效（`if (c.hitId == null \|\| cur !== c.hitId)`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务跳转条（`id="cronJump"`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务跳转给当前那条加类（`(cur ? ' hitcur' : '')`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：任务页回车等接口回来再跳（`loadCrons(true).then(...)`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：脚本跳转委托钩子（`[data-scrjump],`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：脚本跳转分支传 ±1（`scrJump(Number(el.dataset.scrjump))`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：脚本列表与跳转条同源（`var rows = scrRows();`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：脚本跳转身份用完整相对路径（`scrRows().map(... r.key)`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：脚本跳转条（`id="scrJump"`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：脚本搜索态一律写父目录（`var hitDir = q && r.dir;`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：变量状态筛选委托钩子（`[data-envstat],`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：变量状态筛选分支（`el.dataset.envstat != null`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：变量状态筛选已启用 / 已禁用（`e.stat === 'on'`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：变量状态筛选再点同一档取消（`S.envs.stat = (st === '' ...)`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：变量全折叠委托钩子（`#btnEnvFold,`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：变量全折叠分支（`envFoldAll()`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：有展开的就全折起来（`if (anyOpen) e.collapsed[g.key] = true;`） | ✅ 1 个锚点全在 |
+| 1.0.33 新增：折叠按钮文案跟着状态变（`envAnyOpen() ? '全部折叠' : '全部展开'`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -330,7 +351,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.32-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.32 (32) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.33 (33) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

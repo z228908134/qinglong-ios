@@ -368,6 +368,38 @@ FEATURES = [
     ("批量完成提示 带跳过数", r"\(skipped \? '（跳过 ' \+ skipped \+ ' 个）' : ''\)"),
     ("任务页切走清留白", r"var mnC = \$\('#main'\);"),
     ("任务页切走还原文案", r"var bC = \$\('#btnCronEdit'\);"),
+
+    # 1.0.35：三件事。
+    #   ① 「我的」页顶部加「最近打开」—— 底栏只有四个 tab（任务 / 变量 / 脚本 /
+    #      我的），订阅 / 依赖 / 配置 / 日志都得从「我的」进去，常用的那两三个
+    #      每次要在 12 张卡片里翻一遍。记下最近点过的放网格上面，第二次直接点。
+    #   ② 订阅 / 依赖两页补搜索命中高亮 —— 任务 / 变量 / 脚本三页一直有，
+    #      这两页搜完只是「列表变短了」，命中的是哪几个字还得自己一行行找。
+    #   ③ 配置文件页补搜索。列表是**整份**拉回来的，所以纯本地过滤，不重打接口。
+    ("最近打开 存储键", r"recent: 'ql\.recent'"),
+    ("最近打开 读函数", r"function recentTabs\(\) \{"),
+    ("最近打开 只留能当 tab 的", r"if \(!FEATURES\.some\(function \(f\) \{ return f\.tab === t; \}\)\) return false;"),
+    ("最近打开 去重", r"if \(typeof t !== 'string' \|\| seen\[t\]\) return false;"),
+    ("最近打开 读时截断", r"\}\)\.slice\(0, 3\);"),
+    ("最近打开 写函数", r"function pushRecent\(tab\) \{"),
+    ("最近打开 写时先去掉旧的", r"var list = recentTabs\(\)\.filter\(function \(t\) \{ return t !== tab; \}\);"),
+    ("最近打开 写时截断", r"sset\(K\.recent, JSON\.stringify\(list\.slice\(0, 3\)\)\);"),
+    ("最近打开 有记录才画", r"var rec = recentTabs\(\);"),
+    ("最近打开 区标题", r"h \+= '<div class=\"sec\">最近打开</div>';"),
+    ("最近打开 点卡片记一笔", r"pushRecent\(el\.dataset\.goto\);"),
+    ("搜索高亮 订阅名", r"'<div class=\"nm sp\">' \+ logHi\(x\.name \|\| x\.alias \|\| '未命名订阅', s\.q\) \+ '</div>'"),
+    ("搜索高亮 订阅链接", r"logHi\(x\.url \|\| '', s\.q\)"),
+    ("搜索高亮 订阅类型标签", r"logHi\(subTypeName\(x\.type\), s\.q\)"),
+    ("搜索高亮 依赖名", r"'<div class=\"nm sp mono\" style=\"font-size:calc\(14px\*var\(--fs\)\)\">' \+ logHi\(x\.name, d\.q\) \+ '</div>'"),
+    ("搜索高亮 依赖备注", r"'<div class=\"f11 t3\" style=\"margin-top:5px\">' \+ logHi\(x\.remark, d\.q\) \+ '</div>'"),
+    ("配置搜索 搜索框", r'id="cfgSearch"'),
+    ("配置搜索 纯本地过滤", r"var list = q \? c\.list\.filter\(function \(f\) \{"),
+    ("配置搜索 命中计数", r"\(list\.length \+ ' / ' \+ c\.list\.length \+ ' 个文件'\)"),
+    ("配置搜索 空态带关键字", r"'没有匹配「' \+ esc\(c\.q\) \+ '」的配置文件'"),
+    ("配置搜索 文件名高亮", r"logHi\(f\.title, c\.q\)"),
+    ("配置搜索 输入框绑定", r"\$\('#cfgSearch'\)\.addEventListener\('input', function \(e\) \{"),
+    ("配置搜索 只重画不打接口", r"S\.configs\.q = e\.target\.value\.trim\(\); renderConfigs\(\);"),
+    ("配置搜索 状态带 q", r"configs: \{ list: \[\], q: '', loading: false \}"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

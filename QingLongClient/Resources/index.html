@@ -766,6 +766,11 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
     </section>
 
     <section class="view" id="v-configs">
+      <!-- 面板自带的配置文件一般就 auth.json / config.sh 那几个，但装过插件、
+           自己加过 extra.sh 的能堆到十几个 —— 给一条搜索，跟日志页同一个样式。
+           **纯本地过滤**：列表是一次性整份拉回来的，不用再打接口。 -->
+      <div class="searchbar"><input id="cfgSearch" type="search" placeholder="搜索配置文件名"
+        autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <div class="list" id="cfgList"></div>
       <div style="margin-top:12px"><button class="btn" id="btnNewCfg" style="width:100%">+ 新建配置文件</button></div>
     </section>
@@ -898,7 +903,10 @@ var K = {
   token: 'ql.token', tab: 'ql.tab', remember: 'ql.remember', auto: 'ql.auto',
   theme: 'ql.theme', fs: 'ql.fs',
   /* 登录过的账号列表（多账号切换用），JSON 数组，见 acctRemember() */
-  accts: 'ql.accts'
+  accts: 'ql.accts',
+  /* 1.0.35：「我的」页的「最近打开」—— 最近点过的功能模块（tab 名）。
+     JSON 数组，最多 3 个，最近的在前。见 recentTabs() / pushRecent()。 */
+  recent: 'ql.recent'
 };
 /* 登录页「面板地址」的默认值。**留空** —— 不预填任何地址：
    这份页面会被打进安卓 / iOS 安装包，也会推到仓库里，写死一个 IP 等于把自己的
@@ -1273,7 +1281,7 @@ var S = {
   /* edit / sel：1.0.31 依赖页批量操作，跟任务页 / 变量页同一套
      open：1.0.31 依赖卡片折叠 —— 按 id 记，默认全折起来（只显示名称 + 状态） */
   deps: { list: [], type: 'nodejs', q: '', loading: false, edit: false, sel: {}, open: {} },
-  configs: { list: [], loading: false },
+  configs: { list: [], q: '', loading: false },
   /* 应用设置（面板的开放接口应用）。list 里每项是
      { id, name, client_id, client_secret, scopes: [], tokens: [] }。 */
   apps: { list: [], loading: false, err: '' },
@@ -4495,13 +4503,13 @@ function renderDeps() {
     return '<div class="item' + (picked ? ' on' : '') + '" data-deps="' + x.id + '">' +
       '<div class="row">' +
         (editing ? '<span class="ckb">✓</span>' : '') +
-        '<div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + esc(x.name) + '</div>' + pill(s) +
+        '<div class="nm sp mono" style="font-size:calc(14px*var(--fs))">' + logHi(x.name, d.q) + '</div>' + pill(s) +
         /* 折叠箭头：没有它用户看不出这行能点开 */
         (editing ? '' : '<span class="t3" style="font-size:calc(11px*var(--fs));padding-left:6px">' +
           (open ? '▾' : '▸') + '</span>') +
       '</div>' +
       (open ?
-      (x.remark ? '<div class="f11 t3" style="margin-top:5px">' + esc(x.remark) + '</div>' : '') +
+      (x.remark ? '<div class="f11 t3" style="margin-top:5px">' + logHi(x.remark, d.q) + '</div>' : '') +
       '<div class="f11 t3" style="margin-top:5px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' +
       '<div class="row" style="gap:8px;margin-top:10px">' +
         '<button class="btn" style="flex:1;padding:8px" data-depact="log" data-id="' + x.id + '">日志</button>' +
@@ -4802,16 +4810,18 @@ function renderSubs() {
     var st = subStatus(x.status);
     var running = subRunning(x);
     var on = editing && !!s.sel[x.id];
-    var tags = '<span class="tag">' + esc(subTypeName(x.type)) + '</span>' +
-               '<span class="tag">' + esc(subScheduleText(x)) + '</span>';
-    if (x.branch) tags += '<span class="tag">' + esc(x.branch) + '</span>';
+    /* 1.0.35：搜索命中上黄底。任务 / 变量 / 脚本三页一直有，订阅和依赖两页没有 ——
+       搜完只是「列表变短了」，命中的是哪几个字还得自己一行行找。 */
+    var tags = '<span class="tag">' + logHi(subTypeName(x.type), s.q) + '</span>' +
+               '<span class="tag">' + logHi(subScheduleText(x), s.q) + '</span>';
+    if (x.branch) tags += '<span class="tag">' + logHi(x.branch, s.q) + '</span>';
     if (x.autoAddCron === false) tags += '<span class="tag">不自动加任务</span>';
     return '<div class="item' + (on ? ' on' : '') + '" data-sub="' + x.id + '">' +
       '<div class="row">' +
         (editing ? '<span class="ckb">✓</span>' : '') +
-        '<div class="nm sp">' + esc(x.name || x.alias || '未命名订阅') + '</div>' + pill(st) + '</div>' +
+        '<div class="nm sp">' + logHi(x.name || x.alias || '未命名订阅', s.q) + '</div>' + pill(st) + '</div>' +
       '<div class="tags">' + tags + '</div>' +
-      '<div class="f11 t2 mono ell" style="margin-top:6px">' + esc(x.url || '') + '</div>' +
+      '<div class="f11 t2 mono ell" style="margin-top:6px">' + logHi(x.url || '', s.q) + '</div>' +
       (x.updatedAt ? '<div class="f11 t3" style="margin-top:4px">更新于 ' + esc(fmtWhen(x.updatedAt)) + '</div>' : '') +
       (editing ? '' :
       '<div class="row" style="gap:8px;margin-top:10px">' +
@@ -5084,20 +5094,31 @@ async function saveSub(id) {
    detail 回的是「裸文本」而不是 {code,data} 包装，所以走 apiText 而不是 api。 */
 function renderConfigs() {
   var c = S.configs;
-  $('#sub').textContent = c.list.length ? (c.list.length + ' 个文件') : '';
+  /* 1.0.35：本地过滤（列表是一次性整份拉回来的）。只按文件名搜 ——
+     面板的 /api/configs/files 只回 title（显示名）和 value（真实路径），
+     没有大小 / 时间，也就没别的可搜。 */
+  var q = String(c.q || '').trim().toLowerCase();
+  var list = q ? c.list.filter(function (f) {
+    return String(f.title || '').toLowerCase().indexOf(q) >= 0;
+  }) : c.list;
+  /* 搜索时说「命中 N / 共 M」—— 光说「N 个文件」看不出筛掉了多少 */
+  $('#sub').textContent = q
+    ? (list.length + ' / ' + c.list.length + ' 个文件')
+    : (c.list.length ? (c.list.length + ' 个文件') : '');
   var box = $('#cfgList');
   if (c.loading && !c.list.length) {
     box.innerHTML = '<div class="center"><span class="spin"></span>加载中…</div>';
     return;
   }
-  if (!c.list.length) {
-    box.innerHTML = '<div class="empty"><span class="ei">⚙</span>没有可编辑的配置文件</div>';
+  if (!list.length) {
+    box.innerHTML = '<div class="empty"><span class="ei">⚙</span>' +
+      (q ? '没有匹配「' + esc(c.q) + '」的配置文件' : '没有可编辑的配置文件') + '</div>';
     return;
   }
-  box.innerHTML = c.list.map(function (f) {
+  box.innerHTML = list.map(function (f) {
     return '<div class="item row" data-cfg="' + esc(f.value) + '">' +
       '<div style="font-size:calc(16px*var(--fs));width:22px;text-align:center">📄</div>' +
-      '<div class="sp"><div style="font-size:calc(14px*var(--fs))" class="mono ell">' + esc(f.title) + '</div></div>' +
+      '<div class="sp"><div style="font-size:calc(14px*var(--fs))" class="mono ell">' + logHi(f.title, c.q) + '</div></div>' +
       '<div class="t3">›</div></div>';
   }).join('');
 }
@@ -5202,7 +5223,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.34';
+var APP_VER = '1.0.35';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -5239,6 +5260,34 @@ function featCard(f) {
       'box-shadow:0 8px 18px -8px ' + f.sh + '">' + f.icon + '</span>' +
     '<span class="go">→</span>' +
     '</button>';
+}
+
+/* ---------- 「我的」页的「最近打开」（1.0.35）----------
+   底栏只有四个 tab（任务 / 变量 / 脚本 / 我的），订阅 / 依赖 / 配置 / 日志
+   这些都得从「我的」进去。常用的那两三个每次都要在 12 张卡片里找一遍 ——
+   记下最近点过的，放在网格上面，第二次进来直接点。
+
+   只记「能当 tab 用的」（FEATURES 里带 tab 的那些）：系统设置那张走弹层，
+   记下来也跳不过去。读的时候顺手把「现在已经没有的模块」滤掉 ——
+   以后删掉某个功能，老记录不该在页面上留一张点不动的空卡。 */
+function recentTabs() {
+  var raw = null;
+  try { raw = JSON.parse(sget(K.recent) || '[]'); } catch (e) { raw = null; }
+  if (!Array.isArray(raw)) return [];
+  var seen = {};
+  return raw.filter(function (t) {
+    if (typeof t !== 'string' || seen[t]) return false;
+    if (!FEATURES.some(function (f) { return f.tab === t; })) return false;
+    seen[t] = true;
+    return true;
+  }).slice(0, 3);
+}
+
+function pushRecent(tab) {
+  if (!FEATURES.some(function (f) { return f.tab === tab; })) return;
+  var list = recentTabs().filter(function (t) { return t !== tab; });
+  list.unshift(tab);
+  sset(K.recent, JSON.stringify(list.slice(0, 3)));
 }
 
 /* 头像取用户名首字母。用户名要登录之后才知道，所以登录前后都必须能安全调用
@@ -5717,7 +5766,19 @@ function renderDash() {
 
   /* 概览**不在这里** —— 它搬到「主页」了（renderHome）。这页只留功能网格，
      这样即使统计接口全挂，功能入口也是同步渲染出来的、立刻能点。 */
-  var h = '<div class="sec">功能</div>';
+  var h = '';
+  /* 1.0.35：「最近打开」。第一次用（一条记录都没有）时整节不画 ——
+     空着比画一句「还没有最近打开」干净。 */
+  var rec = recentTabs();
+  if (rec.length) {
+    h += '<div class="sec">最近打开</div>';
+    h += '<div class="fgrid">';
+    rec.forEach(function (t) {
+      FEATURES.forEach(function (f) { if (f.tab === t) h += featCard(f); });
+    });
+    h += '</div>';
+  }
+  h += '<div class="sec">功能</div>';
   h += '<div class="fgrid">';
   FEATURES.forEach(function (f) { h += featCard(f); });
   h += '</div>';
@@ -7046,6 +7107,13 @@ function bind() {
     clearTimeout(t4);
     t4 = setTimeout(function () { S.deps.q = e.target.value.trim(); loadDeps(); }, 350);
   });
+  /* 1.0.35：配置文件页的搜索。**不用 loadConfigs()** —— 那份列表已经整份在手上，
+     重打接口只是白等一次；直接重画。 */
+  var t5 = null;
+  $('#cfgSearch').addEventListener('input', function (e) {
+    clearTimeout(t5);
+    t5 = setTimeout(function () { S.configs.q = e.target.value.trim(); renderConfigs(); }, 350);
+  });
 
   /* 脚本页的「+」：只负责开合下拉菜单，具体动作交给事件委托（菜单项带 data-sact）。
      stopPropagation 是为了不让这次点击冒泡到下面的「点别处收菜单」监听里。 */
@@ -7583,7 +7651,7 @@ function onClick(ev) {
      切页之前**必须先关弹层** —— 这几张卡原来也在系统设置弹层里出现过（1.0.15 已撤），
      而 setTab() 只管换视图、不管弹层。不关的话页面在弹层后面换了，用户看到的是
      「点了没反应」，不报错、也不进日志，只有真机点一遍才发现。 */
-  if (el.dataset.goto) { closeSheet(); return setTab(el.dataset.goto); }
+  if (el.dataset.goto) { closeSheet(); pushRecent(el.dataset.goto); return setTab(el.dataset.goto); }
   /* 网格里那两张「不是 tab」的卡片：走弹层 */
   if (el.id === 'btnAcct') return openAccount();
   if (el.id === 'btnSettings') return openSettings();

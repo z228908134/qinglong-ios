@@ -15,24 +15,25 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35498197316`，commit `65bd173`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.36-trollstore.ipa`（193336 字节） |
-| SHA256 | `dff60f2f3e7d27afbb8d14bfb5a8e2b733a7393ca0f891637848a5925438885d` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.36-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35502447792`，commit `17bc384`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.37-trollstore.ipa`（197375 字节） |
+| SHA256 | `6d86a555bbb535a18a821d0a64405b6f835184826a4ead7a76c118f74a87d64e` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.37-trollstore`（保留 30 天） |
 
-> **1.0.36：登录日志能筛了 —— 一眼看出有没有人在试你的面板**：
-> - **「只看失败」开关**：面板的登录日志最多 100 条，翻起来清一色「成功」，
->   真正要看的那几条失败混在中间。按钮上**带着失败条数**（「只看失败（2）」），
->   不点开就知道今天有没有人试过你的面板；点开之后按钮变「看全部」并高亮。
-> - **一条搜索**：按登录 IP / 登录地址 / 登录设备搜（三个字段一起），
->   命中的那一段单独上黄底 —— 只圈 `45.155`，不是把整格涂黄。
-> - **筛过之后副标题说「命中 / 总数」**（「2 / 6 条记录」），
->   不然光一个数字看不出筛掉了多少；没筛的时候照旧只写总数，不写「6 / 6」。
-> - **三种「空」分开说**：真的没有记录 / 没有失败的记录 / 没有匹配关键字的记录，
->   笼统一句「没有记录」会让人以为日志被清掉了。
-> - 列表是一次性整份拉回来的，所以两个筛选都是**本地过滤、不重打接口**。
+> **1.0.37：多实例任务能看运行实例了 —— 起了几个、哪个卡住了、停哪一个**：
+> - **任务详情「其他 → 运行实例」**（只给开了「允许同时运行多个实例」的任务）：
+>   那行先写「查看」，再把「N 个在跑」补上 —— 不点开就知道现在有几个在跑。
+> - **运行实例页**：一个实例一张卡，进程号 / 启动时间 / 已运行时长 / 结束时间 / 退出码；
+>   **只有还在跑的那几条带「停止这个实例」**（已结束的点了只会弹「实例不存在或已停止」）。
+> - **状态判据只看 `finished_at`，不看 `status` 数值**：后端各版本的 `InstanceStatus`
+>   枚举编号未必一致，认错一个数字就会把「正在跑」的实例说成「已完成」，
+>   而这种错在界面上完全看不出来。退出码 `143`（SIGTERM，面板自己 kill 的）
+>   单独说「已停止」，不混进「出错」。
+> - **停完自动重拉列表** —— 后端可能顺手把任务置回 idle，页面不能还挂着旧的「运行中」。
+> - **老面板没这个接口时明说**（`/api/crons/{id}/instances` 是较新版本才有的）：
+>   页面写「这个面板版本还不支持运行实例列表」，不把「服务器错误 HTTP 404」甩给用户。
 >
-> **装 1.0.36，别装 1.0.35 及更早的**。
+> **装 1.0.37，别装 1.0.36 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -50,12 +51,13 @@
 > 1.0.34 给订阅页补上批量操作，四个页面的批量动作改成按状态过滤 + 批量栏细分提示。
 > 1.0.35 加了「我的」页的「最近打开」、订阅 / 依赖两页的搜索命中高亮、配置文件页搜索。
 > 1.0.36 给登录日志加了「只看失败」（带条数）+ 按 IP / 地址 / 设备的搜索。
+> 1.0.37 给多实例任务加了运行实例列表（看几个在跑、单独停掉某一个）。
 
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.36-trollstore.ipa
-# 应该得到 dff60f2f3e7d27afbb8d14bfb5a8e2b733a7393ca0f891637848a5925438885d
+sha256sum QingLongClient-1.0.37-trollstore.ipa
+# 应该得到 6d86a555bbb535a18a821d0a64405b6f835184826a4ead7a76c118f74a87d64e
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -225,7 +227,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.36-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.37-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -237,15 +239,15 @@ qinglong-ios/out/QingLongClient-1.0.36-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.36-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.37-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 414686 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.36（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 435442 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.37（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -428,6 +430,36 @@ python tools/verify_ipa.py out/QingLongClient-1.0.36-trollstore.ipa
 | 1.0.36 新增：委托分支（`if (el.id === 'btnLoginFail') return toggleLoginFail();`） | ✅ 1 个锚点全在 |
 | 1.0.36 新增：搜索框挂 input 事件（`$('#loginSearch')`） | ✅ 1 个锚点全在 |
 | 1.0.36 新增：搜索本地重画不重打接口（`S.loginlog.q = …; renderLoginLog()`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 视图（`<section class="view" id="v-instances">`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 标题（`instances: '运行实例',`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 页面状态（`id` / `name` / `list` / `loading` / `err` / `busy`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 在跑判据函数（`function instRunning(x)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 判据只看 `finished_at`（不认后端 `status` 枚举编号） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 状态文案函数（`function instState(x)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 143 = SIGTERM 说「已停止」（不是「出错 143」） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 出错带上退出码（`'出错 ' + code`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 时长函数（`function instDurSec(x)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 跑着的按「现在」算（结束的定格） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 在跑计数函数（`function instRunningCount(list)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 跳转函数（`function gotoInstances(t)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 加载函数（`async function loadInstances(id, force)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 列表接口（`/api/crons/{id}/instances`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 停止函数（`async function stopInstance(iid)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 停止走 POST（不是 GET） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 停完重拉列表（`await loadInstances(v.id, true)`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 渲染函数（`function renderInstances()`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 副标题给「总数 · 在跑数」 | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 「停止」只给还在跑的 | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 404 说「面板版本不支持」（不甩原始错误） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 详情页入口（`id="cdInst" data-goinst="`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 入口只给多实例任务（`allow_multiple_instances === 1`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 详情页那行补「N 个在跑」 | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 委托选择器（`[data-goinst],[data-inststop]`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 委托分支 跳转（`el.dataset.goinst`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 委托分支 停止（`el.dataset.inststop`） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 刷新 / 重试按钮进 closest 选择器 | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 refresh 管这一页（下拉刷新重拉） | ✅ 1 个锚点全在 |
+| 1.0.37 新增：运行实例 换任务先清旧列表（`S.instances.list = []`） | ✅ 1 个锚点全在 |
 | 面板日志（`loadSysLog` / `/api/system/log` / DELETE 清空 / `.lv-error` 配色） | ✅ 4 个锚点全在 |
 | 时间格式化（`cronMs` 秒→毫秒 / `fmtDur` 运行时长 / `fmtFileTime` birthtime 兜底） | ✅ 3 个锚点全在 |
 | 有没有 `window.open` | ✅ 无（它会顺着壳的 `WKUIDelegate` 把 App 导航走，且没有返回入口） |
@@ -435,7 +467,7 @@ python tools/verify_ipa.py out/QingLongClient-1.0.36-trollstore.ipa
 | 字号缩放变量 | ✅ `--fs` 在 |
 | `QLBootstrap.js`（接管 fetch + `'ios'` 标记） | ✅ 7368 字节 |
 | 桥的 `setBack` / `setTheme` | ✅ 都在 |
-| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.36 (36) |
+| `CFBundleIdentifier` / 版本 | ✅ `com.qinglong.client` / 1.0.37 (37) |
 | `CFBundleDisplayName` | ✅ 青龙 |
 | `UIDeviceFamily` | ✅ `[1, 2]`（iPhone + iPad） |
 | `MinimumOSVersion` | ✅ 15.0 |

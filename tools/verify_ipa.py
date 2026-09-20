@@ -97,7 +97,8 @@ FEATURES = [
     # 1.0.17 后半：任务详情 → 脚本 / 日志 直达（照面板网页版的任务详情）
     ("详情 脚本直达", r"data-goscript="),
     ("详情 最新日志直达", r"data-gocronlog="),
-    ("详情 日志历史直达", r"data-gocronlogdir="),
+    # 1.0.38：原来那条直接跳日志页（data-gocronlogdir），现在是独立的历史日志页。
+    ("详情 日志历史直达", r"data-gocronlogs="),
     ("详情 命令里抠脚本路径", r"function scriptPathOf\("),
     ("详情 长路径缩略显示", r"function shortPath\("),
     ("详情 补日志树不碰 path", r"async function ensureLogTree\("),
@@ -465,9 +466,48 @@ FEATURES = [
     ("运行实例 委托选择器", r"'\[data-goinst\],\[data-inststop\],' \+"),
     ("运行实例 委托分支 跳转", r"if \(el\.dataset\.goinst\) return gotoInstances\(cronById\(el\.dataset\.goinst\)\);"),
     ("运行实例 委托分支 停止", r"if \(el\.dataset\.inststop\) return stopInstance\(Number\(el\.dataset\.inststop\)\);"),
-    ("运行实例 刷新按钮进选择器", r"'#btnInstReload,#btnInstRetry'"),
+    # 1.0.38：1.0.37 这条选择器是**最后一行**，1.0.38 后面加了 #btnCronLogsReload 那行，
+    # 这一行末尾多了 `,' +`（要被下一行接住）。锚点跟着改。
+    ("运行实例 刷新按钮进选择器", r"'#btnInstReload,#btnInstRetry,' \+"),
     ("运行实例 refresh 管这一页", r"if \(S\.tab === 'instances'\) return loadInstances\(S\.instances\.id, true\);"),
     ("运行实例 换任务先清旧列表", r"S\.instances\.list = \[\];"),
+
+    # 1.0.38：任务的历史日志列表。
+    #   「最新日志」只有一条，想看昨天那次跑成什么样得自己在日志目录里翻，
+    #   文件名都是 2026-09-18-08-00-03-118.log 这种，找「昨天那次」得逐个认。
+    #   数据不用新接口：日志树里这个任务的目录节点就带着 children（含 size / createTime）。
+    ("历史日志 视图", r'<section class="view" id="v-cronlogs">'),
+    ("历史日志 TITLES", r"cronlogs: '历史日志',"),
+    ("历史日志 状态字段", r"cronlogs: \{ id: null, name: '', list: \[\], loading: false,"
+                          r" err: '', dirKey: '', dirName: '' \},"),
+    ("历史日志 只挑文件", r"return x && x\.type !== 'directory';"),
+    ("历史日志 按名字倒序", r"return x < y \? 1 : \(x > y \? -1 : 0\);"),
+    ("历史日志 没目录返回空", r"var files = \(\(dir && dir\.children\) \|\| \[\]\)\.filter"),
+    ("历史日志 详情页未拉树文案", r"if \(!S\.logs\.tree\.length\) return '查看历史日志';"),
+    ("历史日志 详情页无日志文案", r"return n \? \(n \+ ' 个文件'\) : '暂无日志';"),
+    ("历史日志 跳走记来源", r"S\.backTo = from;\n  S\.cronlogs\.id = t\.id;"),
+    ("历史日志 切到这一页", r"setTab\('cronlogs'\);"),
+    ("历史日志 任务不在列表", r"v\.err = '这个任务已经不在当前列表里了';"),
+    ("历史日志 刷新清日志树缓存", r"if \(force\) S\.logs\.tree = \[\];"),
+    ("历史日志 记住目录 key", r"v\.dirKey = dir \? String\(dir\.key \|\| ''\) : '';"),
+    ("历史日志 跳日志目录", r"loadLogs\(logKeyPath\(v\.dirKey\), false\);"),
+    ("历史日志 副标题", r"\$\('#sub'\)\.textContent = v\.list\.length \? "
+                       r"\(v\.list\.length \+ ' 个日志文件'\) : '';"),
+    ("历史日志 显示日志目录名", r"日志目录：' \+ esc\(v\.dirName\)"),
+    ("历史日志 浏览目录按钮", r'id="btnCronLogsDir"'),
+    ("历史日志 空态", r"这个任务还没有日志"),
+    ("历史日志 列表项存树节点 key", r"data-cronlogopen=\"' \+ esc\(f\.key\)"),
+    ("历史日志 显示文件大小", r"esc\(fmtSize\(f\.size\)\)"),
+    ("历史日志 委托选择器", r"'\[data-goscript\],\[data-gocronlog\],\[data-gocronlogs\],"
+                            r"\[data-cronlogopen\],' \+"),
+    ("历史日志 委托分支 跳转", r"if \(el\.dataset\.gocronlogs\) return gotoCronLogs"
+                               r"\(cronById\(el\.dataset\.gocronlogs\)\);"),
+    ("历史日志 委托分支 打开某一份", r"var lnode = findLogNode\(el\.dataset\.cronlogopen\);"),
+    ("历史日志 按钮进选择器", r"'#btnCronLogsReload,#btnCronLogsRetry,#btnCronLogsDir'"),
+    ("历史日志 refresh 管这一页", r"if \(S\.tab === 'cronlogs'\) return loadCronLogs"
+                                  r"\(S\.cronlogs\.id, true\);"),
+    ("历史日志 详情页那行 id", r'id="cdLogHisV"'),
+    ("历史日志 详情页补文件数", r"if \(vh && S\.detailId === t\.id\) vh\.textContent = logHisHint\(t\);"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

@@ -793,6 +793,16 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div id="instBody"></div>
     </section>
 
+    <!-- 历史日志：这个任务的日志目录里所有文件，按时间倒序。
+         面板网页版的任务详情点「日志」也是这么给的。
+         手机上之前只能从「日志文件」页一层层下钻 —— 那一页还按**文件名**排，
+         而文件名都是 `2026-09-20-08-15-01-118.log` 这种，找「昨天那次」得逐个认。
+         数据不用新接口：日志树（GET /api/logs）里这个任务的目录节点就带着
+         children（含 size / createTime），跟 /api/crons/{id}/logs 是同一批文件。 -->
+    <section class="view" id="v-cronlogs">
+      <div id="cronlogsBody"></div>
+    </section>
+
     <!-- 应用设置：面板「系统设置 → 应用设置」的移动版。管理开放接口的
          Client ID / Secret 和权限。入口在「我的 → 系统设置」里的面板设置区块。 -->
     <section class="view" id="v-apps">
@@ -1313,6 +1323,11 @@ var S = {
      停止要 kill 进程、等接口回来，几百毫秒里按钮得有个「停止中…」的样子，
      连点两次会发两个请求（第二次必然回「实例不存在或已停止」，纯属噪音）。 */
   instances: { id: null, name: '', list: [], loading: false, err: '', busy: {} },
+  /* 历史日志页（1.0.38）。dirKey / dirName 是日志树里这个任务目录节点的 key 和名字 ——
+     列表底部「在日志目录里浏览」要靠 dirKey 定位（`logKeyPath` 拆成逐级前缀）。
+     **不能只存任务 id 到时候再 cronById 反查**：从这一页跳去日志页时 S.detailId
+     早就清空了，反查出来的来源会把返回链弄断。 */
+  cronlogs: { id: null, name: '', list: [], loading: false, err: '', dirKey: '', dirName: '' },
   /* 面板日志（面板「系统设置 → 系统日志」）。GET /api/system/log 回的是把区间内
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
@@ -2020,6 +2035,9 @@ var TITLES = {
   /* 1.0.37：多实例任务的运行实例列表。二级页 —— 没有底栏入口，
      只能从任务详情的「其他 → 运行实例」进，所以顶栏会自动出现返回按钮。 */
   instances: '运行实例',
+  /* 1.0.38：这个任务的历史日志文件列表。同样是二级页，
+     入口在任务详情的「日志 → 日志历史」。 */
+  cronlogs: '历史日志',
   /* 这三个对应面板网页版「系统设置」里的同名页签，入口在系统设置弹层里。
      名字照面板的叫法，不要改 —— 用户是照面板的名字找的。 */
   apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志', syslog: '面板日志'
@@ -2138,6 +2156,9 @@ async function refresh() {
   /* 1.0.37：实例列表要「刷新」（下拉刷新 / 切回这一页）时强制重拉 ——
      实例是随时起随时停的，缓存一份只会看到过期的「运行中」。 */
   if (S.tab === 'instances') return loadInstances(S.instances.id, true);
+  /* 1.0.38：历史日志页。force 清掉日志树缓存重拉 —— 日志随时在写，
+     下拉刷新还看缓存的话，刚跑完那次的新日志不会出现。 */
+  if (S.tab === 'cronlogs') return loadCronLogs(S.cronlogs.id, true);
   if (S.tab === 'me') return loadDash();
 }
 
@@ -2753,16 +2774,141 @@ async function openCronLog(t) {
   if (!f) { toast('这个任务还没有日志', true); return; }
   await openLogFile(f);
 }
-/* 跳到日志页，并停在这个任务的日志目录里。 */
-async function gotoCronLogDir(t) {
+/* 1.0.38 起「日志历史」不再跳日志页下钻（那条路要在一堆时间戳文件名里逐个认），
+   改成打开历史日志列表页；想按目录浏览的话，那一页底部有「在日志目录里浏览」
+   （见 gotoCronLogsDir）。所以原来的 gotoCronLogDir 撤了。 */
+
+/* ================= 历史日志（1.0.38） =================
+   任务详情「日志」区的「日志历史」：这个任务的日志目录里所有文件，按时间倒序。
+   面板网页版的任务详情点「日志」也是这么给的。
+   手机上之前只能从「日志文件」页一层层下钻 —— 那一页还按**文件名**排，
+   而文件名都是 `2026-09-20-08-15-01-118.log` 这种，找「昨天那次」得逐个认。
+
+   **数据不用新接口**：日志树（GET /api/logs）里这个任务的目录节点就带着 children
+   （含 size / createTime），跟 `/api/crons/{id}/logs` 返回的是同一批文件
+   （后端那个接口也是 dirname(log_path) 列一遍目录）。
+   少打一个接口，也就没有「老面板不支持这个接口」那一档要处理。 */
+
+/* 这个任务的日志文件，按文件名倒序（最新在前）。
+   **文件名形如 `2026-09-20-08-15-01-118.log`，字典序就是时间序** ——
+   跟 newestLogFile 用的是同一条规律，比解析日期可靠（各版本格式还不一样）。
+   目录节点没拉到时返回空数组，不抛。 */
+function cronLogFiles(t) {
+  var dir = findLogDir(t);
+  var files = ((dir && dir.children) || []).filter(function (x) {
+    return x && x.type !== 'directory';
+  });
+  return files.slice().sort(function (a, b) {
+    var x = String(a.title), y = String(b.title);
+    return x < y ? 1 : (x > y ? -1 : 0);
+  });
+}
+/* 详情页「日志历史」那行右侧显示什么。跟 logNewHint 一样要分清
+   「还没拉」和「拉了但没有」—— 两种都写「查看历史日志」的话，
+   一个从没跑过的任务点进去只会看到空列表，白点一次。 */
+function logHisHint(t) {
+  if (!S.logs.tree.length) return '查看历史日志';
+  var n = cronLogFiles(t).length;
+  return n ? (n + ' 个文件') : '暂无日志';
+}
+
+/* 从任务详情跳过来。跟 gotoCronLogDir 一个套路：先记来源、再关弹层、再切页。 */
+function gotoCronLogs(t) {
   if (!t) return;
   var from = S.detailId;
   closeSheet();
   S.backTo = from;
+  S.cronlogs.id = t.id;
+  S.cronlogs.name = t.name || ('任务 ' + t.id);
+  S.cronlogs.list = [];
+  S.cronlogs.err = '';
+  S.cronlogs.dirKey = '';
+  S.cronlogs.dirName = '';
+  setTab('cronlogs');
+  loadCronLogs(t.id);
+}
+
+async function loadCronLogs(id, force) {
+  var v = S.cronlogs;
+  if (id != null) v.id = id;
+  if (v.id == null) return;
+  var t = cronById(v.id);
+  if (!t) {
+    /* 任务列表里找不到（被删了 / 列表换过一页）：给个说得清的错，别画一片空白 */
+    v.list = [];
+    v.loading = false;
+    v.err = '这个任务已经不在当前列表里了';
+    renderCronLogs();
+    return;
+  }
+  v.loading = true;
+  v.err = '';
+  renderCronLogs();
+  /* force 是「刷新」按钮和下拉刷新走的：日志随时在写，吃缓存的树会看到过期列表 */
+  if (force) S.logs.tree = [];
   await ensureLogTree();
   var dir = findLogDir(t);
+  v.dirKey = dir ? String(dir.key || '') : '';
+  v.dirName = dir ? String(dir.title || '') : '';
+  v.list = cronLogFiles(t);
+  v.loading = false;
+  renderCronLogs();
+}
+
+/* 从历史日志页跳到「日志文件」页并定位到这个任务的目录。
+   **不走 gotoCronLogDir** —— 那个是给「从任务详情跳走」用的，
+   它会拿 S.detailId 覆盖 S.backTo，而进这一页时弹层早关了、detailId 是 null，
+   来源会被清掉，返回就回不到任务详情了。 */
+function gotoCronLogsDir() {
+  var v = S.cronlogs;
+  if (!v.dirKey) return;
   setTab('logs');
-  await loadLogs(dir ? logKeyPath(dir.key) : [], false);
+  loadLogs(logKeyPath(v.dirKey), false);
+}
+
+function renderCronLogs() {
+  var box = $('#cronlogsBody');
+  if (!box) return;
+  var v = S.cronlogs;
+  $('#sub').textContent = v.list.length ? (v.list.length + ' 个日志文件') : '';
+
+  var h = '';
+  h += '<div class="card" style="padding:14px">' +
+    '<div class="row"><div class="nm sp" style="font-size:calc(17px*var(--fs))">' +
+      esc(v.name || ('任务 ' + (v.id == null ? '' : v.id))) + '</div>' +
+    '</div>' +
+    /* 目录名显示出来：任务可以自定义 log_name，出问题时要在面板上对得上路径 */
+    (v.dirName ? '<div class="f11 t3" style="margin-top:6px">日志目录：' + esc(v.dirName) + '</div>' : '') +
+    '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">' +
+      '<button class="btn" id="btnCronLogsReload" style="padding:8px 12px">刷新</button>' +
+      (v.dirKey ? '<button class="btn" id="btnCronLogsDir" style="padding:8px 12px">在日志目录里浏览</button>' : '') +
+    '</div>' +
+    '</div>';
+
+  if (v.loading) {
+    box.innerHTML = h + '<div class="center"><span class="spin"></span>读取日志文件…</div>';
+    return;
+  }
+  if (v.err) {
+    box.innerHTML = h + '<div class="empty"><span class="ei">!</span>' + esc(v.err) +
+      '<div style="margin-top:16px"><button class="btn" id="btnCronLogsRetry" style="padding:8px 22px">重试</button></div></div>';
+    return;
+  }
+  if (!v.list.length) {
+    box.innerHTML = h + '<div class="empty"><span class="ei">▤</span>这个任务还没有日志' +
+      '<div class="f11 t3" style="margin-top:10px">跑一次之后这里就有</div></div>';
+    return;
+  }
+  box.innerHTML = h + '<div class="list">' + v.list.map(function (f) {
+    /* createTime 是 birthtime（毫秒），Docker 挂载卷上可能是 0 —— fmtFileTime 挡过一道，
+       返回空串就不显示，不编一个「01-01 08:00」。 */
+    var when = fmtFileTime(f.createTime);
+    return '<div class="item" data-cronlogopen="' + esc(f.key) + '">' +
+      '<div class="row"><div class="nm sp mono ell">' + esc(f.title) + '</div><span class="t3">›</span></div>' +
+      '<div class="f11 t3" style="margin-top:6px">' +
+        (when ? esc(when) + ' · ' : '') + esc(fmtSize(f.size)) + '</div>' +
+    '</div>';
+  }).join('') + '</div>';
 }
 
 /* ================= 运行实例（1.0.37） =================
@@ -2992,9 +3138,9 @@ function renderCronDetail(t) {
       '<span class="k" style="flex:0 0 56px">最新日志</span>' +
       '<span class="v ell" id="cdLogNewV">' + esc(logNewHint(t)) + '</span><span class="t3">›</span>' +
     '</button>' +
-    '<button class="kvrow" id="cdLogHis" data-gocronlogdir="' + t.id + '">' +
+    '<button class="kvrow" id="cdLogHis" data-gocronlogs="' + t.id + '">' +
       '<span class="k" style="flex:0 0 56px">日志历史</span>' +
-      '<span class="v ell">' + esc(t.log_name || ('任务 ' + t.id)) + '</span><span class="t3">›</span>' +
+      '<span class="v ell" id="cdLogHisV">' + esc(logHisHint(t)) + '</span><span class="t3">›</span>' +
     '</button></div>';
 
   h += '<div class="secttl">操作</div>';
@@ -3059,6 +3205,10 @@ function renderCronDetail(t) {
     ensureLogTree().then(function () {
       var v = $('#cdLogNewV');
       if (v && S.detailId === t.id) v.textContent = logNewHint(t);
+      /* 1.0.38：「日志历史」那行同理 —— 树没拉过时它写的是「查看历史日志」，
+         拉完换成「N 个文件」，不点开就知道这个任务攒了多少份日志。 */
+      var vh = $('#cdLogHisV');
+      if (vh && S.detailId === t.id) vh.textContent = logHisHint(t);
     });
   }
 
@@ -5446,7 +5596,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.37';
+var APP_VER = '1.0.38';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -7488,7 +7638,7 @@ function onClick(ev) {
        另起一行加，别拼进上面那行 —— 上面那行被 V32 锚着（它是整条一起比的）。 */
     '[data-tdays],[data-tday],[data-gocrons],' +
     '[data-ebatch],' +
-    '[data-goscript],[data-gocronlog],[data-gocronlogdir],' +
+    '[data-goscript],[data-gocronlog],[data-gocronlogs],[data-cronlogopen],' +
     /* 1.0.37：任务详情的「运行实例」直达 + 实例列表里的「停止这个实例」。
        另起一行加 —— 上面那行被锚着（整条一起比）。 */
     '[data-goinst],[data-inststop],' +
@@ -7533,7 +7683,9 @@ function onClick(ev) {
     '#btnScRetry,#btnLogRetry,#btnCopyNewSec,' +
     /* 1.0.37：运行实例页的「刷新」/「重试」。**必须加进这个 closest 选择器** ——
        漏了的症状是「点了完全没反应」，不报错，最难查。 */
-    '#btnInstReload,#btnInstRetry'
+    '#btnInstReload,#btnInstRetry,' +
+    /* 1.0.38：历史日志页的「刷新」/「重试」/「在日志目录里浏览」。 */
+    '#btnCronLogsReload,#btnCronLogsRetry,#btnCronLogsDir'
   ) : null;
   if (!el) return;
 
@@ -7635,7 +7787,19 @@ function onClick(ev) {
   /* 任务详情里的三处直达：脚本 / 最新日志 / 日志历史 */
   if (el.dataset.goscript) return gotoScript(el.dataset.goscript);
   if (el.dataset.gocronlog) return openCronLog(cronById(el.dataset.gocronlog));
-  if (el.dataset.gocronlogdir) return gotoCronLogDir(cronById(el.dataset.gocronlogdir));
+  if (el.dataset.gocronlogs) return gotoCronLogs(cronById(el.dataset.gocronlogs));
+  /* 1.0.38：历史日志页里点某一份日志 → 拿树节点打开它。
+     列表项存的是树节点的 key（相对路径），findLogNode 能直接取回完整节点
+     （openLogFile 要 node.title / node.key / node.size）。取不到就什么都不做 ——
+     树被刷新过、那条文件已经不在列表里了，硬开只会报错。 */
+  if (el.dataset.cronlogopen) {
+    var lnode = findLogNode(el.dataset.cronlogopen);
+    if (lnode) return openLogFile(lnode);
+    return;
+  }
+  if (el.id === 'btnCronLogsReload') return loadCronLogs(S.cronlogs.id, true);
+  if (el.id === 'btnCronLogsRetry') return loadCronLogs(S.cronlogs.id, true);
+  if (el.id === 'btnCronLogsDir') return gotoCronLogsDir();
   /* 1.0.37：任务详情 → 运行实例列表；列表里停掉某一个实例。 */
   if (el.dataset.goinst) return gotoInstances(cronById(el.dataset.goinst));
   if (el.dataset.inststop) return stopInstance(Number(el.dataset.inststop));

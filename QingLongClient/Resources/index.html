@@ -823,6 +823,15 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div id="viewsBody"></div>
     </section>
 
+    <!-- 1.0.43：依赖设置。装依赖失败 / 慢的时候多半是源的问题。
+         三个源 + 依赖代理一律「预设芯片 + 点一下就换」—— 手机上不该让人
+         手打那一长串网址。底部是清依赖缓存。
+         ⚠️ 换 Node / Linux 源是**异步**的：后端提交后台任务后立刻结束响应，
+         执行日志走 WebSocket（App 收不到）→ 页面给「去看面板日志」的直达。 -->
+    <section class="view" id="v-mirror">
+      <div id="mirrorBody"></div>
+    </section>
+
     <!-- 1.0.40：数据备份。立即导出（弹 iOS share sheet）+ 自动发现青龙里
          「备份类任务」的最近运行历史。入口在「我的」页 FEATURES 卡片。
          「自动定时备份 + 上传网盘」不做在 App 里 —— iOS 后台会被杀，
@@ -1306,6 +1315,14 @@ var S = {
      { name, prop, op, val }。busy 是正在提交的视图 id（防连点），
      新建提交中记作字符串 'new'。 */
   viewAdmin: { loading: false, err: '', form: null, busy: '' },
+  /* 1.0.43：「依赖设置」页。
+     cfg 是 GET /api/system/config 回来的 data.info（跟「其他设置」页同一份，
+     两边各自拉、不做共享缓存 —— 一边改了另一边要能立刻看到）。
+     busy 是正在提交的项（'node' / 'python' / 'linux' / 'proxy' / 'clean-*'），防连点。
+     task 是刚提交过的**异步**任务：换 Node / Linux 源是后台执行的，页面要留一张
+     「面板正在执行」的卡 + 一个直达面板日志的按钮（进度走 WebSocket，App 收不到）。
+     custom 是「自定义输入框」展开了的那一项（'' = 都没展开，同时只允许一个）。 */
+  mirror: { cfg: null, loading: false, err: '', busy: '', task: null, custom: '' },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
   /* envs.collapsed：1.0.30 起的「分组折叠」状态，键是组名（标签名 / 未分类的哨兵）。
      **放 S 上而不是闭包里** —— 折叠按钮走全局事件委托，委托拿不到闭包变量。
@@ -1514,6 +1531,17 @@ async function api(path, opt) {
   }
   if (!res.ok) {
     throw new Error((json && json.message) || ('服务器错误 HTTP ' + res.status));
+  }
+  /* 1.0.43：raw 模式。换 Node / Linux 源那两个接口是「提交后台任务」——
+     后端 setHeader('QL-Task-Pid') 之后**立刻 res.end()**，body 是空的，
+     真正的执行日志走 WebSocket（App 没有 socket，收不到）。
+     走下面那句 JSON 检查会抛「响应格式异常」，可请求其实是成功的。
+     顺手把 QL-Task-Pid 带回去 —— 跨域时只有服务端开了 exposedHeaders 才取得到，
+     取不到就是空串，**只当彩蛋显示，不能当依据**。 */
+  if (opt.raw) {
+    var pid = '';
+    try { pid = res.headers.get('QL-Task-Pid') || ''; } catch (e) { pid = ''; }
+    return { ok: true, pid: pid };
   }
   if (!json || typeof json.code !== 'number') throw new Error('响应格式异常');
 
@@ -2111,6 +2139,9 @@ var TITLES = {
      手机上只做「改名 / 排序 / 停用启用 / 删除 + 一条条件的简化新建」——
      面板那种多条件 + 多排序的表单在手机上太局促，复杂的还是去网页版编。 */
   views: '视图管理',
+  /* 1.0.43：依赖设置。二级页 —— 入口是「我的」页第 15 张卡。
+     Node / Python / Linux 三个源 + 依赖代理，一律「预设芯片 + 点一下就换」。 */
+  mirror: '依赖设置',
   /* 1.0.40：数据备份。一级页（FEATURES 里直接露）——
      立即导出 + 自动发现青龙里的「备份类任务」运行历史。
      「上传到网盘」那一步在 iOS 上交给系统 share sheet（UIActivityViewController），
@@ -2281,6 +2312,9 @@ async function refresh() {
   /* 1.0.42：视图管理页。每次进来都重拉 —— 面板网页版可能刚改过，
      而且这一页上的操作（改名 / 排序 / 启停 / 删除）本来就要求列表是最新的。 */
   if (S.tab === 'views') return loadViewAdmin();
+  /* 1.0.43：进页面 / 下拉刷新时清掉「后台执行中」那张卡 —— 那是上一次提交留下的，
+     留着会让人以为还在跑。提交成功后自己调 loadMirror() 不走这里，所以不会被清掉。 */
+  if (S.tab === 'mirror') { S.mirror.task = null; return loadMirror(true); }
   /* 1.0.40：数据备份页。force = true 跟 instances / cronlogs 一个套路 ——
      「备份类任务」的列表是任务列表筛出来的，任务列表可能新增 / 删除，
      切回来得重筛一次。 */
@@ -2817,6 +2851,291 @@ async function viewDelete(x) {
   } finally {
     v.busy = '';
     renderViewAdmin();
+  }
+}
+
+/* ================= 依赖设置（1.0.43） =================
+
+   面板装依赖走的就是这三个源 + 代理。**装不上 / 慢，八成是源的问题。**
+   以前只能开电脑去面板网页版改，还得自己记得住那一长串网址 ——
+   这里一律做成「预设芯片 + 点一下就换」。
+
+   接口（_ql_src/system.ts，v2.21）：
+     GET  /api/system/config                  → data.info 里是全套配置
+     PUT  /api/system/config/node-mirror      { nodeMirror }       ← **异步**
+     PUT  /api/system/config/python-mirror    { pythonMirror }
+     PUT  /api/system/config/linux-mirror     { linuxMirror }      ← **异步**
+     PUT  /api/system/config/dependence-proxy { dependenceProxy }
+     PUT  /api/system/config/dependence-clean { type }         type ∈ node | python3
+
+   ⚠️ 四个必须记住的点（全是「写错了不报错」的那种）：
+   1. **node-mirror / linux-mirror 是异步任务。** 后端 setHeader('QL-Task-Pid') 之后
+      **立刻 res.end()**，body 是空的，执行日志走 WebSocket —— App 没有 socket，
+      **收不到进度**。所以：① 请求要 `api(..., {raw:true})`（走 JSON 那套会抛
+      「响应格式异常」，可请求其实成功了）；② 页面要说清「面板在后台执行」
+      并给一个看面板日志的直达。这两个接口都是**先存库再执行**
+      （updateAuthDb 在 runTask 之前），所以「已保存」≠「执行完了」，
+      后台那条命令失败了也不会回滚。
+   2. **linux-mirror 填的是「带 scheme 的域名」**（https://mirrors.aliyun.com），
+      **不带路径** —— 后端按发行版自己拼 apt / apk 命令。填错不报错，
+      只会让后台那条 apt-get update 失败，而 App 这边看到的是「已提交」。
+   3. **dependenceProxy 里的 127.0.0.1 是「容器自己」**，不是你的电脑。
+      要用宿主机 / 路由器上的代理，得填容器里能访问到的那个 IP。
+      这条面板也没说 —— 填 127.0.0.1 会发现「代理配了但没生效」。
+   4. **换 Node 源会连带 `pnpm i -g`** —— 装过 Node 依赖的话会重装全部全局包，
+      可能要几分钟。这个后果面板压根没告诉用户，页面里必须写明。 */
+
+/* 每项：key / 标题 / 接口尾段 / **字段名** / 1=异步 / 输入框 placeholder / 说明。
+   field 是请求体**和** data.info 里同一个键名（nodeMirror / pythonMirror / linuxMirror /
+   dependenceProxy），两个地方必须一致 —— 写成 nodeMirror/node-mirror 那种混搭
+   会被后端的 Joi 挡回来（它只认 nodeMirror）。note 里是**有意**带 <code> 标签的，
+   渲染时不 esc。 */
+var MIRROR_ITEMS = [
+  { key: 'node', title: 'Node 源', path: 'node-mirror', field: 'nodeMirror', async: 1,
+    ph: 'https://registry.npmmirror.com',
+    note: '面板执行 <code>pnpm config set registry</code>；<b>装过 Node 依赖的话还会顺带 ' +
+      '<code>pnpm i -g</code> 重装全部全局包</b>，可能要几分钟 —— 这条面板没告诉用户。' },
+  { key: 'python', title: 'Python 源', path: 'python-mirror', field: 'pythonMirror', async: 0,
+    ph: 'https://pypi.tuna.tsinghua.edu.cn/simple',
+    note: '面板执行 <code>pip3 config set global.index-url</code>，很快，改完立刻生效。' },
+  { key: 'linux', title: 'Linux 源', path: 'linux-mirror', field: 'linuxMirror', async: 1,
+    ph: 'https://mirrors.aliyun.com',
+    note: '只填<b>带 https:// 的域名</b>（<b>不要带路径</b>），面板按发行版自己拼 ' +
+      '<code>apt-get update</code> / <code>apk update</code>。留空 = 回到官方源。' }
+];
+
+var MIRROR_PRESETS = {
+  node: [
+    ['淘宝', 'https://registry.npmmirror.com'],
+    ['腾讯云', 'https://mirrors.cloud.tencent.com/npm/'],
+    ['华为云', 'https://mirrors.huaweicloud.com/repository/npm/'],
+    ['中科大', 'https://mirrors.ustc.edu.cn/npm/'],
+    ['官方（海外）', 'https://registry.npmjs.org']
+  ],
+  python: [
+    ['清华', 'https://pypi.tuna.tsinghua.edu.cn/simple'],
+    ['阿里云', 'https://mirrors.aliyun.com/pypi/simple/'],
+    ['腾讯云', 'https://mirrors.cloud.tencent.com/pypi/simple'],
+    ['中科大', 'https://pypi.mirrors.ustc.edu.cn/simple/'],
+    ['官方（海外）', 'https://pypi.org/simple']
+  ],
+  linux: [
+    ['阿里云', 'https://mirrors.aliyun.com'],
+    ['清华', 'https://mirrors.tuna.tsinghua.edu.cn'],
+    ['腾讯云', 'https://mirrors.cloud.tencent.com'],
+    ['中科大', 'https://mirrors.ustc.edu.cn'],
+    ['官方（海外）', '']
+  ]
+};
+
+/* 依赖代理。「不设置」= 空串（后端会把代理文件删掉）。
+   ⚠️ 两个 127.0.0.1 是**容器自己**的回环 —— 只有代理和青龙在同一个容器里才有用。
+   通常得改成宿主机 / 路由器的 IP，这一点面板也没说。 */
+var PROXY_PRESETS = [
+  ['不设置', ''],
+  ['Clash 默认', 'http://127.0.0.1:7890'],
+  ['V2Ray 默认', 'http://127.0.0.1:10809']
+];
+
+var MIRROR_PROXY = { key: 'proxy', title: '依赖代理', path: 'dependence-proxy',
+  field: 'dependenceProxy', async: 0, ph: 'http://192.168.1.1:7890',
+  note: '装依赖走这个代理。⚠️ <b>地址要填容器里能访问到的</b> —— 填 127.0.0.1 ' +
+    '指的是容器自己，不是你的电脑（除非代理就装在容器里）。' };
+
+function mirrorItem(key) {
+  if (key === 'proxy') return MIRROR_PROXY;
+  return MIRROR_ITEMS.filter(function (x) { return x.key === key; })[0] || null;
+}
+
+/* 当前值。**读它统一走 it.field** —— 别在渲染里另拼一遍键名
+   （'nodeMirror' 和 'node-mirror' 只差一个符号，拼错了读出来永远是空，
+   界面上只会显示「没设置」，看不出是读错了）。 */
+function mirrorCur(key) {
+  var it = mirrorItem(key);
+  var c = S.mirror.cfg || {};
+  return it ? String(c[it.field] || '') : '';
+}
+
+/* 芯片组。当前值**不在预设里** → 说明是手填的，把「自定义」那颗高亮起来 ——
+   不然用户会看到「一个都没选中」，以为刚才改的没生效。 */
+function mirrorChipHtml(key, cur) {
+  var list = (key === 'proxy') ? PROXY_PRESETS : MIRROR_PRESETS[key];
+  var out = list.map(function (p) {
+    return '<button class="' + (cur === p[1] ? 'on' : '') + '" data-mipick="' + esc(key) +
+      '" data-mival="' + esc(p[1]) + '">' + esc(p[0]) + '</button>';
+  });
+  var hit = list.some(function (p) { return p[1] === cur; });
+  out.push('<button class="' + (hit ? '' : 'on') + '" data-mipick="' + esc(key) +
+    '" data-mival="__custom">' + (hit ? '自定义' : '自定义（当前）') + '</button>');
+  return out.join('');
+}
+
+function mirrorCardHtml(it) {
+  var m = S.mirror;
+  var cur = mirrorCur(it.key);
+  var busy = m.busy === it.key;
+  var h = '<div class="card vacard"><div class="row">' +
+      '<div class="vanm sp">' + esc(it.title) + '</div>' +
+      '<span class="tag">' + (busy ? '切换中…' : (cur ? '已设置' : '官方源')) + '</span>' +
+    '</div>' +
+    '<div class="f11 t3 mono" style="margin-top:6px;line-height:1.6;word-break:break-all">' +
+      esc(cur || '（没设置，用面板默认的官方源）') + '</div>' +
+    '<div class="tagbar" style="margin:10px 0 0">' + mirrorChipHtml(it.key, cur) + '</div>';
+  if (m.custom === it.key) {
+    h += '<div class="row" style="margin-top:8px;gap:6px">' +
+      '<input id="miVal" type="text" style="flex:1;min-width:0" placeholder="' + esc(it.ph) +
+        '" value="' + esc(cur) + '" autocapitalize="off" autocorrect="off" spellcheck="false">' +
+      '<button class="btn pri" id="btnMiSave" data-misave="' + esc(it.key) + '"' +
+        (busy ? ' disabled' : '') + '>保存</button>' +
+    '</div>';
+  }
+  h += '<div class="f11 t3" style="margin:8px 4px 0;line-height:1.7">' + it.note + '</div></div>';
+  return h;
+}
+
+function mirrorCleanCardHtml() {
+  var busy = !!S.mirror.busy;
+  return '<div class="card vacard">' +
+    '<div class="vanm">缓存</div>' +
+    '<div class="f11 t3" style="margin-top:6px;line-height:1.7">' +
+      '装依赖反复失败时清一下缓存再试 —— 下次装会重新下载（慢一点），' +
+      '但能绕开「缓存坏了导致怎么都装不上」。</div>' +
+    '<div class="row" style="margin-top:10px;gap:8px">' +
+      '<button class="btn" style="flex:1" data-miclean="node"' +
+        (busy ? ' disabled' : '') + '>清理 Node 缓存</button>' +
+      '<button class="btn" style="flex:1" data-miclean="python3"' +
+        (busy ? ' disabled' : '') + '>清理 Python 缓存</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderMirror() {
+  var box = $('#mirrorBody');
+  if (!box) return;
+  var m = S.mirror;
+
+  if (m.loading && !m.cfg) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>读取中…</div>';
+    return;
+  }
+  if (m.err) {
+    box.innerHTML = '<div class="empty">' + esc(m.err) + '</div>' +
+      '<button class="btn" id="btnMiRetry" style="width:100%">重新读取</button>';
+    return;
+  }
+
+  var h = '<div class="f11 t3" style="margin:0 4px 12px;line-height:1.7">' +
+    '装依赖失败 / 慢，多半是源的问题。点一下就换，不用手打网址。</div>';
+
+  /* 刚提交过的异步任务。进度走 WebSocket、App 收不到 ——
+     所以这里把「能看到进度的地方」指出来，别让用户干等。 */
+  if (m.task) {
+    h += '<div class="card vacard" style="border:1px solid var(--accent)">' +
+      '<div class="vanm" style="margin-bottom:6px">面板正在后台切换' +
+        esc(m.task.title) + '</div>' +
+      '<div class="f11 t3" style="line-height:1.7">' +
+        '这一步是后台执行的，实时日志只推给网页版（WebSocket），App 收不到。' +
+        '配置已经存下了 —— <b>后台那条命令就算失败，配置也不会回滚</b>，' +
+        '所以面板日志值得看一眼。' +
+        (m.task.pid ? '<br>任务进程号 ' + esc(m.task.pid) : '') + '</div>' +
+      '<button class="btn" id="btnMiLog" style="width:100%;margin-top:10px">去看面板日志</button>' +
+    '</div>';
+  }
+
+  MIRROR_ITEMS.forEach(function (it) { h += mirrorCardHtml(it); });
+  h += mirrorCardHtml(MIRROR_PROXY);
+  h += mirrorCleanCardHtml();
+  box.innerHTML = h;
+}
+
+async function loadMirror(force) {
+  var m = S.mirror;
+  if (m.loading) return;
+  m.loading = true;
+  m.err = '';
+  renderMirror();
+  try {
+    var r = await api('/api/system/config');
+    /* 配置在 data.info 里 —— 跟「其他设置」页同一份，读 data.nodeMirror 永远是 undefined。 */
+    m.cfg = (r.data && r.data.info) ? r.data.info : (r.data || {});
+  } catch (e) {
+    m.err = e.message;
+    m.cfg = null;
+  }
+  m.loading = false;
+  renderMirror();
+}
+
+/* 提交一项。空串是**合法值**（linux 源留空 = 回官方源；代理留空 = 不设代理），
+   所以沿途都不许写「没值就不发」那种判断。 */
+async function mirrorSubmit(it, val) {
+  var m = S.mirror;
+  if (m.busy) return;
+  m.busy = it.key;
+  m.custom = '';
+  renderMirror();
+  var body = {};
+  body[it.field] = val;
+  try {
+    var r = await api('/api/system/config/' + it.path,
+      { method: 'PUT', body: body, raw: !!it.async });
+    if (it.async) {
+      /* 异步：响应里没有内容，只知道「面板接了」。r.pid 跨域时常常取不到。 */
+      m.task = { title: it.title, pid: (r && r.pid) || '' };
+      toast('已提交，面板正在后台执行');
+    } else {
+      m.task = null;
+      toast('已保存');
+    }
+    await loadMirror(true);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    m.busy = '';
+    renderMirror();
+  }
+}
+
+/* 点芯片。同步的那几项也是「改面板运行参数」，所以一样要先过确认框 ——
+   误触的代价比多点一次大。 */
+async function mirrorPick(key, val) {
+  var it = mirrorItem(key);
+  if (!it) return;
+  if (val === '__custom') {
+    S.mirror.custom = (S.mirror.custom === key) ? '' : key;
+    renderMirror();
+    return;
+  }
+  if (mirrorCur(key) === val) { toast('已经在用这个了'); return; }
+  if (!confirm(it.title + '换成：\n\n' + (val || '（留空，回到面板默认源）') + '\n\n' +
+    (it.async ? '面板会在后台执行，可能要几分钟。' : '马上生效。'))) return;
+  await mirrorSubmit(it, val);
+}
+
+async function mirrorSaveCustom(key) {
+  var it = mirrorItem(key);
+  if (!it) return;
+  var el = $('#miVal');
+  await mirrorSubmit(it, String(el ? el.value : '').trim());
+}
+
+/* 清依赖缓存。type 只有 node / python3 两种，传别的后端回 400「参数错误」。 */
+async function mirrorClean(type) {
+  var m = S.mirror;
+  var name = (type === 'node') ? 'Node' : 'Python';
+  if (!confirm('清理面板上的 ' + name + ' 依赖缓存？\n\n' +
+    '下次装依赖会重新下载（慢一点），但能绕开「缓存坏了导致一直装不上」。')) return;
+  if (m.busy) return;
+  m.busy = 'clean-' + type;
+  renderMirror();
+  try {
+    await api('/api/system/config/dependence-clean', { method: 'PUT', body: { type: type } });
+    toast(name + ' 缓存已清理');
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    m.busy = '';
+    renderMirror();
   }
 }
 
@@ -6379,7 +6698,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.42';
+var APP_VER = '1.0.43';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -6412,6 +6731,11 @@ var FEATURES = [
      手机上想改个 Bark / Server酱 的推送地址只能开网页版。
      ◍（U+25CD）在 Geometric Shapes 里，iOS 系统字体有正常字形。 */
   { tab: 'notify',   icon: '◍', label: '通知设置', g: ['#FFA9C4', '#D6457A'], sh: 'rgba(214,69,122,.38)' },
+  /* 1.0.43：依赖设置。装依赖失败 / 慢，八成是源的问题 —— 以前只能开电脑去面板
+     网页版改，还得自己记得住那一长串网址。这里做成「预设芯片 + 点一下就换」。
+     ◎（U+25CE）在 Geometric Shapes 块里，iOS 系统字体有正常字形，
+     而且没被上面任何一张卡占用（图标重复会被 H5b 抓住）。 */
+  { tab: 'mirror',   icon: '◎', label: '依赖设置', g: ['#64D8C0', '#14A896'], sh: 'rgba(20,168,150,.38)' },
   { icon: '⚙', label: '系统设置', g: ['#FF8FA0', '#E8455F'], sh: 'rgba(232,69,95,.38)', id: 'btnSettings' }
 ];
 
@@ -7533,10 +7857,15 @@ function renderSysconf() {
     '<select id="scLang" style="flex:1;text-align:right">' + LANG_OPTIONS.map(function (o) {
       return '<option value="' + esc(o[0]) + '"' + ((g.lang || '') === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
     }).join('') + '</select></div>' +
+    /* 1.0.43：这颗「确认」以前根本没画 —— 下拉倒是早就有了，选完没地方提交，
+       点了完全没反应（最难发现的那种 bug：界面看着是好的）。
+       语言跟上面几项一样是「会影响面板怎么跑」的开关，所以也走「点确认才改」。 */
+    '<button class="btn fldbtn" data-scsave="lang">确认</button>' +
   '</div>';
   h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
     '改的是**面板自己**的界面语言（网页版和通知里的文案），不影响这个 App。<br>' +
-    '「跟随系统」= 跟浏览器/系统的语言走。</div>';
+    '⚠️ 选「跟随系统」面板那边实际会存成<b>简体中文</b>（它对空值有个兜底），' +
+    '想要英文就直接选 English。</div>';
 
   h += '<div class="secttl">数据备份还原</div>';
   h += '<div class="card">' +
@@ -7611,6 +7940,14 @@ async function saveSysconfFromDom(path) {
        本地猜错了会把正确的东西挡在外面。面板认不认由它说了算。 */
     if (k && !confirm('要覆盖面板上的全局 SSH 密钥？' + (cur.globalSshKey ? '' : '\n\n原来没有设置过。'))) return;
     return saveSysconfField(path, 'globalSshKey', k, k ? '密钥已保存' : '密钥已清空');
+  }
+  /* 1.0.43：语言。以前下拉画了、这颗按钮和这个分支都没有 —— 选完没反应。
+     ⚠️ 后端 updateLanguage() 里写的是 `const lang = info.lang || 'zh'` ——
+     **传空串它会被兜底成 'zh'**，所以「跟随系统」这一档面板实际存的是简体中文。
+     这是面板的行为，改不了，只能照实提示（说成「已跟随系统」是骗人）。 */
+  if (path === 'lang') {
+    var lang = $('#scLang') ? $('#scLang').value : '';
+    return saveSysconfField(path, 'lang', lang, lang ? '语言已改' : '已改成简体中文（面板对空值有兜底）');
   }
 }
 
@@ -8878,7 +9215,12 @@ function onClick(ev) {
     /* 1.0.42：视图管理页（入口是任务页视图 tab 栏最右那颗「管理」）。
        · [data-vact] = 每个视图那排「上移 / 下移 / 停用 / 改名 / 删除」
        · 其余四颗是「新建 / 创建 / 取消 / 重试」 */
-    '[data-vact],#btnViewAdmin,#btnVaNew,#btnVaCreate,#btnVaCancel,#btnVaRetry'
+    '[data-vact],#btnViewAdmin,#btnVaNew,#btnVaCreate,#btnVaCancel,#btnVaRetry,' +
+    /* 1.0.43：依赖设置页。
+       · [data-mipick] = 每一项的预设芯片（点一下就换源）
+       · [data-miclean] = 清理缓存那两个按钮
+       · 其余三颗是「重新读取 / 去看面板日志 / 保存自定义」 */
+    '[data-mipick],[data-miclean],#btnMiRetry,#btnMiLog,#btnMiSave'
   ) : null;
   if (!el) return;
 
@@ -9031,9 +9373,16 @@ function onClick(ev) {
     if (el.dataset.vact === 'down') return viewMove(vx.id, 'down');
     if (el.dataset.vact === 'toggle') return viewToggle(vx);
     if (el.dataset.vact === 'rename') return viewRename(vx);
-    if (el.dataset.vact === 'del') return viewDelete(vx);
-    return;
-  }
+        if (el.dataset.vact === 'del') return viewDelete(vx);
+        return;
+      }
+      /* ---------- 依赖设置（1.0.43） ---------- */
+      if (el.id === 'btnMiRetry') return loadMirror(true);
+      /* 后台任务在 App 里看不到进度 —— 把人送到看得到的地方。 */
+      if (el.id === 'btnMiLog') return setTab('syslog');
+      if (el.id === 'btnMiSave') return mirrorSaveCustom(el.dataset.misave);
+      if (el.dataset.mipick) return mirrorPick(el.dataset.mipick, el.dataset.mival);
+      if (el.dataset.miclean) return mirrorClean(el.dataset.miclean);
 
   /* 任务列表 */
   if (el.dataset.act) {

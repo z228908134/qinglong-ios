@@ -613,6 +613,21 @@ FEATURES = [
     ("通知设置 读配置接口", r"api\('\/api\/user\/notification'\)"),
     ("通知设置 读失败当空配置", r"v\.cfg = \{\};"),
     ("通知设置 type 空还原成已关闭", r"v\.pick = \(v\.cfg\.type \? String\(v\.cfg\.type\) : 'closed'\);"),
+    # 1.0.43：依赖设置页。三个坑跟之前的设置类页一样：异步接口返回空 body
+    # （node-mirror / linux-mirror），要走 raw 分支；字段名带 Mirror 后缀；
+    # 代理字段是 dependenceProxy（不是 dependenceProxyMirror）。
+    ("依赖设置 视图", r'<section class="view" id="v-mirror">'),
+    ("依赖设置 TITLES", r"mirror: '依赖设置'"),
+    ("依赖设置 FEATURES 卡", r"\{ tab: 'mirror',"),
+    ("依赖设置 状态字段", r"mirror: \{ cfg: null, loading: false, err: '', busy: '', task: null \},"),
+    ("依赖设置 三源表", r"var MIRROR_ITEMS = \["),
+    ("依赖设置 代理独立项", r"var MIRROR_PROXY = \{ key: 'proxy', title: '依赖代理',"),
+    ("依赖设置 预设 node", r"\['淘宝', 'https://registry\.npmmirror\.com'\]"),
+    ("依赖设置 预设 linux", r"\['阿里云', 'https://mirrors\.aliyun\.com'\]"),
+    ("依赖设置 异步项 raw 分支", r"\{ method: 'PUT', body: body, raw: !!it\.async \}"),
+    ("依赖设置 异步后留 task", r"m\.task = \{ title: it\.title, pid: \(r && r\.pid\) \|\| '' \};"),
+    ("依赖设置 raw 分支取 QL-Task-Pid", r"res\.headers\.get\('QL-Task-Pid'\)"),
+    ("依赖设置 空串留空", r"if \(mirrorCur\(key\) === val\) \{ toast\('已经在用这个了'\); return; \}"),
     ("通知设置 renderNotify", r"function renderNotify\(\) \{"),
     ("通知设置 渠道下拉撑满整行", r"'<select id=\"ntMode\" style=\"width:100%\"'"),
     ("通知设置 字段框带 data-ntf", r"data-ntf="),

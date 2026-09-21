@@ -803,6 +803,17 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div id="cronlogsBody"></div>
     </section>
 
+    <!-- 1.0.40：数据备份。立即导出（弹 iOS share sheet）+ 自动发现青龙里
+         「备份类任务」的最近运行历史。入口在「我的」页 FEATURES 卡片。
+         「自动定时备份 + 上传网盘」不做在 App 里 —— iOS 后台会被杀，
+         这一步交给青龙侧（脚本 + rclone 推 WebDAV，飞牛/群晖/坚果云都支持）。 -->
+    <section class="view" id="v-backup">
+      <div id="backupBody"></div>
+      <!-- 还原数据用的文件选择器：点「还原数据」时由 JS 触发。
+           **不能 display:none** —— 部分 WebView 对隐藏的文件选择器不弹选择器。 -->
+      <input type="file" id="fileBkImport" accept=".tgz,.tar.gz,application/gzip" class="vh" aria-hidden="true" tabindex="-1">
+    </section>
+
     <!-- 应用设置：面板「系统设置 → 应用设置」的移动版。管理开放接口的
          Client ID / Secret 和权限。入口在「我的 → 系统设置」里的面板设置区块。 -->
     <section class="view" id="v-apps">
@@ -1328,6 +1339,15 @@ var S = {
      **不能只存任务 id 到时候再 cronById 反查**：从这一页跳去日志页时 S.detailId
      早就清空了，反查出来的来源会把返回链弄断。 */
   cronlogs: { id: null, name: '', list: [], loading: false, err: '', dirKey: '', dirName: '' },
+  /* 数据备份页（1.0.40）。两个东西：
+     · mods 是当前勾选的备份模块（base 恒为真，见 BACKUP_MODULES）；
+       这里不复用 S.sysconf.mods —— 备份页跟其他设置页是分开进入的，
+       上次进这里勾了什么就该记着什么，互不污染。
+     · hisCrons 是「名字含「备份」/「backup」的 cron 任务」自动发现的列表，
+       走 S.crons.list 筛一遍就够（不需要新接口 —— 这些任务的「上次运行」
+       在 cron 列表里就有：last_execution_time 是秒级时间戳，
+       last_running_time 是上次跑了几秒，这两个分别乘 / 拆着用）。 */
+  backup: { mods: { base: 1 }, hisCrons: [], loading: false, busy: false },
   /* 面板日志（面板「系统设置 → 系统日志」）。GET /api/system/log 回的是把区间内
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
@@ -2038,6 +2058,11 @@ var TITLES = {
   /* 1.0.38：这个任务的历史日志文件列表。同样是二级页，
      入口在任务详情的「日志 → 日志历史」。 */
   cronlogs: '历史日志',
+  /* 1.0.40：数据备份。一级页（FEATURES 里直接露）——
+     立即导出 + 自动发现青龙里的「备份类任务」运行历史。
+     「上传到网盘」那一步在 iOS 上交给系统 share sheet（UIActivityViewController），
+     用户选飞牛 / 百度 / 微信都行；定时自动备份放青龙侧（iOS 后台不可靠）。 */
+  backup: '数据备份',
   /* 这三个对应面板网页版「系统设置」里的同名页签，入口在系统设置弹层里。
      名字照面板的叫法，不要改 —— 用户是照面板的名字找的。 */
   apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志', syslog: '面板日志'
@@ -2159,6 +2184,10 @@ async function refresh() {
   /* 1.0.38：历史日志页。force 清掉日志树缓存重拉 —— 日志随时在写，
      下拉刷新还看缓存的话，刚跑完那次的新日志不会出现。 */
   if (S.tab === 'cronlogs') return loadCronLogs(S.cronlogs.id, true);
+  /* 1.0.40：数据备份页。force = true 跟 instances / cronlogs 一个套路 ——
+     「备份类任务」的列表是任务列表筛出来的，任务列表可能新增 / 删除，
+     切回来得重筛一次。 */
+  if (S.tab === 'backup') return loadBackup(true);
   if (S.tab === 'me') return loadDash();
 }
 
@@ -2932,6 +2961,173 @@ function renderCronLogs() {
         (when ? esc(when) + ' · ' : '') + esc(fmtSize(f.size)) + '</div>' +
     '</div>';
   }).join('') + '</div>';
+}
+
+/* ================= 数据备份（1.0.40） =================
+   整页分两块：① 立即备份（弹 iOS share sheet），② 自动发现青龙里的「备份类任务」
+   最近运行历史。**定时 + 上传网盘不在 App 里做** —— iOS 后台会被杀，
+   那一段在青龙侧用脚本 + rclone 推 WebDAV（飞牛 / 群晖 / 坚果云都支持）。
+   README 里有脚本示例（不在本仓库）。 */
+
+/* 「备份」二字 / 关键词命中都算。中文里用户常写「备份」/「自动备份」/「定时备份」，
+   英文里 user 喜欢写「backup」/「auto-backup」/「data_backup」。
+   大小写不敏感（toLowerCase），但**别带下划线的特殊情况**：脚本里 `data_backup` /
+   `db_backup` 这种下划线写法也算 —— 用**包含**而不是**整词匹配**。 */
+function isBackupCron(t) {
+  var n = String(t && t.name || '').toLowerCase();
+  if (!n) return false;
+  return /备份|backup/.test(n);
+}
+
+/* 从 S.crons.list 筛出所有名字命中备份关键词的任务，按上次运行时间倒序。
+   任务列表是切页就有的（loadCrons 已拉过），不用再打接口。
+   「上次运行」是 last_execution_time（秒级时间戳，不是毫秒 —— 跟
+   任务列表里的「上次耗时」共用一个字段，详见 renderCrons 那条踩坑笔记）。 */
+function backupFindCrons() {
+  var now = Math.floor(Date.now() / 1000);
+  var out = [];
+  (S.crons.list || []).forEach(function (t) {
+    if (!isBackupCron(t)) return;
+    /* last_execution_time 是「上次跑完那一刻」的时间戳（秒），不是当前时间。
+       0 = 从没跑过 —— 这种也得列出来，挂在历史末尾会显得「漏了这条」，
+       挂在开头会显得「还没跑过的任务比跑过的更重要」；直接按字段排，
+       0 自动落到最后。 */
+    out.push({ t: t, when: Number(t.last_execution_time) || 0 });
+  });
+  out.sort(function (a, b) { return b.when - a.when; });
+  return out.map(function (x) { return x.t; });
+}
+
+/* 跳到数据备份页。从「我的」页 FEATURES 卡进来 —— 单页有底栏入口，
+   不需要记 backTo。 */
+function gotoBackup() {
+  S.backup.hisCrons = [];
+  S.backup.loading = true;
+  setTab('backup');
+  /* loadBackup 自己再 refresh 一次，不用显式调 */
+  loadBackup(true);
+}
+
+async function loadBackup(force) {
+  var v = S.backup;
+  if (v.loading) return;
+  v.loading = true;
+  renderBackup();
+  var seq = (v.seq = (v.seq || 0) + 1);
+  /* 备份任务筛一遍就够了 —— 任务是切页就加载好的，
+     这里不重拉 S.crons.list（拉它等于把整个任务列表重置）。 */
+  if (force || !v.hisCrons.length) {
+    if (seq !== v.seq) return;
+    v.hisCrons = backupFindCrons();
+  }
+  if (seq !== v.seq) return;
+  v.loading = false;
+  renderBackup();
+}
+
+/* 导出：复刻 S.sysconf 里 exportBackup 的核心 —— 调 apiBlob 拿 .tgz，
+   调 saveBlobToDevice 弹 iOS share sheet。模块多选用 v.backup.mods，
+   不污染 S.sysconf.mods。 */
+async function exportBackupNow() {
+  var v = S.backup;
+  if (v.busy) return;
+  v.busy = true;
+  renderBackup();
+  try {
+    var type = BACKUP_MODULES.filter(function (m) { return v.mods[m[0]]; }).map(function (m) { return m[0]; });
+    toast('正在打包…');
+    var blob = await apiBlob('/api/system/data/export', { type: type }, 'PUT');
+    /* 文件名带上时间戳，多份不会互相盖；
+       「保存到飞牛/百度/微信」由 share sheet 的接收方处理 —— App 不绑定网盘。 */
+    var name = 'qinglong-' + fmtStamp(Date.now()) + '.tgz';
+    await saveBlobToDevice(name, blob);
+  } catch (e) {
+    toast(e.message, true);
+  }
+  v.busy = false;
+  renderBackup();
+}
+
+/* 简化的时间戳 YYYYMMDD-HHMMSS，用于备份文件名。
+   不复用 fmtRel / fmtNext —— 那两个是「X 天前 / 今天 HH:MM」的相对格式，
+   当文件名会把「今天」「X 分钟前」这种字写进文件名里，多份备份也分不清先后。 */
+function fmtStamp(ts) {
+  var d = new Date(ts), p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
+    '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+}
+
+/* 名字别叫 toggleBackupMod —— 系统设置页（S.sysconf.mods / data-scmod）那个
+   已经叫这个了，同名函数后定义的会盖掉先定义的，点备份页的模块会改到另一页的状态上。 */
+function bkToggleMod(btn) {
+  var k = btn.dataset.bkmod;
+  if (btn.classList.contains('fixed')) { toast('「基础数据」是必选的，取消不了'); return; }
+  var v = S.backup;
+  v.mods[k] = v.mods[k] ? 0 : 1;
+  btn.classList.toggle('on', !!v.mods[k]);
+}
+
+function renderBackup() {
+  var box = $('#backupBody');
+  if (!box) return;
+  var v = S.backup;
+  var n = v.hisCrons.length;
+  $('#sub').textContent = n ? (n + ' 个备份任务') : '';
+
+  var h = '';
+  /* 顶部说明 + 立即备份卡：模块多选 + 备份按钮。
+     「基础数据」固定选中（按钮带 .fixed），跟 S.sysconf 那段一致。 */
+  h += '<div class="card" style="padding:14px">' +
+    '<div class="fl" style="margin-bottom:8px">备份内容</div>' +
+    '<div class="modgrid">' + BACKUP_MODULES.map(function (m) {
+      var on = m[2] ? 1 : (v.mods[m[0]] ? 1 : 0);
+      return '<button class="modbtn' + (on ? ' on' : '') + (m[2] ? ' fixed' : '') +
+        '" data-bkmod="' + esc(m[0]) + '">' + esc(m[1]) + '</button>';
+    }).join('') + '</div>' +
+    '<div class="row" style="gap:8px;margin-top:12px">' +
+      '<button class="btn pri" id="btnBkExport" style="flex:1;padding:9px 4px" ' +
+        (v.busy ? 'disabled' : '') + '>' + (v.busy ? '正在打包…' : '立即备份') + '</button>' +
+      '<button class="btn" id="btnBkImport" style="flex:1;padding:9px 4px">还原数据</button>' +
+    '</div>' +
+    '<div class="f11 t3" style="margin-top:10px;line-height:1.7">' +
+      '备份会生成一个 .tgz 文件（基础数据必选，里面是数据库和上传目录），' +
+      '然后弹系统分享菜单：选飞牛 / 百度 / 微信 / 其他 App 都行，App 不绑定网盘。</div>' +
+  '</div>';
+
+  /* 自动备份任务段：从 S.crons.list 筛名字含「备份」/「backup」的任务。
+     没有任务时不甩一片空白，告诉用户怎么挂。 */
+  h += '<div class="secttl">自动备份任务</div>';
+  if (v.loading && !n) {
+    h += '<div class="center"><span class="spin"></span>读取任务列表…</div>';
+  } else if (!n) {
+    h += '<div class="empty"><span class="ei">▤</span>还没挂自动备份任务' +
+      '<div class="f11 t3" style="margin-top:10px;line-height:1.7">' +
+      '青龙里加一个定时任务，名字含「备份」或「backup」就行。<br>' +
+      '常用做法：用 rclone 把 .tgz 推到飞牛 / 群晖 / 坚果云的 WebDAV。<br>' +
+      '（App 不做定时 —— iOS 后台会被杀，自动备份放青龙才稳。）</div></div>';
+  } else {
+    h += '<div class="list">';
+    v.hisCrons.forEach(function (t) {
+      /* 上次运行 = 上次跑完那一刻（秒级时间戳）。cronMs 转毫秒、
+         fmtRel 给出「X 小时前 / MM-DD HH:MM」—— 跟任务列表那行一个风格。 */
+      var when = Number(t.last_execution_time) || 0;
+      /* cronMs(秒) → 毫秒，fmtRel 给出「X 分钟前 / X 天前 / MM-DD HH:MM」格式，
+         跟任务列表那一行风格一致。0 / 缺失值显示「尚未运行」。 */
+      var whenStr = when ? fmtRel(cronMs(when)) : '尚未运行';
+      /* 「上次耗时」字段是 last_running_time，是秒数不是时间戳（API 踩坑笔记里有）；
+         0 = 没跑过 / 跑了但还没记上 —— 不显示。 */
+      var dur = Number(t.last_running_time) || 0;
+      h += '<div class="item" data-gobkinst="' + esc(String(t.id)) + '">' +
+        '<div class="row"><div class="nm sp ell">' + esc(t.name || ('任务 ' + t.id)) + '</div><span class="t3">›</span></div>' +
+        '<div class="f11 t3" style="margin-top:6px">' +
+          esc(whenStr) + (dur ? ' · 耗时 ' + esc(fmtDur(dur)) : '') +
+        '</div>' +
+      '</div>';
+    });
+    h += '</div>';
+  }
+
+  box.innerHTML = h;
 }
 
 /* ================= 运行实例（1.0.37） =================
@@ -5693,7 +5889,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.39';
+var APP_VER = '1.0.40';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -5717,6 +5913,11 @@ var FEATURES = [
   { tab: 'apps',     icon: '◫', label: '应用设置', g: ['#FFC978', '#E0902A'], sh: 'rgba(224,144,42,.38)' },
   { tab: 'sysconf',  icon: '⚒', label: '其他设置', g: ['#9FA8FF', '#5A63E0'], sh: 'rgba(90,99,224,.38)' },
   { tab: 'loginlog', icon: '◷', label: '登录日志', g: ['#FF9FB0', '#E05070'], sh: 'rgba(224,80,112,.38)' },
+  /* 1.0.40：数据备份。把原来在「其他设置」底部的「数据备份还原」段搬出来——
+     想备份得先进系统设置、再点应用设置、再进其他设置、再翻到底，太深了。
+     现在「我的」页一张卡直给手点。⛁（U+26C1）字形像磁盘，意思「save」，
+     iOS 系统字体里有正常显示。 */
+  { tab: 'backup',   icon: '⛁', label: '数据备份', g: ['#7AD1E8', '#2E8FB8'], sh: 'rgba(46,143,184,.38)' },
   { icon: '⚙', label: '系统设置', g: ['#FF8FA0', '#E8455F'], sh: 'rgba(232,69,95,.38)', id: 'btnSettings' }
 ];
 
@@ -7679,6 +7880,14 @@ function bind() {
     this.value = '';
     if (f) importBackup(f);
   });
+  /* 1.0.40：备份页的还原。跟 fileScImport 同套路，但 importBackup 是共享的
+     （本来就在 S.sysconf 用着 —— 它不问来源，弹个 confirm 就上传）。 */
+  var bkImp = $('#fileBkImport');
+  if (bkImp) bkImp.addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (f) importBackup(f);
+  });
   /* 脚本搜索：跨整棵树匹配（含收起目录里的文件），所以是本地过滤、不打网络 */
   var tScr = 0;
   $('#scrSearch').addEventListener('input', function (e) {
@@ -7782,7 +7991,13 @@ function onClick(ev) {
        漏了的症状是「点了完全没反应」，不报错，最难查。 */
     '#btnInstReload,#btnInstRetry,' +
     /* 1.0.38：历史日志页的「刷新」/「重试」/「在日志目录里浏览」。 */
-    '#btnCronLogsReload,#btnCronLogsRetry,#btnCronLogsDir'
+    '#btnCronLogsReload,#btnCronLogsRetry,#btnCronLogsDir,' +
+    /* 1.0.40：数据备份页 ——
+       · 备份任务整行（点进 v-instances，看这个任务的实例运行历史）
+       · 备份模块按钮（多选，BASE 恒为真、不可取消）
+       · 「立即备份」「还原数据」「刷新」 */
+    '[data-gobkinst],[data-bkmod],' +
+    '#btnBkExport,#btnBkImport,#btnBkRetry'
   ) : null;
   if (!el) return;
 
@@ -7902,6 +8117,18 @@ function onClick(ev) {
   if (el.dataset.inststop) return stopInstance(Number(el.dataset.inststop));
   if (el.id === 'btnInstReload') return loadInstances(S.instances.id, true);
   if (el.id === 'btnInstRetry') return loadInstances(S.instances.id, true);
+
+  /* 1.0.40：数据备份页 —— 备份任务整行直接跳 v-instances（跟 goinst 走一条路，
+     但数据是 cron 列表筛出来的，要先反查任务对象；找不到就当这任务被删了）。 */
+  if (el.dataset.gobkinst) {
+    var t = cronById(el.dataset.gobkinst);
+    if (!t) { toast('这个任务已经不在当前列表里了', true); return; }
+    return gotoInstances(t);
+  }
+  if (el.dataset.bkmod != null) return bkToggleMod(el);
+  if (el.id === 'btnBkExport') return exportBackupNow();
+  if (el.id === 'btnBkImport') { var fi = $('#fileBkImport'); if (fi) fi.click(); return; }
+  if (el.id === 'btnBkRetry') return loadBackup(true);
 
   /* 任务列表 */
   if (el.dataset.act) {

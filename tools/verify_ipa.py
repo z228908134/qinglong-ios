@@ -533,11 +533,58 @@ FEATURES = [
     ("历史日志 委托分支 跳转", r"if \(el\.dataset\.gocronlogs\) return gotoCronLogs"
                                r"\(cronById\(el\.dataset\.gocronlogs\)\);"),
     ("历史日志 委托分支 打开某一份", r"var lnode = findLogNode\(el\.dataset\.cronlogopen\);"),
-    ("历史日志 按钮进选择器", r"'#btnCronLogsReload,#btnCronLogsRetry,#btnCronLogsDir'"),
+    # 1.0.40 在它后面又加了 `[data-gobkinst],[data-bkmod],' +` 一行 →
+    # 这一行从「最后一行」变成「中间一行」，末尾的 `'` 跟着变 `,' +`。
+    ("历史日志 按钮进选择器", r"'#btnCronLogsReload,#btnCronLogsRetry,#btnCronLogsDir,' \+"),
     ("历史日志 refresh 管这一页", r"if \(S\.tab === 'cronlogs'\) return loadCronLogs"
                                   r"\(S\.cronlogs\.id, true\);"),
     ("历史日志 详情页那行 id", r'id="cdLogHisV"'),
     ("历史日志 详情页补文件数", r"if \(vh && S\.detailId === t\.id\) vh\.textContent = logHisHint\(t\);"),
+
+    # 1.0.40：数据备份。「我的」页加一张「数据备份」卡 → v-backup：
+    #   ① 立即备份：PUT /api/system/data/export 拿 .tgz，交给 saveBlobToDevice
+    #      弹系统分享菜单（飞牛 / 百度 / 微信由用户在分享菜单里选，App 不绑死网盘）；
+    #   ② 自动发现青龙里「备份类任务」（名字含 备份 / backup）的最近运行。
+    #   定时 + 上传不做在 App 里：iOS 后台会被杀，那一步放青龙侧的脚本 + rclone。
+    ("数据备份 视图", r'<section class="view" id="v-backup">'),
+    ("数据备份 TITLES", r"backup: '数据备份',"),
+    ("数据备份 FEATURES 卡", r"\{ tab: 'backup',"),
+    ("数据备份 状态字段", r"backup: \{ mods: \{ base: 1 \}, hisCrons: \[\], loading: false,"
+                          r" busy: false \},"),
+    ("数据备份 gotoBackup", r"function gotoBackup\(\) \{"),
+    ("数据备份 isBackupCron", r"function isBackupCron\(t\) \{"),
+    ("数据备份 关键词 中英文", r"return \/备份\|backup\/\.test\(n\);"),
+    ("数据备份 backupFindCrons", r"function backupFindCrons\(\) \{"),
+    ("数据备份 倒序", r"out\.sort\(function \(a, b\) \{ return b\.when - a\.when; \}\);"),
+    ("数据备份 填入列表", r"v\.hisCrons = backupFindCrons\(\);"),
+    ("数据备份 组装 type", r"var type = BACKUP_MODULES\.filter\(function \(m\) \{"
+                           r" return v\.mods\[m\[0\]\]; \}\)"),
+    ("数据备份 导出用 PUT", r"apiBlob\('\/api\/system\/data\/export', \{ type: type \}, 'PUT'\)"),
+    ("数据备份 文件名带时间戳", r"var name = 'qinglong-' \+ fmtStamp\(Date\.now\(\)\) \+ '\.tgz';"),
+    ("数据备份 fmtStamp", r"function fmtStamp\(ts\) \{"),
+    ("数据备份 fmtStamp 补零", r", p = function \(n\) \{ return \(n < 10 \? '0' : ''\) \+ n; \};"),
+    # 名字别叫 toggleBackupMod：系统设置页那个已经占了名，同名函数后定义盖先定义。
+    ("数据备份 bkToggleMod", r"function bkToggleMod\(btn\) \{"),
+    ("数据备份 基础数据不可取消", r"toast\('「基础数据」是必选的，取消不了'\)"),
+    ("数据备份 同步按钮 class", r"btn\.classList\.toggle\('on', !!v\.mods\[k\]\);"),
+    ("数据备份 模块按钮属性", r"data-bkmod="),
+    ("数据备份 模块默认勾上", r"var on = m\[2\] \? 1 : \(v\.mods\[m\[0\]\] \? 1 : 0\);"),
+    ("数据备份 打包中禁用", r"\(v\.busy \? 'disabled' : ''\)"),
+    ("数据备份 打包中文案", r"\(v\.busy \? '正在打包…' : '立即备份'\)"),
+    ("数据备份 任务行可点", r"data-gobkinst=\"' \+ esc\(String\(t\.id\)\)"),
+    ("数据备份 尚未运行", r"'尚未运行'"),
+    ("数据备份 副标题", r"个备份任务"),
+    ("数据备份 空态", r"还没挂自动备份任务"),
+    ("数据备份 空态教 rclone", r"rclone"),
+    ("数据备份 委托选择器 属性", r"'\[data-gobkinst\],\[data-bkmod\],' \+"),
+    ("数据备份 委托选择器 按钮", r"'#btnBkExport,#btnBkImport,#btnBkRetry'"),
+    ("数据备份 委托分支 任务行", r"if \(el\.dataset\.gobkinst\) \{"),
+    ("数据备份 委托分支 模块", r"if \(el\.dataset\.bkmod != null\) return bkToggleMod\(el\);"),
+    ("数据备份 委托分支 立即备份", r"if \(el\.id === 'btnBkExport'\) return exportBackupNow\(\);"),
+    ("数据备份 委托分支 还原", r"if \(el\.id === 'btnBkImport'\) \{ var fi = \$\('#fileBkImport'\);"),
+    ("数据备份 文件框", r'id="fileBkImport"'),
+    ("数据备份 还原接 importBackup", r"if \(bkImp\) bkImp\.addEventListener\('change'"),
+    ("数据备份 refresh 管这一页", r"if \(S\.tab === 'backup'\) return loadBackup\(true\);"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

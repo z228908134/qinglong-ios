@@ -125,6 +125,16 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
   color:var(--text2);font-family:inherit;font-size:calc(13px*var(--fs));font-weight:600;
   cursor:pointer;white-space:nowrap}
 .vtab.on{background:var(--accent);color:#fff}
+/* 1.0.42：视图 tab 栏最右的「管理」入口。透明底 + 主色字，跟视图 tab 区分开
+   （它是入口不是筛选项）；margin-left:auto 把它推到最右。 */
+.vtabmgr{margin-left:auto;background:transparent;color:var(--accent);padding:7px 6px}
+/* 1.0.42：视图管理页的卡片。两个坑都踩过（截图才看出来）：
+   ① **标题别用 `.nm`** —— 那个类只在 `.item .nm` 下有样式，单独用等于没样式，
+      它就是个 block div，会把右边的「已停用」标签挤到下一行去。
+   ② `.card` 自己没有间距，连着摆三张会粘成一整块白，看不出边界。 */
+.vanm{font-size:calc(15px*var(--fs));font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.vacard{margin-bottom:10px}
 .cronbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}
 /* 筛选条横向可滚：四个按钮加「编辑」在 320 宽的屏上正好卡边，留一手免得挤成两行 */
 .cfwrap{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
@@ -803,6 +813,16 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div id="cronlogsBody"></div>
     </section>
 
+    <!-- 1.0.42：定时视图管理。视图 = 面板「定时任务」页顶部那排 tab，
+         每个是**保存好的一组筛选条件**（名称 + 字段/操作符/值 + 且或 + 排序）。
+         以前手机上只能切换面板建好的视图，建 / 改 / 删都得开电脑。
+         入口在任务页视图 tab 栏最右的「管理」。
+         接口：POST/PUT/DELETE /api/crons/views、PUT /views/move、
+         PUT /views/disable|enable（面板 services_cronView.ts 全都有）。 -->
+    <section class="view" id="v-views">
+      <div id="viewsBody"></div>
+    </section>
+
     <!-- 1.0.40：数据备份。立即导出（弹 iOS share sheet）+ 自动发现青龙里
          「备份类任务」的最近运行历史。入口在「我的」页 FEATURES 卡片。
          「自动定时备份 + 上传网盘」不做在 App 里 —— iOS 后台会被杀，
@@ -1269,8 +1289,10 @@ var S = {
      views / view / viewsFailed：任务页顶部那排「定时视图」tab。
      面板的「定时视图」**不是时间轴**，而是保存好的筛选条件（名称 + 若干
      「字段/操作符/值」+ 且或关系 + 排序）。查任务时把选中的那个整个塞进
-     queryString 参数交给后端筛。这里只做「切换」，不做创建/编辑 ——
-     手机上编那种多条件表单太局促，要改去面板网页版改，切回来就能看到。
+     queryString 参数交给后端筛。
+     viewsAll（1.0.42）：**含已停用**的全量视图。tab 栏只显示启用的那份，
+     但「视图管理」页要显示全部（不然停用过的就再也启不回来了），
+     而且排序接口吃的是**全量数组里的下标** —— 拿启用那份的下标去传会错位。
      viewsFailed：/api/crons/views 是较新版本才有的接口，拉失败就置真、
      整条 tab 栏藏起来。视图是锦上添花，**不能因为它把任务页也带崩**。 */
   /* hit / hitId：1.0.33 起的「搜索结果上 / 下一个」当前位置（见 envJump 那套）。
@@ -1278,7 +1300,12 @@ var S = {
      对不上就说明原来的下标已经指到别的任务上了。 */
   crons: { list: [], total: 0, page: 1, size: 20, q: '', loading: false,
            filter: 'all', edit: false, sel: {}, hit: -1, hitId: null,
-           views: [], view: null, viewsFailed: false },
+           views: [], viewsAll: [], view: null, viewsFailed: false },
+  /* 1.0.42：「视图管理」页（二级页，入口在任务页视图 tab 栏最右的「管理」）。
+     form 是新建表单的展开状态（null = 收起），里面存还没提交的草稿：
+     { name, prop, op, val }。busy 是正在提交的视图 id（防连点），
+     新建提交中记作字符串 'new'。 */
+  viewAdmin: { loading: false, err: '', form: null, busy: '' },
   /* tag 是当前选中的标签筛选（空串 = 不筛）。标签本身来自后端 env.labels（v2.21 起有）。 */
   /* envs.collapsed：1.0.30 起的「分组折叠」状态，键是组名（标签名 / 未分类的哨兵）。
      **放 S 上而不是闭包里** —— 折叠按钮走全局事件委托，委托拿不到闭包变量。
@@ -1890,6 +1917,12 @@ function showApp() {
   $('#app').classList.remove('hidden');
 }
 function signOut(silent) {
+  /* 1.0.42：顺手告诉面板一声 —— POST /api/user/logout 会把这个 session 作废。
+     以前只清本地，面板那边一直挂着一个有效令牌。
+     ⚠️ 必须放在下面清 token **之前**：api() 的 Authorization 头读的就是 S.token，
+     清掉之后再发就是匿名请求，面板不认。
+     也不等它回来（连不上 / 面板刚重启过都不该卡住退出流程），失败就忽略。 */
+  try { api('/api/user/logout', { method: 'POST' }).catch(function () {}); } catch (e) {}
   S.token = '';
   S.sys = null;
   S.avatar = '';      // 换账号时别把上一台的头像带过去
@@ -2074,6 +2107,10 @@ var TITLES = {
   /* 1.0.38：这个任务的历史日志文件列表。同样是二级页，
      入口在任务详情的「日志 → 日志历史」。 */
   cronlogs: '历史日志',
+  /* 1.0.42：定时视图管理。二级页，入口在任务页视图 tab 栏最右的「管理」。
+     手机上只做「改名 / 排序 / 停用启用 / 删除 + 一条条件的简化新建」——
+     面板那种多条件 + 多排序的表单在手机上太局促，复杂的还是去网页版编。 */
+  views: '视图管理',
   /* 1.0.40：数据备份。一级页（FEATURES 里直接露）——
      立即导出 + 自动发现青龙里的「备份类任务」运行历史。
      「上传到网盘」那一步在 iOS 上交给系统 share sheet（UIActivityViewController），
@@ -2107,6 +2144,8 @@ function setTab(tab, force) {
   /* 头像和「切换账号」胶囊都依赖登录后的用户名，所以放在早退分支之前无条件同步。 */
   syncTabAvatar();
   if (S.tab === tab && !force) { refresh(); return; }
+  /* 1.0.42：切走之前先把「这一页滚到哪儿了」记下来（下面 restoreScroll 恢复）。 */
+  saveScroll();
   S.tab = tab;
   sset(K.tab, tab);
   $('#acctBar').classList.toggle('hidden', tab !== 'me');
@@ -2177,9 +2216,46 @@ function setTab(tab, force) {
     var b4 = $('#btnSubEdit');
     if (b4) b4.textContent = '编辑';
   }
-  $('#main').scrollTop = 0;
+  /* 1.0.42：恢复这一页上次滚到的位置（以前是一律 scrollTop = 0，
+     任务列表滚到很下面、切去变量页再切回来就回顶部了，得重新往下翻）。
+     任务**详情**是弹层，列表留在原位不受影响，所以只有 tab 之间切换会丢。 */
+  restoreScroll(tab);
   syncBack();
   refresh();
+}
+
+/* ================= 每个 tab 的滚动位置（1.0.42） =================
+
+   一级页之间来回切时，各自恢复到自己上次滚到的位置。
+   二级页（实例 / 历史日志 / 视图管理…）不记 —— 它们每次都是从不同上下文进的，
+   恢复上一次的位置反而会落到莫名其妙的地方，回到顶部更符合预期。 */
+var SCROLLS = {};
+/* 内容渲染完再试的几个时间点（毫秒）。见 restoreScroll 的注释。 */
+var SCROLL_RETRY = [50, 150, 350];
+
+function saveScroll() {
+  var m = $('#main');
+  if (!m || !S.tab) return;
+  SCROLLS[S.tab] = m.scrollTop || 0;
+}
+
+/* 切回某一页时恢复滚动位置。
+   ⚠️ 不能只设一次就完事：refresh() 是异步的，这会儿列表还是空的
+   （或者只有「加载中」），#main 的高度不够，设了也会被浏览器夹到 0。
+   所以在几个时间点各补一次。用户在中间自己滚了的话，后面那次会把他拽回去 ——
+   所以时间点只铺到 350ms（本地渲染远快于这个），再慢就让他自己滚。 */
+function restoreScroll(tab) {
+  var m = $('#main');
+  if (!m) return;
+  var want = SCROLLS[tab] || 0;
+  m.scrollTop = want;
+  if (!want) return;
+  SCROLL_RETRY.forEach(function (ms) {
+    setTimeout(function () {
+      /* 这期间用户可能已经切走了 —— 那就别再动滚动条了。 */
+      if (S.tab === tab) m.scrollTop = want;
+    }, ms);
+  });
 }
 async function refresh() {
   /* 进任务页先把视图列表拉一次：面板上可能刚加/删过视图，而且 loadCrons
@@ -2202,6 +2278,9 @@ async function refresh() {
   /* 1.0.38：历史日志页。force 清掉日志树缓存重拉 —— 日志随时在写，
      下拉刷新还看缓存的话，刚跑完那次的新日志不会出现。 */
   if (S.tab === 'cronlogs') return loadCronLogs(S.cronlogs.id, true);
+  /* 1.0.42：视图管理页。每次进来都重拉 —— 面板网页版可能刚改过，
+     而且这一页上的操作（改名 / 排序 / 启停 / 删除）本来就要求列表是最新的。 */
+  if (S.tab === 'views') return loadViewAdmin();
   /* 1.0.40：数据备份页。force = true 跟 instances / cronlogs 一个套路 ——
      「备份类任务」的列表是任务列表筛出来的，任务列表可能新增 / 删除，
      切回来得重筛一次。 */
@@ -2335,11 +2414,16 @@ async function loadViews() {
   var c = S.crons;
   try {
     var r = await api('/api/crons/views');
-    /* 面板前端只显示 isDisabled 不为真的那些，这里照做。 */
-    c.views = (Array.isArray(r.data) ? r.data : []).filter(function (v) { return !v.isDisabled; });
+    /* 全量存一份（含已停用）—— 视图管理页要显示全部，而且排序接口吃的是
+       **这个数组里的下标**。顺序不用自己排：面板的 list() 就是按 position
+       倒序给的，照它给的顺序用即可。 */
+    c.viewsAll = Array.isArray(r.data) ? r.data : [];
+    /* 面板前端只显示 isDisabled 不为真的那些，tab 栏照做。 */
+    c.views = c.viewsAll.filter(function (v) { return !v.isDisabled; });
     c.viewsFailed = false;
   } catch (e) {
     c.views = [];
+    c.viewsAll = [];
     c.viewsFailed = true;
   }
   /* 当前选中的视图还在列表里就保留（切走再切回来还停在原来那个 tab 上），
@@ -2355,18 +2439,22 @@ function renderViewTabs() {
   var box = $('#cronViewTabs');
   if (!box) return;
   var c = S.crons;
-  /* 一个视图都没有（或接口拉失败）就整条藏起来 ——
-     空着一行 tab 只会让人以为功能坏了。 */
-  if (c.viewsFailed || !c.views.length) {
+  /* 接口拉失败（老面板没这个接口）就整条藏起来 —— 这时候连「管理」都不该出现，
+     点进去也是报错。 */
+  if (c.viewsFailed) {
     box.classList.add('hidden');
     box.innerHTML = '';
     return;
   }
   var cur = c.view ? Number(c.view.id) : null;
+  /* 1.0.42：「管理」入口**无条件**跟着这条栏出来，哪怕一个视图都没有 ——
+     不然新建第一个视图的入口就没了（以前没视图时整条藏起来，
+     而「一个都没有」恰好是最需要「新建」的时候）。 */
   box.innerHTML = c.views.map(function (v) {
     return '<button class="vtab' + (Number(v.id) === cur ? ' on' : '') + '" data-view="' +
       esc(v.id) + '">' + esc(v.name) + '</button>';
-  }).join('');
+  }).join('') +
+    '<button class="vtab vtabmgr" id="btnViewAdmin">管理</button>';
   box.classList.remove('hidden');
 }
 
@@ -2383,6 +2471,353 @@ async function setView(id) {
   c.filter = 'all';
   renderViewTabs();
   await loadCrons(true);
+}
+
+/* ================= 视图管理（1.0.42） =================
+
+   面板网页版「定时任务 → 视图 → 管理」那一套。手机上做**降级版**：
+     · 改名 / 上移下移 / 停用启用 / 删除 —— 全都有
+     · 新建 —— 只做「名称 + 一条文本条件」，不做多条件 + 多排序
+       （面板那套表单在窄屏上太局促，硬塞进来只会让人点错）
+   接口（_ql_src/cron.ts 里 /views 那几条）：
+     POST   /api/crons/views            { name, filters, filterRelation, sorts? }
+     PUT    /api/crons/views            { id, name, ... }   ← id 和 name 都必填
+     DELETE /api/crons/views            body: 数组（要删的 id）
+     PUT    /api/crons/views/move       { id, fromIndex, toIndex }
+     PUT    /api/crons/views/disable    body: 数组（要停用的 id）
+     PUT    /api/crons/views/enable     body: 数组（要启用的 id）
+
+   ⚠️ 三个必须记住的点（都是「写错了不报错」的那种）：
+   1. **筛选条件的字段名是 operation，不是 operator。** 面板表单和
+      services_cron.ts 的 formatViewQuery 读的都是 operation。
+   2. **move 收的是「全量数组里的下标」**，不是 position 值 —— 后端自己按
+      前后两条的 position 取中点算新位置（services_cronView.ts 的 move()）。
+      所以算下标必须用 S.crons.viewsAll（含停用项），不能用 tab 栏那份 views。
+   3. **更新时绝不能把 position 发回去。** 后端 update() 是「原记录 + 新记录」
+      合并，新记录里带 position 就把位置覆盖了 —— 改个名能把视图挪到别处去。
+*/
+
+/* property / operation / type 的中文名，照面板 fe_viewCreateModal.tsx 的叫法。 */
+var VIEW_PROPS = [
+  ['command', '命令'], ['name', '名称'], ['schedule', '定时规则'],
+  ['status', '状态'], ['labels', '标签'], ['sub_id', '订阅']
+];
+var VIEW_OPS = [['Reg', '包含'], ['NotReg', '不包含'], ['In', '属于'], ['Nin', '不属于']];
+/* In / Nin 的 value 是数组；status 的取值是数字，翻成人话给用户看。 */
+var VIEW_STATUS = [[0, '运行中'], [1, '空闲中'], [2, '已禁用'], [3, '排队中']];
+/* 新建时只让选这四样 + 文本操作符：status / sub_id 是「下拉取值」类，
+   要拉状态表 / 订阅列表，手机上不值当（去面板编一次就行）。 */
+var VIEW_NEW_PROPS = ['command', 'name', 'schedule', 'labels'];
+var VIEW_NEW_OPS = ['Reg', 'NotReg'];
+
+function viewPropLabel(p) {
+  var hit = VIEW_PROPS.filter(function (x) { return x[0] === p; })[0];
+  return hit ? hit[1] : String(p == null ? '' : p);
+}
+function viewOpLabel(o) {
+  var hit = VIEW_OPS.filter(function (x) { return x[0] === o; })[0];
+  return hit ? hit[1] : String(o == null ? '' : o);
+}
+function viewValText(v, val) {
+  var arr = Object.prototype.toString.call(val) === '[object Array]' ? val : [val];
+  return arr.map(function (x) {
+    if (v.property === 'status') {
+      var s = VIEW_STATUS.filter(function (y) { return Number(y[0]) === Number(x); })[0];
+      return s ? s[1] : String(x);
+    }
+    return String(x == null ? '' : x);
+  }).join(' / ');
+}
+
+/* 一组筛选条件翻成人话：「名称 包含 jd」。 */
+function viewCondText(v) {
+  var fs = (v && v.filters) || [];
+  if (!fs.length) return '没有筛选条件（显示全部任务）';
+  var parts = fs.map(function (f) {
+    /* 面板新建时默认给一条只有 property 的空壳，value 还没填 ——
+       这时别拼出「命令 包含 」那种尾巴翘着的半截话。 */
+    if (f.value == null || f.value === '') return viewPropLabel(f.property) + '（还没填内容）';
+    return viewPropLabel(f.property) + ' ' + viewOpLabel(f.operation) + ' ' + viewValText(f, f.value);
+  });
+  var sorts = ((v && v.sorts) || []).map(function (s) {
+    return viewPropLabel(s.property) + (s.type === 'DESC' ? ' 倒序' : ' 正序');
+  });
+  return parts.join(v.filterRelation === 'or' ? ' 或 ' : ' 且 ') +
+    (sorts.length ? ' · 按 ' + sorts.join('、') : '');
+}
+
+/* 从任务页的「管理」进。二级页，返回走 goBack() 里那条 views 分支回任务页。 */
+function gotoViewAdmin() {
+  setTab('views');
+}
+
+async function loadViewAdmin() {
+  var v = S.viewAdmin;
+  if (v.loading) return;
+  v.loading = true;
+  v.err = '';
+  renderViewAdmin();
+  try {
+    await loadViews();
+    /* loadViews 自己吞异常（老面板没这个接口时置 viewsFailed）——
+       所以「拉失败」要在这里翻成人话，不能让页面空着。 */
+    if (S.crons.viewsFailed) v.err = '这个面板没有「定时视图」接口（面板版本较老）';
+  } finally {
+    v.loading = false;
+    renderViewAdmin();
+  }
+}
+
+function viewFormOpen() {
+  var v = S.viewAdmin;
+  if (v.form) return;
+  v.form = { name: '', prop: 'name', op: 'Reg', val: '' };
+  renderViewAdmin();
+  var i = $('#vaName');
+  if (i) i.focus();
+}
+function viewFormClose() {
+  S.viewAdmin.form = null;
+  renderViewAdmin();
+}
+
+/* 表单里的草稿。读 DOM —— 重画（比如提交失败）前先存下来，
+   不然用户填的内容会没（renderViewAdmin 是整块 innerHTML 换掉的）。 */
+function vaFormDraft() {
+  var f = S.viewAdmin.form || {};
+  var n = $('#vaName'), p = $('#vaProp'), o = $('#vaOp'), val = $('#vaVal');
+  return {
+    name: n ? n.value : (f.name || ''),
+    prop: p ? p.value : (f.prop || 'name'),
+    op: o ? o.value : (f.op || 'Reg'),
+    val: val ? val.value : (f.val || '')
+  };
+}
+
+function viewFormHtml() {
+  var f = S.viewAdmin.form || {};
+  return '<div class="card" style="border:1px solid var(--accent)">' +
+    '<div class="f13" style="font-weight:500;margin-bottom:10px">新建视图</div>' +
+    '<div class="field"><label>视图名称</label>' +
+      '<input id="vaName" type="text" maxlength="50" placeholder="例如：京东任务" value="' +
+      esc(f.name || '') + '" autocapitalize="off" autocorrect="off" spellcheck="false"></div>' +
+    '<div class="field"><label>筛选条件</label>' +
+      '<div class="row" style="gap:6px">' +
+        '<select id="vaProp" style="flex:1;min-width:0">' +
+          VIEW_NEW_PROPS.map(function (p) {
+            return '<option value="' + p + '"' + (f.prop === p ? ' selected' : '') + '>' +
+              esc(viewPropLabel(p)) + '</option>';
+          }).join('') +
+        '</select>' +
+        '<select id="vaOp" style="flex:1;min-width:0">' +
+          VIEW_NEW_OPS.map(function (o) {
+            return '<option value="' + o + '"' + (f.op === o ? ' selected' : '') + '>' +
+              esc(viewOpLabel(o)) + '</option>';
+          }).join('') +
+        '</select>' +
+      '</div>' +
+      '<input id="vaVal" type="text" style="width:100%;margin-top:6px" ' +
+        'placeholder="要匹配的内容，例如 jd" value="' + esc(f.val || '') + '" ' +
+        'autocapitalize="off" autocorrect="off" spellcheck="false"></div>' +
+    '<div class="f11 t3" style="margin:2px 4px 10px;line-height:1.7">' +
+      '这里新建只支持<b>一条文本条件</b>。要「状态属于…」「订阅属于…」或者多条条件 + 排序，' +
+      '请去面板网页版编 —— 这边能看到、能改名排序启停，只是编不了复杂条件。</div>' +
+    '<div class="row" style="gap:8px">' +
+      '<button class="btn pri" id="btnVaCreate" style="flex:1">创建</button>' +
+      '<button class="btn" id="btnVaCancel" style="flex:1">取消</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderViewAdmin() {
+  var box = $('#viewsBody');
+  if (!box) return;
+  var v = S.viewAdmin;
+  var list = S.crons.viewsAll;
+
+  var head = '<div class="f11 t3" style="margin:0 4px 12px;line-height:1.7">' +
+    '视图是面板「定时任务」页顶部那排 tab —— 每个是一组<b>保存好的筛选条件</b>。' +
+    '这里改完，面板网页版同步可见。</div>';
+
+  if (v.loading && !list.length) {
+    box.innerHTML = head + '<div class="center"><span class="spin"></span>加载中…</div>';
+    return;
+  }
+  if (v.err) {
+    box.innerHTML = head + '<div class="empty">' + esc(v.err) + '</div>' +
+      '<button class="btn" id="btnVaRetry" style="width:100%">重新读取</button>';
+    return;
+  }
+
+  var h = head;
+  if (v.form) h += viewFormHtml();
+  h += '<button class="btn pri" id="btnVaNew" style="width:100%;margin-bottom:12px"' +
+    (v.form ? ' disabled' : '') + '>' + (v.form ? '正在填写…' : '新建视图') + '</button>';
+
+  if (!list.length) {
+    box.innerHTML = h + '<div class="empty"><span class="ei">◫</span>还没有视图</div>';
+    return;
+  }
+
+  h += list.map(function (x, i) {
+    var off = !!x.isDisabled;
+    var busy = String(v.busy) === String(x.id);
+    /* 上移 / 下移按**全量数组**的首尾禁用 —— 跟 move 的下标口径保持一致
+       （用 tab 栏那份算的话，停用项会把它顶掉一格）。 */
+    return '<div class="card vacard">' +
+      '<div class="row">' +
+        '<div class="vanm sp"' + (off ? ' style="color:var(--text2)"' : '') + '>' +
+          esc(x.name || '未命名视图') + '</div>' +
+        (off ? '<span class="tag">已停用</span>' : '') +
+      '</div>' +
+      '<div class="f11 t3" style="margin-top:6px;line-height:1.6">' + esc(viewCondText(x)) + '</div>' +
+      '<div class="row" style="margin-top:10px;gap:6px">' +
+        '<button class="btn" style="flex:1;padding:7px 2px" data-vact="up" data-id="' + esc(x.id) + '"' +
+          (i === 0 || busy ? ' disabled' : '') + '>上移</button>' +
+        '<button class="btn" style="flex:1;padding:7px 2px" data-vact="down" data-id="' + esc(x.id) + '"' +
+          (i === list.length - 1 || busy ? ' disabled' : '') + '>下移</button>' +
+        '<button class="btn" style="flex:1;padding:7px 2px" data-vact="toggle" data-id="' + esc(x.id) + '"' +
+          (busy ? ' disabled' : '') + '>' + (off ? '启用' : '停用') + '</button>' +
+        '<button class="btn" style="flex:1;padding:7px 2px" data-vact="rename" data-id="' + esc(x.id) + '"' +
+          (busy ? ' disabled' : '') + '>改名</button>' +
+        '<button class="btn danger" style="flex:1;padding:7px 2px" data-vact="del" data-id="' + esc(x.id) + '"' +
+          (busy ? ' disabled' : '') + '>删除</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  box.innerHTML = h;
+}
+
+/* 新建。只发 name + filters + filterRelation（sorts 后端 optional allow null）。 */
+async function viewCreate() {
+  var v = S.viewAdmin;
+  var d = vaFormDraft();
+  var name = String(d.name || '').trim();
+  var val = String(d.val || '').trim();
+  if (!name) { toast('请填视图名称', true); return; }
+  if (!val) { toast('请填要匹配的内容', true); return; }
+  if (v.busy) return;
+  v.busy = 'new';
+  renderViewAdmin();
+  try {
+    await api('/api/crons/views', { method: 'POST', body: {
+      name: name,
+      filters: [{ property: d.prop, operation: d.op, value: val }],
+      filterRelation: 'and'
+    } });
+    v.form = null;
+    toast('视图已创建');
+    await loadViewAdmin();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    v.busy = '';
+    renderViewAdmin();
+  }
+}
+
+/* 上移 / 下移。fromIndex / toIndex 是**全量数组里的下标**，后端自己算新 position。 */
+async function viewMove(id, dir) {
+  var v = S.viewAdmin;
+  var all = S.crons.viewsAll;
+  var from = -1;
+  for (var i = 0; i < all.length; i++) {
+    if (String(all[i].id) === String(id)) { from = i; break; }
+  }
+  if (from < 0) return;
+  var to = dir === 'up' ? from - 1 : from + 1;
+  if (to < 0 || to >= all.length) return;
+  if (v.busy) return;
+  v.busy = String(id);
+  renderViewAdmin();
+  try {
+    await api('/api/crons/views/move', { method: 'PUT', body: {
+      id: Number(id), fromIndex: from, toIndex: to
+    } });
+    await loadViewAdmin();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    v.busy = '';
+    renderViewAdmin();
+  }
+}
+
+/* 停用 / 启用。两个接口的 body 都是 id 数组。 */
+async function viewToggle(x) {
+  var v = S.viewAdmin;
+  if (v.busy) return;
+  var off = !!x.isDisabled;
+  v.busy = String(x.id);
+  renderViewAdmin();
+  try {
+    await api('/api/crons/views/' + (off ? 'enable' : 'disable'),
+      { method: 'PUT', body: [Number(x.id)] });
+    toast(off ? '已启用' : '已停用');
+    await loadViewAdmin();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    v.busy = '';
+    renderViewAdmin();
+  }
+}
+
+/* 改名要发的 body。单独抽成函数是为了**能直接测** —— 「有没有把 position 带回去」
+   这件事只有看 body 才知道，而 viewRename 里那句 `await promptText(...)` 在测试
+   沙箱里永远等不到（弹层按钮是空桩，点不了）。 */
+function viewRenameBody(x, name) {
+  return {
+    id: Number(x.id), name: name,
+    filters: x.filters || [], sorts: x.sorts || null,
+    filterRelation: x.filterRelation || 'and'
+  };
+}
+
+/* 改名。⚠️ 只发 id / name 和原有的 filters / sorts / filterRelation，
+   **不发 position**（后端合并时会把位置覆盖掉）。 */
+async function viewRename(x) {
+  var name = await promptText('重命名视图', '视图名称', x.name || '');
+  if (name == null) return;
+  name = String(name).trim();
+  if (!name) { toast('名称不能为空', true); return; }
+  if (name === x.name) return;
+  var v = S.viewAdmin;
+  if (v.busy) return;
+  v.busy = String(x.id);
+  renderViewAdmin();
+  try {
+    await api('/api/crons/views', { method: 'PUT', body: viewRenameBody(x, name) });
+    toast('已改名');
+    await loadViewAdmin();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    v.busy = '';
+    renderViewAdmin();
+  }
+}
+
+/* 删除。删的是**视图**（一组筛选条件），不是任务 —— 确认文案要说清楚，
+   不然「删除」两个字很容易让人以为任务要没了。 */
+async function viewDelete(x) {
+  if (!confirm('删除视图「' + (x.name || '未命名视图') + '」？\n\n' +
+    '只删这个视图（一组筛选条件），不会删掉任何任务。')) return;
+  var v = S.viewAdmin;
+  if (v.busy) return;
+  v.busy = String(x.id);
+  renderViewAdmin();
+  try {
+    await api('/api/crons/views', { method: 'DELETE', body: [Number(x.id)] });
+    toast('视图已删除');
+    await loadViewAdmin();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    v.busy = '';
+    renderViewAdmin();
+  }
 }
 
 function renderCrons() {
@@ -3825,6 +4260,40 @@ function promptLabels(kind, count, act) {
     }
     $('#plOk').addEventListener('click', ok);
     $('#plCancel').addEventListener('click', function () { closeSheet(); resolve(null); });
+  });
+}
+
+/* 一个「说明 + 一个输入框」的通用弹层，返回 Promise：
+   点确定给字符串（可能是空串），点取消给 null。
+   写法照 promptLabels —— 弹层内容每次都是 innerHTML 换的，按钮必须**每次重绑**。 */
+function promptText(title, label, value) {
+  return new Promise(function (resolve) {
+    var h = '<div style="padding:6px 4px 14px">' +
+      '<div class="f12 t2" style="margin-bottom:8px">' + esc(label) + '</div>' +
+      '<input id="ptInput" type="text" maxlength="50" value="' +
+      esc(value == null ? '' : value) + '" autocapitalize="off" autocorrect="off" ' +
+      'spellcheck="false" style="width:100%;padding:9px 10px;border:1px solid #d0d0d0;' +
+      'border-radius:6px;background:#fff;outline:none">' +
+      '</div>' +
+      '<div class="row" style="gap:8px">' +
+      '<button class="btn pri" id="ptOk" style="flex:1;padding:9px 4px">确定</button>' +
+      '<button class="btn" id="ptCancel" style="flex:1;padding:9px 4px">取消</button>' +
+      '</div>';
+    openSheet(title, h);
+    var input = $('#ptInput');
+    if (input) {
+      input.focus();
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); ok(); }
+      });
+    }
+    function ok() {
+      var s = input ? input.value : '';
+      closeSheet();
+      resolve(s);
+    }
+    $('#ptOk').addEventListener('click', ok);
+    $('#ptCancel').addEventListener('click', function () { closeSheet(); resolve(null); });
   });
 }
 
@@ -5910,7 +6379,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.41';
+var APP_VER = '1.0.42';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -8092,6 +8561,9 @@ function goBack() {
   var sh = $('#sheet');
   if (sh && sh.classList.contains('on')) { closeSheet(); return true; }
   if (S.tab === 'logs' && S.logs.path.length) { loadLogs(S.logs.path.slice(0, -1)); return true; }
+  /* 1.0.42：视图管理是从任务页进的，返回就该回任务页 —— 不能落到下面
+     「没有底栏入口就回『我的』」那条兜底上（那会让人多跳一步）。 */
+  if (S.tab === 'views') { setTab('crons'); return true; }
   if (backToCron()) return true;
   if (!$('#tabbar button[data-tab="' + S.tab + '"]')) { setTab('me'); return true; }
   return false;
@@ -8402,7 +8874,11 @@ function onClick(ev) {
     '#btnBkExport,#btnBkImport,#btnBkRetry,' +
     /* 1.0.41：通知设置页的「保存并测试」/「重试」。
        渠道下拉（#ntMode）不在这儿 —— 它是 select，走 change，见下面的委托。 */
-    '#btnNtSave,#btnNtRetry'
+    '#btnNtSave,#btnNtRetry,' +
+    /* 1.0.42：视图管理页（入口是任务页视图 tab 栏最右那颗「管理」）。
+       · [data-vact] = 每个视图那排「上移 / 下移 / 停用 / 改名 / 删除」
+       · 其余四颗是「新建 / 创建 / 取消 / 重试」 */
+    '[data-vact],#btnViewAdmin,#btnVaNew,#btnVaCreate,#btnVaCancel,#btnVaRetry'
   ) : null;
   if (!el) return;
 
@@ -8538,6 +9014,26 @@ function onClick(ev) {
   /* ---------- 通知设置（1.0.41） ---------- */
   if (el.id === 'btnNtSave') return saveNotify();
   if (el.id === 'btnNtRetry') return loadNotify(true);
+
+  /* ---------- 视图管理（1.0.42） ---------- */
+  if (el.id === 'btnViewAdmin') return gotoViewAdmin();
+  if (el.id === 'btnVaRetry') return loadViewAdmin();
+  if (el.id === 'btnVaNew') return viewFormOpen();
+  if (el.id === 'btnVaCancel') return viewFormClose();
+  if (el.id === 'btnVaCreate') return viewCreate();
+  if (el.dataset.vact) {
+    /* 视图对象从**全量**那份里反查 —— 停用过的视图也要能改名 / 启用 / 删除。 */
+    var vx = S.crons.viewsAll.filter(function (x) {
+      return String(x.id) === String(el.dataset.id);
+    })[0];
+    if (!vx) { toast('这个视图已经不在列表里了', true); return; }
+    if (el.dataset.vact === 'up') return viewMove(vx.id, 'up');
+    if (el.dataset.vact === 'down') return viewMove(vx.id, 'down');
+    if (el.dataset.vact === 'toggle') return viewToggle(vx);
+    if (el.dataset.vact === 'rename') return viewRename(vx);
+    if (el.dataset.vact === 'del') return viewDelete(vx);
+    return;
+  }
 
   /* 任务列表 */
   if (el.dataset.act) {

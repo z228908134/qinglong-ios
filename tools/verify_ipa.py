@@ -67,7 +67,7 @@ FEATURES = [
     # 1.0.25：days 从写死 7 换成 d.trendDays || 7（接口本身还是 /api/dashboard/trend）。
     ("趋势 接口 days=N", r"/api/dashboard/trend', \{ days: d\.trendDays"),
     ("面板卡 头像", r'class="hav"'),
-    ("日志 搜索框", r'id="logSearch"'),
+    ("日志 搜索框（面板日志）", r'id="logSearch"'),
     ("日志 key 拆前缀", r"function logKeyPath\("),
     # 功能网格的卡片：data-goto 是 featCard() 运行时拼出来的（`data-goto="' + f.tab + '"`），
     # 产物里搜不到 data-goto="subs" 这种字面量 —— 只能锚 FEATURES 表里的条目。
@@ -115,7 +115,7 @@ FEATURES = [
     # 1.0.20 日志内搜关键字 + 详情页状态实时化
     ("日志 关键字搜索过滤", r"function logPick\("),
     ("日志 命中高亮", r"function logHi\("),
-    ("日志 搜索框", r'id="logFind"'),
+    ("日志 搜索框（运行日志）", r'id="logFind"'),
     ("日志 复制匹配行", r"复制匹配行"),
     ("详情 状态徽标就地重画", r"function paintCronState\("),
     ("详情 主按钮跟着状态变", r'id="cdAct"'),
@@ -630,10 +630,116 @@ FEATURES = [
     ("通知设置 别名写进 body", r"if \(alias\) body\[alias\] = el\.value;"),
     ("通知设置 失败不报已保存", r"toast\(e\.message, true\);"),
     ("通知设置 refresh 管这一页", r"if \(S\.tab === 'notify'\) return loadNotify\(true\);"),
-    ("通知设置 委托选择器 按钮", r"'#btnNtSave,#btnNtRetry'"),
+    # 1.0.42 在这一行后面又接了 `'[data-vact],#btnViewAdmin,...'` 一行 →
+    # 这一行从「最后一行」变成「中间一行」，末尾的 `'` 跟着变 `,' +`。
+    ("通知设置 委托选择器 按钮", r"'#btnNtSave,#btnNtRetry,' \+"),
     ("通知设置 委托分支 保存", r"if \(el\.id === 'btnNtSave'\) return saveNotify\(\);"),
     ("通知设置 委托分支 重试", r"if \(el\.id === 'btnNtRetry'\) return loadNotify\(true\);"),
     ("通知设置 下拉 change 委托", r"if \(t && t\.id === 'ntMode'\) \{"),
+
+    # 1.0.42：视图管理（本轮主体）。面板「定时任务 → 视图」那套在手机上做**降级版**：
+    #   改名 / 上移下移 / 停用启用 / 删除 全都有；新建只做「名称 + 一条文本条件」
+    #   （面板那套多条件 + 多排序的表单在窄屏上太局促）。入口是任务页视图 tab 栏最右的「管理」。
+    #   下面 ①②③ 各锚住了「写错了不报错」的那三处，是本功能的成败点：
+    #     ① 筛选条件的键叫 **operation**，写成 operator 条件会静默失效（面板读的是 operation）；
+    #     ② move 收的是**全量数组里的下标**（含停用项），拿 tab 栏那份算会错一格；
+    #     ③ 改名的 body **绝不能带 position** —— 后端是「原记录 + 新记录」合并，
+    #        带回去就把视图挪到别处了（改个名能把排序搞乱，界面上完全看不出）。
+    ("视图管理 视图", r'<section class="view" id="v-views">'),
+    ("视图管理 TITLES", r"views: '视图管理',"),
+    ("视图管理 状态字段", r"viewAdmin: \{ loading: false, err: '', form: null, busy: '' \},"),
+    ("视图管理 全量字段", r"views: \[\], viewsAll: \[\], view: null, viewsFailed: false \},"),
+    ("视图管理 全量那份照抄接口", r"c\.viewsAll = Array\.isArray\(r\.data\) \? r\.data : \[\];"),
+    ("视图管理 tab 栏那份只留启用", r"c\.views = c\.viewsAll\.filter\(function \(v\) \{ return !v\.isDisabled; \}\);"),
+    ("视图管理 property 六档", r"\['command', '命令'\], \['name', '名称'\], \['schedule', '定时规则'\],"),
+    ("视图管理 operation 四档", r"var VIEW_OPS = \[\['Reg', '包含'\], \['NotReg', '不包含'\], \['In', '属于'\], \['Nin', '不属于'\]\];"),
+    ("视图管理 状态四档", r"var VIEW_STATUS = \[\[0, '运行中'\], \[1, '空闲中'\], \[2, '已禁用'\], \[3, '排队中'\]\];"),
+    ("视图管理 新建只给四字段", r"var VIEW_NEW_PROPS = \['command', 'name', 'schedule', 'labels'\];"),
+    ("视图管理 新建只给两操作符", r"var VIEW_NEW_OPS = \['Reg', 'NotReg'\];"),
+    ("视图管理 viewPropLabel", r"function viewPropLabel\(p\) \{"),
+    ("视图管理 viewOpLabel", r"function viewOpLabel\(o\) \{"),
+    ("视图管理 viewValText", r"function viewValText\(v, val\) \{"),
+    ("视图管理 viewCondText", r"function viewCondText\(v\) \{"),
+    ("视图管理 没有条件时说明是全部", r"return '没有筛选条件（显示全部任务）';"),
+    ("视图管理 空壳条件不拼半截话", r"if \(f\.value == null \|\| f\.value === ''\) return viewPropLabel\(f\.property\)"),
+    ("视图管理 gotoViewAdmin", r"function gotoViewAdmin\(\) \{"),
+    ("视图管理 loadViewAdmin", r"async function loadViewAdmin\(\) \{"),
+    ("视图管理 借 loadViews 拉数据", r"\r?\n    await loadViews\(\);"),
+    ("视图管理 老面板没接口要出话", r"if \(S\.crons\.viewsFailed\) v\.err = '这个面板没有「定时视图」接口（面板版本较老）';"),
+    ("视图管理 renderViewAdmin", r"function renderViewAdmin\(\) \{"),
+    ("视图管理 空态", r'<span class="ei">◫</span>还没有视图'),
+    ("视图管理 未命名兜底", r"esc\(x\.name \|\| '未命名视图'\)"),
+    ("视图管理 已停用标签", r"\(off \? '<span class=\"tag\">已停用</span>' : ''\)"),
+    ("视图管理 行按钮带 data-vact", r"data-vact=\"up\" data-id=\"' \+ esc\(x\.id\)"),
+    ("视图管理 首条禁用上移", r"\(i === 0 \|\| busy \? ' disabled' : ''\)"),
+    ("视图管理 末条禁用下移", r"\(i === list\.length - 1 \|\| busy \? ' disabled' : ''\)"),
+    ("视图管理 停用项按钮显示启用", r"\(off \? '启用' : '停用'\)"),
+    ("视图管理 viewFormOpen", r"function viewFormOpen\(\) \{"),
+    ("视图管理 新建草稿默认值", r"v\.form = \{ name: '', prop: 'name', op: 'Reg', val: '' \};"),
+    ("视图管理 viewFormClose", r"function viewFormClose\(\) \{"),
+    ("视图管理 vaFormDraft", r"function vaFormDraft\(\) \{"),
+    ("视图管理 viewFormHtml", r"function viewFormHtml\(\) \{"),
+    ("视图管理 表单名称框", r'id="vaName"'),
+    ("视图管理 表单条件框", r'id="vaVal"'),
+    ("视图管理 表单说明只支持一条", r"'这里新建只支持<b>一条文本条件</b>。"),
+    ("视图管理 表单创建取消按钮", r'id="btnVaCreate"'),
+    ("视图管理 表单开着时新建禁用", r"\(v\.form \? ' disabled' : ''\)"),
+    ("视图管理 viewCreate", r"async function viewCreate\(\) \{"),
+    ("视图管理 名称空要拦", r"if \(!name\) \{ toast\('请填视图名称', true\); return; \}"),
+    ("视图管理 内容空要拦", r"if \(!val\) \{ toast\('请填要匹配的内容', true\); return; \}"),
+    # ① 键名是 operation
+    ("视图管理 新建条件键名 operation", r"filters: \[\{ property: d\.prop, operation: d\.op, value: val \}\],"),
+    ("视图管理 新建打 POST", r"await api\('\/api\/crons\/views', \{ method: 'POST', body: \{"),
+    ("视图管理 viewMove", r"async function viewMove\(id, dir\) \{"),
+    # ② 下标按全量数组算
+    ("视图管理 排序用全量下标", r"var all = S\.crons\.viewsAll;"),
+    ("视图管理 上移 -1 下移 +1", r"var to = dir === 'up' \? from - 1 : from \+ 1;"),
+    ("视图管理 越界不发请求", r"if \(to < 0 \|\| to >= all\.length\) return;"),
+    ("视图管理 move 接口", r"await api\('\/api\/crons\/views\/move', \{ method: 'PUT', body: \{"),
+    ("视图管理 move 带全量下标", r"id: Number\(id\), fromIndex: from, toIndex: to"),
+    ("视图管理 viewToggle", r"async function viewToggle\(x\) \{"),
+    ("视图管理 停用启用两条路径", r"await api\('\/api\/crons\/views\/' \+ \(off \? 'enable' : 'disable'\),"),
+    ("视图管理 启停 body 是数组", r"\{ method: 'PUT', body: \[Number\(x\.id\)\] \}\);"),
+    ("视图管理 viewRenameBody", r"function viewRenameBody\(x, name\) \{"),
+    # ③ 改名不带 position
+    ("视图管理 改名 body 无 position", r"id: Number\(x\.id\), name: name,\s+filters: x\.filters \|\| \[\], sorts: x\.sorts \|\| null,"),
+    ("视图管理 viewRename", r"async function viewRename\(x\) \{"),
+    ("视图管理 改名走 promptText", r"var name = await promptText\('重命名视图', '视图名称', x\.name \|\| ''\);"),
+    ("视图管理 改名打 PUT", r"await api\('\/api\/crons\/views', \{ method: 'PUT', body: viewRenameBody\(x, name\) \}\);"),
+    ("视图管理 viewDelete", r"async function viewDelete\(x\) \{"),
+    ("视图管理 删除文案说清只删视图", r"只删这个视图（一组筛选条件），不会删掉任何任务。"),
+    ("视图管理 删除打 DELETE", r"await api\('\/api\/crons\/views', \{ method: 'DELETE', body: \[Number\(x\.id\)\] \}\);"),
+    ("视图管理 promptText", r"function promptText\(title, label, value\) \{"),
+    ("视图管理 管理入口按钮", r"<button class=\"vtab vtabmgr\" id=\"btnViewAdmin\">管理</button>"),
+    ("视图管理 管理按钮靠右", r"\.vtabmgr\{margin-left:auto;"),
+    ("视图管理 只有拉失败才藏栏", r"if \(c\.viewsFailed\) \{\s+box\.classList\.add\('hidden'\);\s+box\.innerHTML = '';"),
+    ("视图管理 refresh 管这一页", r"if \(S\.tab === 'views'\) return loadViewAdmin\(\);"),
+    ("视图管理 返回回任务页", r"if \(S\.tab === 'views'\) \{ setTab\('crons'\); return true; \}"),
+    ("视图管理 委托选择器 属性", r"'\[data-vact\],#btnViewAdmin,#btnVaNew,#btnVaCreate,#btnVaCancel,#btnVaRetry'"),
+    ("视图管理 委托分支 进管理", r"if \(el\.id === 'btnViewAdmin'\) return gotoViewAdmin\(\);"),
+    ("视图管理 委托分支 新建", r"if \(el\.id === 'btnVaNew'\) return viewFormOpen\(\);"),
+    ("视图管理 委托分支 创建", r"if \(el\.id === 'btnVaCreate'\) return viewCreate\(\);"),
+    ("视图管理 委托分支 上移", r"if \(el\.dataset\.vact === 'up'\) return viewMove\(vx\.id, 'up'\);"),
+    ("视图管理 委托分支 删除", r"if \(el\.dataset\.vact === 'del'\) return viewDelete\(vx\);"),
+    ("视图管理 找不到就提示", r"if \(!vx\) \{ toast\('这个视图已经不在列表里了', true\); return; \}"),
+
+    # 1.0.42 小改进之一：一级页之间的滚动位置记忆。
+    # 以前每次切 tab 都 scrollTop = 0，任务列表滚到很下面、切去变量页再切回来就得重翻。
+    # 二级页（实例 / 历史日志 / 视图管理）**故意不记** —— 它们每次从不同上下文进，
+    # 恢复上次的位置反而会落到莫名其妙的地方。
+    ("滚动记忆 SCROLLS", r"var SCROLLS = \{\};"),
+    ("滚动记忆 补试时间点", r"var SCROLL_RETRY = \[50, 150, 350\];"),
+    ("滚动记忆 saveScroll", r"function saveScroll\(\) \{"),
+    ("滚动记忆 restoreScroll", r"function restoreScroll\(tab\) \{"),
+    ("滚动记忆 setTab 里先存旧页", r"saveScroll\(\);\s+S\.tab = tab;"),
+    ("滚动记忆 切完页再恢复", r"restoreScroll\(tab\);\s+syncBack\(\);"),
+    ("滚动记忆 内容渲染完补恢复", r"if \(S\.tab === tab\) m\.scrollTop = want;"),
+
+    # 1.0.42 小改进之二：退出登录时顺手把面板那边的 session 作废。
+    # ⚠️ 必须在清 S.token **之前**发 —— api() 的 Authorization 头读的就是它，
+    # 清掉之后发出去就是匿名请求，面板不认（等于白发）。失败也不影响退出流程。
+    ("真登出 发 logout", r"try \{ api\('\/api\/user\/logout', \{ method: 'POST' \}\)\.catch\(function \(\) \{\}\); \} catch \(e\) \{\}"),
+    ("真登出 在清 token 之前", r"catch \(e\) \{\}\s+S\.token = '';"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

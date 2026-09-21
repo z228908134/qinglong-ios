@@ -15,10 +15,42 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35586352833`，commit `ccd5723`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.42-trollstore.ipa`（220730 字节） |
-| SHA256 | `ff351eaa2c63b8811c707b96cefa42f0c1f1b476b0b30c8152295d01b6660936` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.42-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35608496753`，commit `bc2efdc`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.43-trollstore.ipa`（227195 字节） |
+| SHA256 | `ab0bef462e0ad5f53e728c4c8c9ebca7e289780770da7fcd8552d426bc5dc987` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.43-trollstore`（保留 30 天） |
+
+## 1.0.43：依赖设置（Node / Python / Linux 源 + 依赖代理 + 清依赖缓存）
+
+「我的」页加第 15 张卡「依赖设置」（绿色 ◎ 图标）。面板侧那 6 个 PUT 接口
+（`node-mirror` / `python-mirror` / `linux-mirror` / `dependence-proxy` /
+`dependence-clean`）以前只能在网页版动 —— 国内依赖装失败 / 装慢是最高频的求助，
+现在手机上点一下就换。
+
+- **不做输入框表单，做「预设芯片一键切换」**：每项 5 颗国内源芯片 + 一颗「自定义」。
+  痛点从来不是「不知道怎么填」，是「**得记得住那一长串 URL**」—— 换源本应一键的事。
+- **手填的值高亮「自定义（当前）」**：当前值不在预设里时，「自定义」那颗标成「自定义（当前）」，
+  不然用户看到「一个都没选中」会以为刚才填的没生效（已踩过）。
+- **三个面板不告诉你的后果，App 里写明白**：
+  1. 换 **Node 源**会连带触发 `pnpm i -g` 重装所有全局依赖 —— 已装过 Node 依赖的话可能要几分钟。
+  2. **依赖代理**里填 `127.0.0.1` 指的是**容器自己**的回环，不是你电脑 —— 只有代理跟青龙
+     在同一容器里才有用，通常得改成宿主机 / 路由器的 IP。
+  3. **清依赖缓存**点下去是后台跑（几百 MB 的依赖目录），后台那条命令就算失败配置也不会回滚，
+     所以面板日志值得看一眼。
+- **换 Node / Linux 源是异步任务** —— 面板 `setHeader('QL-Task-Pid')` 后立刻 `res.end()`，
+  body 是空的，真正的执行日志走 WebSocket（App 收不到）。技术细节：
+  · 给 `api()` 加 `raw` 选项：跳过 JSON 格式检查，只判 `res.ok`，顺手把 `QL-Task-Pid` 带回去；
+  · 异步项提交后留一张「面板正在后台切换」卡，给一个「去看面板日志」按钮当出口。
+- **空串是合法值**：留空 Linux 源 = 回官方源，留空代理 = 不设代理。
+  写成「没值就不发」的话，用户永远选不回这两档。
+- **「清缓存」的后端只认 `node` / `python3`**：传 `python` 直接 400「参数错误」，
+  App 里直接用后端的字段名（python3）。
+- **顺带修了个老 bug**：「其他设置」页的「面板语言」下拉一直存在但**保存按钮点了没反应**
+  —— 下拉在、说明在、保存分支**不在**。补上后顺便提醒一句：「跟随系统」实际存的是简体中文
+  （后端 `info.lang || 'zh'` 那行会兜底）。
+- 测试 **2253** 项全过（新增 67 条「BA」组）；全量变异 **803** 条 0 MISS / 0 SKIP / 0 BROKEN。
+  FEATURES **530** 条（新增 12）0 失配；逐字节一致。
+- ipa **227195** 字节 sha256 `ab0bef462e…`；三方 525528 字节（android 多了 50）。
 
 ## 1.0.42：视图管理（改名 / 排序 / 启停 / 删除 + 简化新建）
 
@@ -158,7 +190,7 @@
 > - **老面板没这个接口时明说**（`/api/crons/{id}/instances` 是较新版本才有的）：
 >   页面写「这个面板版本还不支持运行实例列表」，不把「服务器错误 HTTP 404」甩给用户。
 >
-> **装 1.0.42，别装 1.0.41 及更早的**。
+> **装 1.0.43，别装 1.0.42 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -181,6 +213,8 @@
 > 1.0.39 给任务 / 变量页批量栏加了「加 / 删标签」两个按钮（共用 promptLabels 弹层）。
 > 1.0.40 加了「数据备份」页（手动备份弹系统分享菜单 + 自动发现青龙里的备份任务）。
 > 1.0.41 加了「通知设置」页（25 个渠道 + 保存时先试发一条测试消息）。
+> 1.0.43 加了「依赖设置」页（Node / Python / Linux 源 + 依赖代理 + 清依赖缓存，
+预设芯片一键切换），顺带补上了「其他设置 → 面板语言」下拉的保存逻辑。
 > 1.0.42 加了「视图管理」页（改名 / 排序 / 启停 / 删除 + 一条条件的简化新建），
 > 顺带做了列表滚动位置记忆和退出登录时真登出。
 
@@ -358,7 +392,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.42-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.43-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -370,7 +404,7 @@ qinglong-ios/out/QingLongClient-1.0.42-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.42-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.43-trollstore.ipa
 ```
 
 | 检查项 | 结果 |

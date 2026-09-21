@@ -848,6 +848,13 @@ select{max-width:100%;font-size:calc(14px*var(--fs));background:none;text-overfl
       <div id="syslogBody"></div>
     </section>
 
+    <!-- 通知设置：面板「系统设置 → 通知设置」的移动版（1.0.41）。
+         只有两个接口：GET 读、PUT 保存 —— **PUT 保存前会先试发一条**，
+         所以「保存」这个动作本身就是测试。 -->
+    <section class="view" id="v-notify">
+      <div id="notifyBody"></div>
+    </section>
+
     <section class="view" id="v-me">
       <div id="meBody"></div>
     </section>
@@ -1348,6 +1355,15 @@ var S = {
        在 cron 列表里就有：last_execution_time 是秒级时间戳，
        last_running_time 是上次跑了几秒，这两个分别乘 / 拆着用）。 */
   backup: { mods: { base: 1 }, hisCrons: [], loading: false, busy: false },
+  /* 通知设置页（1.0.41）。
+     · cfg 是面板存的那一整份通知配置（扁平对象，字段名见 NOTIFY_FIELDS）；
+     · pick 是**当前下拉选中的渠道** —— 跟 cfg.type 分开存，因为用户在
+       下拉里换渠道还没保存时，界面要按 pick 重画字段，cfg 还是旧的那份；
+     · loaded 区分「还没读到」和「读到了但是空的」：面板没存过通知配置时
+       接口会 500，那种情况要当成空配置让人能填，不能一直转圈；
+     · saving 期间按钮要变「正在测试…」—— 这个接口保存前会先试发一条，
+       网络差的时候要等好几秒，不告诉用户的话会以为点坏了。 */
+  notify: { cfg: null, pick: 'closed', loaded: false, loading: false, err: '', saving: false },
   /* 面板日志（面板「系统设置 → 系统日志」）。GET /api/system/log 回的是把区间内
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
@@ -2065,7 +2081,9 @@ var TITLES = {
   backup: '数据备份',
   /* 这三个对应面板网页版「系统设置」里的同名页签，入口在系统设置弹层里。
      名字照面板的叫法，不要改 —— 用户是照面板的名字找的。 */
-  apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志', syslog: '面板日志'
+  apps: '应用设置', sysconf: '其他设置', loginlog: '登录日志', syslog: '面板日志',
+  /* 1.0.41：通知设置（面板「系统设置 → 通知设置」）。名字照面板的叫法。 */
+  notify: '通知设置'
 };
 
 /* 顶栏「+」出现在哪些页面。
@@ -2188,6 +2206,9 @@ async function refresh() {
      「备份类任务」的列表是任务列表筛出来的，任务列表可能新增 / 删除，
      切回来得重筛一次。 */
   if (S.tab === 'backup') return loadBackup(true);
+  /* 1.0.41：通知设置页。force 重拉 —— 面板那边（网页版）也可能改过配置，
+     切回这一页看到的应该是当前值。 */
+  if (S.tab === 'notify') return loadNotify(true);
   if (S.tab === 'me') return loadDash();
 }
 
@@ -5889,7 +5910,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.40';
+var APP_VER = '1.0.41';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -5918,6 +5939,10 @@ var FEATURES = [
      现在「我的」页一张卡直给手点。⛁（U+26C1）字形像磁盘，意思「save」，
      iOS 系统字体里有正常显示。 */
   { tab: 'backup',   icon: '⛁', label: '数据备份', g: ['#7AD1E8', '#2E8FB8'], sh: 'rgba(46,143,184,.38)' },
+  /* 1.0.41：通知设置。面板「系统设置 → 通知设置」在 App 里一直是缺的 ——
+     手机上想改个 Bark / Server酱 的推送地址只能开网页版。
+     ◍（U+25CD）在 Geometric Shapes 里，iOS 系统字体有正常字形。 */
+  { tab: 'notify',   icon: '◍', label: '通知设置', g: ['#FFA9C4', '#D6457A'], sh: 'rgba(214,69,122,.38)' },
   { icon: '⚙', label: '系统设置', g: ['#FF8FA0', '#E8455F'], sh: 'rgba(232,69,95,.38)', id: 'btnSettings' }
 ];
 
@@ -6548,12 +6573,13 @@ function openSettings() {
   h += kv('分支', (S.sys && S.sys.branch) || '未知');
   h += '</div>';
 
-  /* 面板网页版「系统设置」里那几个页签（应用设置 / 其他设置 / 登录日志 / 面板日志），
-     1.0.14 之前在这里也放了一份入口，1.0.15 撤掉了 —— 用户反馈「没法用」。
+  /* 面板网页版「系统设置」里那几个页签（应用设置 / 其他设置 / 登录日志 / 面板日志，
+     1.0.41 又多了通知设置），1.0.14 之前在这里也放了一份入口，1.0.15 撤掉了 ——
+     用户反馈「没法用」。
      真因在下面 data-goto 那条分支：它切页前没关弹层，页面在弹层后面换了、用户看不见
-     （已修）。不过即便修好，也没必要留两份入口 —— 这四项在「我的」页的功能网格里
+     （已修）。不过即便修好，也没必要留两份入口 —— 这几项在「我的」页的功能网格里
      各有一张卡片，从那儿进没有弹层挡着，路径更短。
-     四套代码（loadApps / loadSysconf / loadLoginLog / loadSysLog）都还在，
+     五套代码（loadApps / loadSysconf / loadLoginLog / loadSysLog / loadNotify）都还在，
      只是入口收敛到「我的」页一处。 */
 
   /* 账号：登录过的账号都在这儿，点一下就切过去。
@@ -7223,6 +7249,371 @@ async function reloadPanel() {
   }
 }
 
+/* ================= 通知设置（1.0.41） =================
+   对应面板「系统设置 → 通知设置」。面板支持 24 个推送渠道 + 一个「已关闭」，
+   之前 App 里一个都配不了（整个页面里连 notify 这个词都没有），
+   手机上想改个 Bark / Server酱 的地址只能开网页版。
+
+   接口只有两个：
+     GET /api/user/notification → { code, data: { type, ...各渠道字段平铺 } }
+     PUT /api/user/notification → **保存前先试发一条**，发得出去才存
+   所以「保存」这个动作本身就是「测试」：成了回 code 200，
+   没成回 code 400 + 「通知发送失败，请检查参数」。
+   按钮上因此写「保存并测试」而不是「保存」—— 用户以为只是存一下，
+   其实手机已经响过了；反过来失败时也不能说「已保存」，因为压根没存。
+
+   ⚠️ 坑一：面板**没存过**通知配置时 GET 会 500。
+   后端 getNotificationMode() → getDb() 找不到那行就 throw，
+   这不是网络问题，是「还没配过」。所以这里把 GET 失败当空配置处理，
+   只在顶部留一行灰色小字说明原因 —— 把用户堵在错误页上就没法配了。
+
+   ⚠️ 坑二：面板自己的表单把「发送模板」提交成 pushplusTemplate（小写 p），
+   而后端服务读的是 pushPlusTemplate（大写 P）——
+   也就是说网页版填的发送模板其实不生效（服务端取不到就退回默认 html）。
+   我们按**服务端真正读的那个**（大写）写，顺手把小写那个也写上，
+   免得用户打开网页版看见那一栏是空的（见 NOTIFY_ALIAS）。 */
+
+/* 渠道列表：**照抄面板自己的顺序和叫法**（面板前端 src/utils/config.ts 的
+   notificationModes）。用户是照面板的名字找的，别改名、别删、别重排。
+   最后那个 closed 不是真渠道 —— 提交时要把 type 换成空串（面板就是这么干的）。 */
+var NOTIFY_MODES = [
+  ['gotify', 'Gotify'], ['ntfy', 'Ntfy'], ['goCqHttpBot', 'GoCqHttpBot'],
+  ['serverChan', 'Server酱'], ['pushDeer', 'PushDeer'], ['bark', 'Bark'],
+  ['telegramBot', 'Telegram机器人'], ['dingtalkBot', '钉钉机器人'],
+  ['weWorkBot', '企业微信机器人'], ['weWorkApp', '企业微信应用'],
+  ['aibotk', '智能微秘书'], ['iGot', 'IGot'], ['pushPlus', 'PushPlus'],
+  ['wePlusBot', '微加机器人'], ['wxPusherBot', 'wxPusher'],
+  ['wxPusherSpt', 'WxPusher(极简推送SPT-推荐)'], ['openiLink', 'OpeniLink'],
+  ['wpush', 'WPUSH'], ['chat', '群晖chat'], ['email', '邮箱'],
+  ['lark', '飞书机器人'], ['pushMe', 'PushMe'], ['chronocat', 'Chronocat'],
+  ['webhook', '自定义通知'], ['closed', '已关闭']
+];
+
+/* 每个渠道要填哪些字段。
+   条目 = [字段名, 说明, 必填?, 下拉选项?, 多行?]
+   · **字段名必须和后端 NotificationInfo 一字不差**（面板 back/data/notify.ts）——
+     拼错一个字的后果是「保存成功、但那栏没存上」，界面上完全看不出来。
+     这几个大小写特别容易写错：pushPlusToken / pushPlusUser 是大写 P，
+     而 pushplusChannel / pushplusWebhook / pushplusTo 是小写 p。
+   · 下拉选项写 [[value, label], ...]，label 省了就用 value。
+   · 全表只有 aibotkType / webhookMethod / webhookContentType 是下拉，
+     其余都是文本框 —— 跟面板自己的表单一致（它统一用 Input.TextArea）。
+   · 多行那两栏是 webhook 的请求头 / 请求体（本来就是一行一个）。 */
+var NOTIFY_FIELDS = {
+  gotify: [
+    ['gotifyUrl', '例如 https://push.example.de:8080', 1],
+    ['gotifyToken', 'gotify 的消息应用 token', 1],
+    ['gotifyPriority', '推送优先级']
+  ],
+  ntfy: [
+    ['ntfyUrl', '例如 https://ntfy.sh', 1],
+    ['ntfyTopic', 'ntfy 应用 topic', 1],
+    ['ntfyPriority', '推送优先级'],
+    ['ntfyToken', 'ntfy 应用 token'],
+    ['ntfyUsername', 'ntfy 应用用户名'],
+    ['ntfyPassword', 'ntfy 应用密码'],
+    ['ntfyActions', 'ntfy 用户动作']
+  ],
+  goCqHttpBot: [
+    ['goCqHttpBotUrl', '私聊填 …/send_private_msg，群聊填 …/send_group_msg', 1],
+    ['goCqHttpBotToken', '访问密钥', 1],
+    ['goCqHttpBotQq', '私聊填 user_id=QQ号，群聊填 group_id=群号', 1]
+  ],
+  serverChan: [
+    ['serverChanKey', 'Server酱 SENDKEY。SCT 开头的走国内域名，SC 开头走 Cloudflare（国内常超时）', 1]
+  ],
+  pushDeer: [
+    ['pushDeerKey', 'PushDeer 的 Key', 1],
+    ['pushDeerUrl', '自架 API 地址，默认 api2.pushdeer.com/message/push']
+  ],
+  bark: [
+    ['barkPush', '设备码，例如 https://api.day.app/XXXXXXXX', 1],
+    ['barkIcon', '推送图标（需 iOS 15 以上才显示）'],
+    ['barkSound', '推送铃声，铃声名去 Bark App 里复制'],
+    ['barkGroup', '消息分组，默认 qinglong'],
+    ['barkLevel', '时效性，默认 active'],
+    ['barkUrl', '点击通知跳转的 URL'],
+    ['barkArchive', '是否保存推送消息']
+  ],
+  telegramBot: [
+    ['telegramBotToken', '机器人 token，形如 1077xxx:AAFjv0Fcq…', 1],
+    ['telegramBotUserId', '接收者的 chat id', 1],
+    ['telegramBotProxyHost', '代理 IP'],
+    ['telegramBotProxyPort', '代理端口'],
+    ['telegramBotProxyAuth', '代理认证，user:password'],
+    ['telegramBotApiHost', '自建反代地址，默认 tg 官方 api']
+  ],
+  dingtalkBot: [
+    ['dingtalkBotToken', '机器人 webhook 里的 access_token', 1],
+    ['dingtalkBotSecret', '加签密钥，SEC 开头（开了加签才要填）']
+  ],
+  weWorkBot: [
+    ['weWorkBotKey', '机器人 webhook 里的 key', 1],
+    ['weWorkOrigin', '企业微信代理地址']
+  ],
+  weWorkApp: [
+    ['weWorkAppKey', 'corpid,corpsecret,touser,agentid,消息类型 用英文逗号隔开', 1],
+    ['weWorkOrigin', '企业微信代理地址']
+  ],
+  aibotk: [
+    ['aibotkKey', '个人中心的 apikey', 1],
+    ['aibotkType', '发给群还是好友', 1, [['room', '群聊'], ['contact', '好友']]],
+    ['aibotkName', '群名或好友昵称', 1]
+  ],
+  iGot: [
+    ['iGotPushKey', '推送 key，形如 https://push.hellyw.com/XXXXXXXX', 1]
+  ],
+  pushPlus: [
+    ['pushPlusToken', '一对一的 token', 1],
+    ['pushPlusUser', '一对多推送的群组编码（不填就是一对一）'],
+    ['pushPlusTemplate', '发送模板，不填默认 html'],
+    ['pushplusChannel', '发送渠道，不填默认 wechat'],
+    ['pushplusWebhook', 'webhook 编码'],
+    ['pushplusCallbackUrl', '发送结果回调地址'],
+    ['pushplusTo', '好友令牌']
+  ],
+  wePlusBot: [
+    ['wePlusBotToken', '用户令牌（我的 → 设置 → 令牌）', 1],
+    ['wePlusBotReceiver', '消息接收人'],
+    ['wePlusBotVersion', '调用版本，专业版 pro / 个人版 personal，空 = 专业版']
+  ],
+  wxPusherBot: [
+    ['wxPusherBotAppToken', 'appToken', 1],
+    ['wxPusherBotTopicIds', 'topicIds'],
+    ['wxPusherBotUids', 'uids']
+  ],
+  wxPusherSpt: [
+    ['wxPusherSptList', '极简推送的 SPT', 1]
+  ],
+  openiLink: [
+    ['openiLinkAppToken', 'app_token', 1],
+    ['openiLinkHubUrl', 'Hub 地址，默认 hub.openilink.com'],
+    ['openiLinkContextToken', '会话上下文 token']
+  ],
+  wpush: [
+    ['wpushApiKey', 'API Key', 1],
+    ['wpushChannel', '渠道，如 wechat / sms / mail，默认 wechat'],
+    ['wpushTopicCode', 'Topic 广播编码（按 Topic 推送时才填）']
+  ],
+  chat: [
+    ['synologyChatUrl', '群晖 Chat 的 webhook 地址', 1]
+  ],
+  email: [
+    ['emailService', '服务商名，如 126 / 163 / QQ / Gmail', 1],
+    ['emailUser', '发件邮箱地址', 1],
+    ['emailPass', 'SMTP 密码或授权码', 1],
+    ['emailTo', '收件地址，多个用分号隔开，默认发给自己']
+  ],
+  lark: [
+    ['larkKey', '飞书群机器人的 webhook key', 1],
+    ['larkSecret', '加签密钥（开了签名校验才要填）']
+  ],
+  pushMe: [
+    ['pushMeKey', 'PushMe 的 Key', 1],
+    ['pushMeUrl', '自建服务地址，不填用官方接口']
+  ],
+  chronocat: [
+    ['chronocatURL', 'Chronocat Red 服务的连接地址', 1],
+    ['chronocatQQ', 'user_id=QQ号 或 group_id=群号，多个用英文分号隔开', 1],
+    ['chronocatToken', 'token，在 chronocat.yml 里找', 1]
+  ],
+  webhook: [
+    ['webhookMethod', '请求方法', 1, [['GET', 'GET'], ['POST', 'POST'], ['PUT', 'PUT']]],
+    ['webhookContentType', '请求头 Content-Type', 1, [
+      ['application/json', 'application/json'],
+      ['text/plain', 'text/plain'],
+      ['multipart/form-data', 'multipart/form-data'],
+      ['application/x-www-form-urlencoded', 'application/x-www-form-urlencoded']
+    ]],
+    ['webhookUrl', '请求链接，url 或 body 里必须含 $title（$content 可选）', 1],
+    ['webhookHeaders', '请求头，一行一个：Custom-Header1: Header1', 0, null, 1],
+    ['webhookBody', '请求体，一行一个：key1: $title', 0, null, 1]
+  ]
+};
+
+/* 面板那个大小写不一致的坑（见文件头）：写字段的同时把这些别名也写一份。
+   目前只有一处 —— pushPlus 的「发送模板」。 */
+var NOTIFY_ALIAS = { pushPlusTemplate: 'pushplusTemplate' };
+
+function notifyModeLabel(v) {
+  for (var i = 0; i < NOTIFY_MODES.length; i++) {
+    if (NOTIFY_MODES[i][0] === v) return NOTIFY_MODES[i][1];
+  }
+  return v;
+}
+
+/* 渠道下拉的选项。面板比 App 新、多了个渠道时不能把它悄悄换成「已关闭」——
+   那样用户一保存就把通知全关了。把原值补进下拉、保持原样。 */
+function notifyModeOptions(cur) {
+  var list = NOTIFY_MODES.slice();
+  if (cur && cur !== 'closed') {
+    var known = false;
+    for (var i = 0; i < list.length; i++) if (list[i][0] === cur) known = true;
+    if (!known) list.unshift([cur, cur + '（App 不认识，保持原样）']);
+  }
+  return list;
+}
+
+function notifyFields(mode) { return NOTIFY_FIELDS[mode] || []; }
+
+async function loadNotify(force) {
+  var v = S.notify;
+  if (v.loading && !force) return;
+  if (v.cfg && !force) { renderNotify(); return; }
+  v.loading = true;
+  v.err = '';
+  v.loaded = false;
+  renderNotify();
+  try {
+    var r = await api('/api/user/notification');
+    v.cfg = (r.data && typeof r.data === 'object') ? r.data : {};
+  } catch (e) {
+    /* 面板没存过通知配置时这里会 500（后端 getDb 找不到就 throw）。
+       当成空配置继续，让人能填能存；原因留在 v.err 里，页面顶部灰字说明。 */
+    v.cfg = {};
+    v.err = e.message || '读取失败';
+  }
+  v.loaded = true;
+  /* 面板把「关闭」存成空 type，界面上要还原成「已关闭」那一档。
+     空值以外一律原样用 —— 不认识的渠道也照原样显示（见 notifyModeOptions）。 */
+  v.pick = (v.cfg.type ? String(v.cfg.type) : 'closed');
+  v.loading = false;
+  renderNotify();
+}
+
+function renderNotify() {
+  var box = $('#notifyBody');
+  if (!box) return;
+  var v = S.notify;
+  var sub = $('#sub');
+  if (sub) sub.textContent = (v.pick && v.pick !== 'closed') ? notifyModeLabel(v.pick) : '';
+
+  if (v.loading && !v.loaded) {
+    box.innerHTML = '<div class="center"><span class="spin"></span>读取通知设置…</div>';
+    return;
+  }
+
+  var g = v.cfg || {};
+  var h = '';
+
+  if (v.err) {
+    h += '<div class="card" style="padding:12px 14px">' +
+      '<div class="f11 t3" style="line-height:1.7">' +
+      '没读到现有配置（' + esc(v.err) + '）。<br>' +
+      '面板第一次用通知时本来就没有这条记录，直接填完保存即可；' +
+      '如果是网络问题，下面也能重试。</div>' +
+      '<button class="btn fldbtn" id="btnNtRetry">重新读取</button></div>';
+  }
+
+  /* 渠道选择：25 档，用原生 select —— iOS 上弹滚轮，比铺一排按钮省地方。
+     ⚠️ 样式表里 select 只有 max-width:100%（给「右对齐在 flex 行里」那种用法留的），
+     所以这儿得自己写 width:100% —— 不写的话下拉只占一半宽，下面输入框是满的，
+     看上去像没画完（1.0.41 出预览图时看出来的）。 */
+  h += '<div class="card" style="padding:4px 14px">' +
+    '<div class="fld"><div class="fl">通知方式</div>' +
+    '<select id="ntMode" style="width:100%"' + (v.saving ? ' disabled' : '') + '>' +
+    notifyModeOptions(v.pick).map(function (m) {
+      return '<option value="' + esc(m[0]) + '"' + (m[0] === v.pick ? ' selected' : '') + '>' +
+        esc(m[1]) + '</option>';
+    }).join('') + '</select></div></div>';
+
+  var flds = notifyFields(v.pick);
+  if (v.pick === 'closed') {
+    h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+      '选「已关闭」再点下面的按钮，面板就不再发通知。<br>' +
+      '各渠道填过的内容会留着，下次选回来还在。</div>';
+  } else if (!flds.length) {
+    h += '<div class="f11 t3" style="margin:10px 4px;line-height:1.7">' +
+      '这个渠道这个版本的 App 还不认识（面板比 App 新）。' +
+      '直接保存不会改坏它，但也没法在这儿配。</div>';
+  } else {
+    h += '<div class="card" style="padding:4px 14px">' + flds.map(function (f) {
+      var k = f[0], items = f[3], multi = f[4];
+      var cur = g[k] == null ? '' : String(g[k]);
+      /* 必填下拉给个默认（跟面板表单的 initialValue 一个意思）：
+         webhook 那两个是 required，空着提交后端 method 就是 undefined，
+         fetch 会直接抛「method 无效」—— 比报「参数不对」更难查。 */
+      var sel = cur;
+      if (!sel && f[2] && items && items.length) sel = items[0][0];
+      var id = 'ntF_' + k;
+      var common = 'id="' + id + '" data-ntf="' + esc(k) + '" autocapitalize="off" autocorrect="off" spellcheck="false"';
+      var inp;
+      if (items) {
+        /* 同样得自己写 width:100%（见上面渠道下拉那段）。 */
+        inp = '<select style="width:100%" ' + common + '>' + [['', '（不设置）']].concat(items).map(function (it) {
+          return '<option value="' + esc(it[0]) + '"' + (it[0] === sel ? ' selected' : '') + '>' +
+            esc(it[1] || it[0]) + '</option>';
+        }).join('') + '</select>';
+      } else if (multi) {
+        inp = '<textarea ' + common + ' rows="2" placeholder="' + esc(f[1] || '') + '">' + esc(cur) + '</textarea>';
+      } else {
+        inp = '<input ' + common + ' placeholder="' + esc(f[1] || '') + '" value="' + esc(cur) + '">';
+      }
+      return '<div class="fld"><div class="fl">' + esc(k) + (f[2] ? ' *' : '') + '</div>' + inp + '</div>';
+    }).join('') + '</div>';
+
+    /* 字段说明放输入框**下面**：手机上 placeholder 一输入就被吃掉，
+       长说明塞 placeholder 等于没写。 */
+    h += '<div class="f11 t3" style="margin:8px 4px;line-height:1.7">' +
+      flds.map(function (f) {
+        return f[1] ? ('· <b>' + esc(f[0]) + '</b>：' + esc(f[1])) : '';
+      }).filter(function (x) { return x; }).join('<br>') + '</div>';
+  }
+
+  h += '<div style="margin:14px 0 4px"><button class="btn pri" id="btnNtSave" ' +
+    'style="width:100%;padding:11px 4px"' + (v.saving ? ' disabled' : '') + '>' +
+    (v.saving ? '正在测试…' : (v.pick === 'closed' ? '关闭通知' : '保存并测试')) +
+    '</button></div>';
+  /* 页脚说明要跟着按钮走：「已关闭」那颗按钮不发测试消息，
+     写成同一段「会真的发一条测试消息」就自相矛盾了（出预览图时看出来的）。 */
+  h += '<div class="f11 t3" style="margin:6px 4px 0;line-height:1.7">' +
+    (v.pick === 'closed'
+      ? '点上面这个按钮<b>不发通知</b>：这一下<b>不会试发</b>。各渠道填过的内容会留着，下次选回来还在。'
+      : '点上面这个按钮会<b>真的发一条测试消息</b>：面板先试发，发得出去才保存。<br>' +
+        '所以手机响了 = 配好了；报「通知发送失败」= 参数不对或者网络不通，' +
+        '这时候配置<b>没有</b>存上。<br>' +
+        '青龙的通知不走 HTTP_PROXY 环境变量，Bark / Server酱 这类如果容器直连不通，' +
+        '参数填对了也照样超时。') + '</div>';
+
+  box.innerHTML = h;
+}
+
+async function saveNotify() {
+  var v = S.notify;
+  if (v.saving) return;
+  var mode = v.pick;
+
+  /* 先把**已存的整份**带上再覆盖当前渠道那几栏。
+     面板的保存是整份替换（后端 updateAuthDb 直接写 info），
+     只提交当前渠道的字段会把别的渠道填过的内容全清掉。 */
+  var body = {};
+  if (v.cfg) {
+    Object.keys(v.cfg).forEach(function (k) { body[k] = v.cfg[k]; });
+  }
+  body.type = (mode === 'closed') ? '' : mode;
+  notifyFields(mode).forEach(function (f) {
+    var el = $('#ntF_' + f[0]);
+    if (!el) return;
+    body[f[0]] = el.value;
+    var alias = NOTIFY_ALIAS[f[0]];
+    if (alias) body[alias] = el.value;
+  });
+
+  v.saving = true;
+  renderNotify();
+  try {
+    await api('/api/user/notification', { method: 'PUT', body: body });
+    /* 接口是「试发成功才保存」，能走到这里就是真发出去了一条。 */
+    toast(mode === 'closed' ? '通知已关闭' : '测试推送成功，配置已保存');
+    v.cfg = body;
+  } catch (e) {
+    /* 失败 = 消息没发出去、配置也没存 —— 别说「已保存」。 */
+    toast(e.message, true);
+  }
+  v.saving = false;
+  renderNotify();
+}
+
 /* ================= 登录日志 =================
    对应面板「系统设置 → 登录日志」。
 
@@ -7888,6 +8279,17 @@ function bind() {
     this.value = '';
     if (f) importBackup(f);
   });
+  /* 1.0.41：通知设置页的渠道下拉。
+     **select 的 change 不在上面的 click 委托里**，得单独接 ——
+     而且是接在 document 上、靠冒泡：页面是 innerHTML 整块重画的，
+     绑在 #ntMode 元素上每次重画都要重接一遍，漏一次就「选了没反应」。 */
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t && t.id === 'ntMode') {
+      S.notify.pick = t.value;
+      renderNotify();
+    }
+  });
   /* 脚本搜索：跨整棵树匹配（含收起目录里的文件），所以是本地过滤、不打网络 */
   var tScr = 0;
   $('#scrSearch').addEventListener('input', function (e) {
@@ -7997,7 +8399,10 @@ function onClick(ev) {
        · 备份模块按钮（多选，BASE 恒为真、不可取消）
        · 「立即备份」「还原数据」「刷新」 */
     '[data-gobkinst],[data-bkmod],' +
-    '#btnBkExport,#btnBkImport,#btnBkRetry'
+    '#btnBkExport,#btnBkImport,#btnBkRetry,' +
+    /* 1.0.41：通知设置页的「保存并测试」/「重试」。
+       渠道下拉（#ntMode）不在这儿 —— 它是 select，走 change，见下面的委托。 */
+    '#btnNtSave,#btnNtRetry'
   ) : null;
   if (!el) return;
 
@@ -8129,6 +8534,10 @@ function onClick(ev) {
   if (el.id === 'btnBkExport') return exportBackupNow();
   if (el.id === 'btnBkImport') { var fi = $('#fileBkImport'); if (fi) fi.click(); return; }
   if (el.id === 'btnBkRetry') return loadBackup(true);
+
+  /* ---------- 通知设置（1.0.41） ---------- */
+  if (el.id === 'btnNtSave') return saveNotify();
+  if (el.id === 'btnNtRetry') return loadNotify(true);
 
   /* 任务列表 */
   if (el.dataset.act) {

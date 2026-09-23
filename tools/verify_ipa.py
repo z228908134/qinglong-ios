@@ -623,7 +623,7 @@ FEATURES = [
     #        经过 join/split 可能变字符串，不转的话部分后端校验会静默放过。
     ("批量改定时 按钮", r'data-cbatch="setschedule"'),
     ("批量改定时 分支", r"act === 'setschedule'"),
-    ("批量改定时 取输入", r"await promptCron\(send\.length\)"),
+    ("批量改定时 取输入（1.0.45 起连名单一起传）", r"await promptCron\(send\.length,"),
     ("批量改定时 空输入收工", r"if \(!sched\) return;"),
     ("批量改定时 执行体 helper", r"function cronSetSchedules\(ids, schedule\) \{"),
     ("批量改定时 循环 PUT", r"api\('\/api\/crons', \{ method: 'PUT', body: \{ id: Number\(ids\[i\]\), schedule: schedule \} \}\)"),
@@ -635,7 +635,7 @@ FEATURES = [
     ("批量改定时 失败带原因", r"' \(' \+ f\.msg \+ '\)';"),
     ("批量改定时 部分失败提示", r"个已改，' \+ r\.fail\.length \+ ' 个失败："),
     ("批量改定时 全成提示", r"'已改 ' \+ r\.okN \+ ' 个任务的定时'"),
-    ("批量改定时 弹层函数", r"function promptCron\(count\) \{"),
+    ("批量改定时 弹层函数（1.0.45 起带 names 参数）", r"function promptCron\(count, names\) \{"),
     ("批量改定时 输入框", r'id="pcInput"'),
     ("批量改定时 预览行", r'id="pcPreview"'),
     ("批量改定时 确定初始禁用", r'id="pcOk" style="flex:1;padding:9px 4px" disabled'),
@@ -654,6 +654,16 @@ FEATURES = [
     ("运行日志 贴新端判断用 atBottom", r"var stick = !cl\.painted \|\| atBottom\(box\);"),
     ("运行日志 跳到最新滚到底", r"if \(!box\) return;\r?\n  box\.scrollTop = box\.scrollHeight;"),
     ("运行日志 不反转（正序）", r"var txt = stripAnsi\(r\.data \|\| ''\);\r?\n    var lines = txt \? txt\.split\('\\n'\) : \[\];\r?\n    if \(lines\.length && lines\[lines\.length - 1\] === ''\) lines\.pop\(\);\r?\n(?!    lines\.reverse)"),
+    # 1.0.45：改定时弹层加**名单预览**。改定时是破坏性操作（改错了这批任务的跑批
+    #   时间全乱，还得一个个改回来），确认前得让用户看见要动哪几个。只列前 3 个 +
+    #   「等 N 个」（选 50 个时全列会把弹层顶掉），单个名字超 14 字截断；
+    #   任务名从面板回来，必须 esc。
+    ("改定时 名单 helper", r"function cronNamesLine\(names, max\) \{"),
+    ("改定时 名单最多 3 个", r"var m = max == null \? 3 : max;"),
+    ("改定时 名单超 14 字截断", r"s\.length > 14 \? s\.slice\(0, 14\) \+ '…' : s"),
+    ("改定时 名单超出报总数", r"names\.length > m \? ' 等 ' \+ names\.length \+ ' 个' : ''"),
+    ("改定时 名单要 esc", r"'将改动：' \+ esc\(nmLine\)"),
+    ("改定时 传的是任务名字", r"promptCron\(send\.length, go\.map\(function \(t\) \{\r?\n        return t\.name \|\| \('#' \+ t\.id\);"),
     # 1.0.43：依赖设置页。三个坑跟之前的设置类页一样：异步接口返回空 body
     # （node-mirror / linux-mirror），要走 raw 分支；字段名带 Mirror 后缀；
     # 代理字段是 dependenceProxy（不是 dependenceProxyMirror）。

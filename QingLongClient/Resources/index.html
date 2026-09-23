@@ -3396,7 +3396,12 @@ async function cronBatch(act) {
        原 cronBatch 里的 promptCron 调用没法被 monkey-patch（沙箱里走的是模块
        内裸名），不拆出来 BC 那批断言没法挂上。 */
     else if (act === 'setschedule') {
-      var sched = await promptCron(send.length);
+      /* 1.0.45：把名字（不是 id）传进弹层 —— 改定时是破坏性操作，
+         确认前让用户看见要动哪几个。名字为空的任务用 #id 兜底，
+         不然名单里会出现一个光秃秃的「、」。 */
+      var sched = await promptCron(send.length, go.map(function (t) {
+        return t.name || ('#' + t.id);
+      }));
       if (!sched) return;
       var r = await cronSetSchedules(send, sched);
       if (r.fail.length) {
@@ -3421,6 +3426,22 @@ async function cronBatch(act) {
 /* 1.0.44：批量改定时的执行体。抽出来好测。
    进度提示：选 5 个、每个 PUT 都要等面板回，全套要几秒 —— 一次性 toast「已改 N 个」
    看着像卡死，循环里逐个闪「正在改 3/5」，心里有底。 */
+
+/* 1.0.45：改定时弹层里的**名单预览**。改定时是破坏性操作（改错了这批任务的
+   跑批时间全乱，还得一个个改回来），确认前得让用户看见到底要动哪几个。
+   只列前 3 个 + 「等 N 个」—— 选 50 个的时候全列出来会把整个弹层顶掉，
+   而且没人会真的读完 50 行名字；单个名字超 14 字截断（青龙任务名能很长）。
+   抽成独立函数是为了能直接测（弹层本身沙箱里测不到）。 */
+function cronNamesLine(names, max) {
+  var m = max == null ? 3 : max;
+  if (!names || !names.length) return '';
+  var show = names.slice(0, m).map(function (n) {
+    var s = String(n == null ? '' : n);
+    return s.length > 14 ? s.slice(0, 14) + '…' : s;
+  });
+  return show.join('、') + (names.length > m ? ' 等 ' + names.length + ' 个' : '');
+}
+
 async function cronSetSchedules(ids, schedule) {
   var okN = 0, fail = [];
   for (var i = 0; i < ids.length; i++) {
@@ -4661,13 +4682,19 @@ function promptText(title, label, value) {
    选了几个任务作为副标题提醒 —— 不然误以为只改一个。
    点确定返回 schedule 字符串（**面板口径**，5 字段或 6 字段都行，前端原样发回去）；
    解析失败时确定按钮禁用 + 提示说清为啥。 */
-function promptCron(count) {
+function promptCron(count, names) {
   return new Promise(function (resolve) {
+    /* 1.0.45：把要改的任务名列出来。改错了要一个个改回来，确认前看一眼名单。 */
+    var nmLine = cronNamesLine(names, 3);
     var h = '';
     h += '<div style="padding:6px 4px 14px">' +
       '<div class="f13 t2" style="margin-bottom:10px">' +
         '把选中的 <b>' + count + '</b> 个任务的定时改成下面这条' +
       '</div>' +
+      (nmLine ?
+        '<div class="f11 t3" id="pcNames" style="margin:-4px 0 10px;line-height:1.6">' +
+          '将改动：' + esc(nmLine) +
+        '</div>' : '') +
       '<input id="pcInput" placeholder="例如 0 8 * * *（每天 8 点）" ' +
         'autocapitalize="off" autocorrect="off" spellcheck="false" ' +
         'style="width:100%;padding:9px 10px;border:1px solid #d0d0d0;' +
@@ -6828,7 +6855,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.44';
+var APP_VER = '1.0.45';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

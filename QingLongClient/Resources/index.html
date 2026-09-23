@@ -935,13 +935,14 @@ var esc = function (s) {
 var pad = function (n) { return String(n).padStart(2, '0'); };
 
 var toastTimer = null;
-function toast(msg, isErr) {
+/* isErr = true → 红字；ms = 显示时长（默认 2400），进度提示这种短的设 900 让它闪走。 */
+function toast(msg, isErr, ms) {
   var box = $('#toast'), t = $('#toastT');
   t.textContent = msg;
   t.className = 't' + (isErr ? ' err' : '');
   box.classList.add('on');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function () { box.classList.remove('on'); }, 2400);
+  toastTimer = setTimeout(function () { box.classList.remove('on'); }, (ms == null ? 2400 : ms));
 }
 
 // 面板多半是明文 http，navigator.clipboard 在非安全上下文下不存在，所以要兜底
@@ -3389,6 +3390,25 @@ async function cronBatch(act) {
       var method = act === 'addlabel' ? 'POST' : 'DELETE';
       await api('/api/crons/labels', { method: method, body: { ids: send, labels: labels } });
     }
+    /* 1.0.44：批量改定时。面板没有批量接口 —— 循环 PUT /api/crons（每个 id 一次，
+       只带 schedule，其它字段不带 —— 否则名字 / 命令 / 标签等会被批量改空）。
+       拆成独立 helper 函数 cronSetSchedules 是为了让沙箱能直接调它测：
+       原 cronBatch 里的 promptCron 调用没法被 monkey-patch（沙箱里走的是模块
+       内裸名），不拆出来 BC 那批断言没法挂上。 */
+    else if (act === 'setschedule') {
+      var sched = await promptCron(send.length);
+      if (!sched) return;
+      var r = await cronSetSchedules(send, sched);
+      if (r.fail.length) {
+        var failedNames = r.fail.map(function (f) {
+          var t = S.crons.list.filter(function (x) { return x.id === f.id; })[0];
+          return (t ? (t.name || '#' + f.id) : ('#' + f.id)) + ' (' + f.msg + ')';
+        });
+        toast(r.okN + ' 个已改，' + r.fail.length + ' 个失败：' + failedNames.join('；'), true, 6000);
+      } else {
+        toast('已改 ' + r.okN + ' 个任务的定时', false);
+      }
+    }
     else return;
     batchDone(label, send, ids.length - send.length);
     toggleCronEdit(false);
@@ -3396,6 +3416,23 @@ async function cronBatch(act) {
   } catch (e) {
     toast(e.message, true);
   }
+}
+
+/* 1.0.44：批量改定时的执行体。抽出来好测。
+   进度提示：选 5 个、每个 PUT 都要等面板回，全套要几秒 —— 一次性 toast「已改 N 个」
+   看着像卡死，循环里逐个闪「正在改 3/5」，心里有底。 */
+async function cronSetSchedules(ids, schedule) {
+  var okN = 0, fail = [];
+  for (var i = 0; i < ids.length; i++) {
+    toast('正在改 ' + (i + 1) + '/' + ids.length, false, 900);
+    try {
+      await api('/api/crons', { method: 'PUT', body: { id: Number(ids[i]), schedule: schedule } });
+      okN++;
+    } catch (e) {
+      fail.push({ id: ids[i], msg: e.message });
+    }
+  }
+  return { okN: okN, fail: fail };
 }
 
 /* 批量操作栏的「外壳」：底栏让位 + 给 #main 加留白类 + 操作栏显隐。
@@ -3449,6 +3486,7 @@ function renderCronEditBar() {
     '<div class="row" style="gap:8px;margin-top:8px">' +
       '<button class="btn" data-cbatch="addlabel" style="flex:1;padding:9px 4px">加标签</button>' +
       '<button class="btn" data-cbatch="removelabel" style="flex:1;padding:9px 4px">删标签</button>' +
+      '<button class="btn" data-cbatch="setschedule" style="flex:1;padding:9px 4px">改定时</button>' +
       '<span class="f11 t3" style="white-space:nowrap">' + selHint(n, 0, '已选') + '</span>' +
     '</div>';
 }
@@ -4236,18 +4274,18 @@ function stickBottom(el) {
   if (atBottom(el)) el.scrollTop = el.scrollHeight;
 }
 
-/* 「贴新端」的方向取决于哪个日志框：#logBox（详情页运行日志）**倒序**（最新在上）→ 贴顶；
-   #logPre（日志文件弹层）**正序**（最新在下）→ 贴底。两边共用同一个 #btnLogTail /
-   syncLogTail / jumpLogTail，所以「在不在最新端」和「跳到最新」都要分两边判断。
-   1.0.26 把详情页改成倒序后这里必须分清楚 —— 否则详情页也会被「跳到最新」拽到
-   底部（旧日志末尾），跟「最新在上面」自相矛盾。 */
+/* 「贴新端」= 贴底：#logBox（详情页运行日志）和 #logPre（日志文件弹层）**都是正序**，
+   最新那几行都在最下面，所以两边共用同一套判断就行，不用再按 box.id 分方向。
+   1.0.26 曾把详情页改成倒序（最新在上 → 贴顶），1.0.44 **改回正序**：
+   脚本日志是按时间顺序写的，倒着看要一路往上翻着读，越读越乱；
+   正序跟终端一样从上往下读，追着跑的时候眼睛顺着往下走就行。 */
 function isAtNewest(box) {
   if (!box) return false;
-  return box.id === 'logBox' ? box.scrollTop < 48 : atBottom(box);
+  return atBottom(box);
 }
 function jumpNewest(box) {
   if (!box) return;
-  box.scrollTop = box.id === 'logBox' ? 0 : box.scrollHeight;
+  box.scrollTop = box.scrollHeight;
 }
 
 /* ---------- 「跳到最新」 ----------
@@ -4300,14 +4338,15 @@ function paintCronLog() {
   /* **贴新端判断必须在换 innerHTML 之前做**：换完之后浏览器会把 scrollTop
      重置成 0，那时候再算「本来就贴着新端吗」永远算不成立，新日志就不跟了。
      而且第一次画要**直接跳到新端** —— 任务在跑，用户要看的是最新那几行；
-     只有「已经画过内容、且用户往**新端的反方向**翻了」才该原地不动。
-     1.0.26 改成倒序后新端在顶（scrollTop = 0），所以这里判断的是「在不在顶」。 */
-  var stick = !cl.painted || box.scrollTop < 48;
+     只有「已经画过内容、且用户往**上**翻了」才该原地不动。
+     1.0.44 起正序，新端在**底**（scrollTop = scrollHeight），所以这里判断的是「在不在底」。 */
+  var stick = !cl.painted || atBottom(box);
   box.innerHTML = cl.lines.length ? logBoxHtml(cl.lines, cl.onlyErr, cl.q) : '（日志为空）';
   cl.painted = true;
-  /* 搜索时滚到**第一条匹配**（倒序后就是最新那条匹配） */
+  /* 搜索时滚到**第一条匹配**（正序下第一条匹配就在靠上的位置，滚到顶就是它） */
   if (cl.q) box.scrollTop = 0;
-  else if (stick) box.scrollTop = 0;
+  /* 1.0.44 起新端在底：跟着跑 = 滚到最下面那几行最新日志。 */
+  else if (stick) box.scrollTop = box.scrollHeight;
   var eb = $('#btnCronLogErr');
   if (eb) {
     /* 一行错都没有就不给按钮（点了只会看到空框），跟日志文件弹层一致 */
@@ -4341,10 +4380,11 @@ async function loadCronLog(id, silent) {
     var txt = stripAnsi(r.data || '');
     var lines = txt ? txt.split('\n') : [];
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
-    /* 1.0.26：详情页日志**倒序**渲染（最新在上面）。报错总在末尾，倒过来一眼就能看到；
-       「只看错误」打开时错误全在顶，「跳到最新」也跟着改成贴顶。
-       反转之后再算 errN（数量跟顺序无关，但放在反转前/后逻辑都一样，写在前面更顺）。 */
-    lines.reverse();
+    /* 1.0.44：详情页日志**按原顺序（正序）**渲染 —— 跟面板网页版、跟终端一致，
+       从上往下读就是脚本执行的先后。1.0.26 曾改成倒序（最新在上），实际用起来
+       要一路往上翻着读，越读越乱；报错虽在末尾，但有「只看错误」和「跳到最新」
+       两个出口，正序下这两个都是贴底，顺手。
+       不反转 → errN 直接按原顺序算即可。 */
     /* onlyErr / q **保留**：开着「只看错误」按刷新，结果又被塞回全部，
        那个开关就白点了。lines 和 errN 换新。 */
     S.cronlog = {
@@ -4613,6 +4653,96 @@ function promptText(title, label, value) {
     }
     $('#ptOk').addEventListener('click', ok);
     $('#ptCancel').addEventListener('click', function () { closeSheet(); resolve(null); });
+  });
+}
+
+/* 1.0.44：批量改定时的弹层。
+   输入框 + 实时解析预览（用人话翻译 cron）+ 解析失败给红字提示。
+   选了几个任务作为副标题提醒 —— 不然误以为只改一个。
+   点确定返回 schedule 字符串（**面板口径**，5 字段或 6 字段都行，前端原样发回去）；
+   解析失败时确定按钮禁用 + 提示说清为啥。 */
+function promptCron(count) {
+  return new Promise(function (resolve) {
+    var h = '';
+    h += '<div style="padding:6px 4px 14px">' +
+      '<div class="f13 t2" style="margin-bottom:10px">' +
+        '把选中的 <b>' + count + '</b> 个任务的定时改成下面这条' +
+      '</div>' +
+      '<input id="pcInput" placeholder="例如 0 8 * * *（每天 8 点）" ' +
+        'autocapitalize="off" autocorrect="off" spellcheck="false" ' +
+        'style="width:100%;padding:9px 10px;border:1px solid #d0d0d0;' +
+        'border-radius:6px;background:#fff;outline:none">' +
+      '<div id="pcPreview" class="f11 t3" style="margin-top:8px;min-height:1em">' +
+        /* 留个最小高度，输入变化时整段不抖 */
+        '&nbsp;' +
+      '</div>' +
+      '<div class="f11 t3" style="margin-top:8px;line-height:1.7">' +
+        '改的是「定时规则」一项 —— 任务名字、命令、标签、SSH 密钥都不动。<br>' +
+        '执行中或排队的任务也会一并改 —— 改完下一次跑就按新时间。' +
+      '</div>' +
+    '</div>' +
+    '<div class="row" style="gap:8px">' +
+      '<button class="btn pri" id="pcOk" style="flex:1;padding:9px 4px" disabled>确定改 ' + count + ' 个</button>' +
+      '<button class="btn" id="pcCancel" style="flex:1;padding:9px 4px">取消</button>' +
+    '</div>';
+    openSheet('改定时', h);
+    var input = $('#pcInput');
+    var prev = $('#pcPreview');
+    var okBtn = $('#pcOk');
+    function refresh() {
+      var v = input ? input.value.trim() : '';
+      if (!v) {
+        prev.innerHTML = '&nbsp;';
+        prev.className = 'f11 t3';
+        okBtn.disabled = true;
+        return;
+      }
+      var sch = parseCron(v);
+      if (!sch) {
+        prev.innerHTML = '⚠️ 这条不是合法的 cron 表达式 —— 5 个字段（分钟 小时 日 月 周），' +
+          '或写 <code>@daily</code> / <code>@hourly</code> 这种宏。';
+        prev.className = 'f11 err';
+        okBtn.disabled = true;
+        return;
+      }
+      var human = cronHumanize(sch);
+      var next = nextRunDate(sch);
+      /* 预览行：人话 + 下次执行时间，看一眼就知道「改完下回什么时候跑」。 */
+      var nextStr = '';
+      if (next) {
+        var pad2 = function (n) { return n < 10 ? '0' + n : '' + n; };
+        /* 「今天 18:30」/「明天 06:00」/「09-23 18:30」三档 —— 一眼能看出多久后跑。 */
+        var now = new Date();
+        var same = next.getFullYear() === now.getFullYear() &&
+          next.getMonth() === now.getMonth() && next.getDate() === now.getDate();
+        var tom = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        var tomSame = next.getFullYear() === tom.getFullYear() &&
+          next.getMonth() === tom.getMonth() && next.getDate() === tom.getDate();
+        nextStr = (same ? '今天' : (tomSame ? '明天' :
+          pad2(next.getMonth() + 1) + '-' + pad2(next.getDate()))) +
+          ' ' + pad2(next.getHours()) + ':' + pad2(next.getMinutes());
+      }
+      var html = '✓ ' + esc(human || v) +
+        (nextStr ? '<span class="t3"> · 下次：' + nextStr + '</span>' : '');
+      prev.innerHTML = html;
+      prev.className = 'f11 t2';
+      okBtn.disabled = false;
+    }
+    if (input) {
+      input.focus();
+      input.addEventListener('input', refresh);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !okBtn.disabled) { e.preventDefault(); ok(); }
+      });
+    }
+    function ok() {
+      if (okBtn.disabled) return;
+      var s = input.value.trim();
+      closeSheet();
+      resolve(s);
+    }
+    $('#pcOk').addEventListener('click', ok);
+    $('#pcCancel').addEventListener('click', function () { closeSheet(); resolve(null); });
   });
 }
 
@@ -6698,7 +6828,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.43';
+var APP_VER = '1.0.44';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。

@@ -212,8 +212,8 @@ FEATURES = [
     ("日志 跳到最新浮在弹层上", r"#btnLogTail\{position:fixed;"),
     ("日志 当前日志框判定", r"function activeLogBox\("),
     ("日志 只在离开底部时露出", r"function syncLogTail\("),
-    ("日志 跳到最新滚到底（1.0.26 起详情页跳顶，#logPre 仍跳底 → 改成锚 jumpNewest 内的分支）",
-    r"box\.id === 'logBox' \? 0 : box\.scrollHeight;"),
+    ("日志 跳到最新滚到底（1.0.44 起两个框都是正序 → 都滚到 scrollHeight）",
+    r"if \(!box\) return;\r?\n  box\.scrollTop = box\.scrollHeight;"),
     # 关弹层必须**显式**收起：#shB 的内容不会清空，不收的话那个按钮会一直浮在主页上
     ("日志 关弹层收起按钮", r"var lt = \$\('#btnLogTail'\);\s*if \(lt\) lt\.classList\.add\('hidden'\);"),
     # 1.0.25 新增：① 趋势图 7 / 30 天切换。7 天看不出「是不是越来越常失败」，
@@ -238,14 +238,15 @@ FEATURES = [
     # 三个新钩子都进了委托：漏一个就是「点了没反应」且最难查
     ("委托 新钩子", r"\[data-tdays\],\[data-tday\],\[data-gocrons\],"),
 
-    # 1.0.26 新增：任务详情运行日志**倒序**（最新在上，报错总在末尾 → 现在一眼就到）。
-    # loadCronLog 拿完日志调 reverse() 再存到 S.cronlog.lines；AG1 锚着这行。
-    ("详情页日志 反转", r"lines\.reverse\(\);"),
-    # 方向感知的「在新端」判断 —— #logBox（详情页倒序）贴顶、#logPre（文件弹层正序）贴底。
-    ("日志 在新端判断（按 box.id 分两边）", r"box\.id === 'logBox' \? box\.scrollTop < 48 : atBottom\(box\)"),
-    ("日志 跳到最新（按 box.id 分两边）", r"box\.id === 'logBox' \? 0 : box\.scrollHeight"),
-    # paintCronLog 用「贴顶」做贴新端判断（1.0.21 那条 AC32 的字面量也改了）。
-    ("详情页日志 首次画跟顶", r"var stick = !cl\.painted \|\| box\.scrollTop < 48;"),
+    # 1.0.26 曾把任务详情运行日志改成**倒序**（最新在上）；1.0.44 按老大要求**改回正序** ——
+    #   脚本日志按时间写，倒着看要一路往上翻着读。改回正序后 loadCronLog **不再** reverse()；
+    #   「在新端」也从「贴顶」变回「贴底」（#logBox 和 #logPre 现在同一套 atBottom）。
+    ("详情页日志 不反转（正序）",
+    r"if \(lines\.length && lines\[lines\.length - 1\] === ''\) lines\.pop\(\);\r?\n(?!    lines\.reverse)"),
+    ("日志 在新端判断（贴底，两个框一致）", r"function isAtNewest\(box\) \{\r?\n  if \(!box\) return false;\r?\n  return atBottom\(box\);"),
+    ("日志 跳到最新（滚到底，两个框一致）", r"function jumpNewest\(box\) \{\r?\n  if \(!box\) return;\r?\n  box\.scrollTop = box\.scrollHeight;"),
+    # paintCronLog 用「贴底」做贴新端判断（1.0.44 把 AC32 那条字面量也改了）。
+    ("详情页日志 首次画跟底", r"var stick = !cl\.painted \|\| atBottom\(box\);"),
 
     # 1.0.27：下次执行时间显示优化（之前是 `MM-DD HH:MM:SS`，秒数永远 :00 占位、
     # 跨日看不出是今天/明天、跟「上次 X 小时前」风格不一致）。
@@ -613,6 +614,46 @@ FEATURES = [
     ("通知设置 读配置接口", r"api\('\/api\/user\/notification'\)"),
     ("通知设置 读失败当空配置", r"v\.cfg = \{\};"),
     ("通知设置 type 空还原成已关闭", r"v\.pick = \(v\.cfg\.type \? String\(v\.cfg\.type\) : 'closed'\);"),
+    # 1.0.44：任务批量改定时。面板**没有**批量改定时的接口 —— 只有单任务的
+    #   PUT /api/crons，所以前端循环发。成败点是下面这两个「写错了不报错」的地方：
+    #     ① body **只带 id + schedule**。后端是「原记录 + 新记录」合并，
+    #        多带一个 name / command / labels 就会把选中的任务批量改成同一个名字、
+    #        同一条命令 —— 界面上看不出来，跑起来全是错的。
+    #     ② id 必须 Number() 转数字。列表里的 id 从接口回来是数字，但批量栏那份
+    #        经过 join/split 可能变字符串，不转的话部分后端校验会静默放过。
+    ("批量改定时 按钮", r'data-cbatch="setschedule"'),
+    ("批量改定时 分支", r"act === 'setschedule'"),
+    ("批量改定时 取输入", r"await promptCron\(send\.length\)"),
+    ("批量改定时 空输入收工", r"if \(!sched\) return;"),
+    ("批量改定时 执行体 helper", r"function cronSetSchedules\(ids, schedule\) \{"),
+    ("批量改定时 循环 PUT", r"api\('\/api\/crons', \{ method: 'PUT', body: \{ id: Number\(ids\[i\]\), schedule: schedule \} \}\)"),
+    ("批量改定时 id 转数字", r"id: Number\(ids\[i\]\)"),
+    ("批量改定时 计数归零", r"var okN = 0, fail = \[\];"),
+    ("批量改定时 失败收集", r"fail\.push\(\{ id: ids\[i\], msg: e\.message \}\);"),
+    ("批量改定时 返回两项", r"return \{ okN: okN, fail: fail \};"),
+    ("批量改定时 进度提示", r"'正在改 ' \+ \(i \+ 1\) \+ '\/' \+ ids\.length"),
+    ("批量改定时 失败带原因", r"' \(' \+ f\.msg \+ '\)';"),
+    ("批量改定时 部分失败提示", r"个已改，' \+ r\.fail\.length \+ ' 个失败："),
+    ("批量改定时 全成提示", r"'已改 ' \+ r\.okN \+ ' 个任务的定时'"),
+    ("批量改定时 弹层函数", r"function promptCron\(count\) \{"),
+    ("批量改定时 输入框", r'id="pcInput"'),
+    ("批量改定时 预览行", r'id="pcPreview"'),
+    ("批量改定时 确定初始禁用", r'id="pcOk" style="flex:1;padding:9px 4px" disabled'),
+    ("批量改定时 弹层标题", r"openSheet\('改定时', h\)"),
+    ("批量改定时 解析成功放行", r"okBtn\.disabled = false;"),
+    ("批量改定时 预览用人话", r"'✓ ' \+ esc\(human \|\| v\)"),
+    ("批量改定时 今天明天", r"\(same \? '今天' : \(tomSame \? '明天' :"),
+    ("批量改定时 回车即确定", r"if \(e\.key === 'Enter' && !okBtn\.disabled\)"),
+    ("批量改定时 取消返回空", r"\$\('#pcCancel'\)\.addEventListener\('click', function \(\) \{ closeSheet\(\); resolve\(null\); \}\);"),
+    ("toast 第三参时长", r"function toast\(msg, isErr, ms\) \{"),
+    ("toast 时长兜底", r"ms == null \? 2400 : ms"),
+    # 1.0.44 顺带：任务详情的**运行日志改回正序**（1.0.26 改成过倒序）。
+    #   老大原话「不方便看」—— 脚本日志是按时间写的，倒着看要一路往上翻着读。
+    #   改回正序后「新端」从顶回到**底**，两个日志框方向一致，不用再按 box.id 分两边。
+    ("运行日志 贴新端滚到底", r"else if \(stick\) box\.scrollTop = box\.scrollHeight;"),
+    ("运行日志 贴新端判断用 atBottom", r"var stick = !cl\.painted \|\| atBottom\(box\);"),
+    ("运行日志 跳到最新滚到底", r"if \(!box\) return;\r?\n  box\.scrollTop = box\.scrollHeight;"),
+    ("运行日志 不反转（正序）", r"var txt = stripAnsi\(r\.data \|\| ''\);\r?\n    var lines = txt \? txt\.split\('\\n'\) : \[\];\r?\n    if \(lines\.length && lines\[lines\.length - 1\] === ''\) lines\.pop\(\);\r?\n(?!    lines\.reverse)"),
     # 1.0.43：依赖设置页。三个坑跟之前的设置类页一样：异步接口返回空 body
     # （node-mirror / linux-mirror），要走 raw 分支；字段名带 Mirror 后缀；
     # 代理字段是 dependenceProxy（不是 dependenceProxyMirror）。

@@ -15,10 +15,24 @@
 |---|---|
 | 仓库 | https://github.com/z228908134/qinglong-ios （Private） |
 | 分支 | `main` |
-| 最近一次构建 | ✅ 成功（run `35856771324`，commit `39e1384`） |
-| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.44-trollstore.ipa`（229420 字节） |
-| SHA256 | `bd46589595b942b7cea577c82bfca57f6b05b71af62c5f601f3d6f7b404d27fd` |
-| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.44-trollstore`（保留 30 天） |
+| 最近一次构建 | ✅ 成功（run `35866840038`，commit `1815ec7`） |
+| 本地 ipa | `qinglong-ios/out/QingLongClient-1.0.45-trollstore.ipa`（230013 字节） |
+| SHA256 | `40597aaf9cba57bb5542344c804517d220de7606ecd5fb031409531e9710224b` |
+| 产物保留 | Actions → Artifacts → `QingLongClient-1.0.45-trollstore`（保留 30 天） |
+
+## 1.0.45：改定时弹层加名单预览
+
+「改定时」是**破坏性操作** —— 选 20 个一按确定，这批任务的跑批时间全变了，
+改错了还得一个个改回去。1.0.44 那个弹层只有 cron 输入框，确认前**看不见要改的是哪几个**.
+
+- 弹层顶部多一行「将改动：JD 签到、JD 水果、京东农场 等 20 个」—— 按下确定前能核一眼。
+- **只列前 3 个 + 报总数**：选 50 个时全列出来会把整个弹层顶掉，而且没人真会读完 50 行名字。
+- **单个名字超 14 字截断**：青龙任务名能很长，不截断一个名字就占三行。
+- **名单要 esc**：任务名从面板回来，带尖括号会被当成 HTML。
+- 名字为空的任务用 `#id` 兜底 —— 不然名单里会出现一个光秃秃的「、」。
+- 测试 **2245** 项全过（新增 15 条「BD」组）；全量变异 **826** 条 0 MISS / 0 SKIP / 0 BROKEN。
+  FEATURES **566** 条（新增 6）0 失配；逐字节一致。
+- ipa **230013** 字节 sha256 `40597aaf…`；三方 533530 字节（android 多了 50 字节的原生标记）。
 
 ## 1.0.44：任务批量改定时（选中多个一起改 cron）
 
@@ -44,7 +58,7 @@
   （#logBox 和日志文件弹层 #logPre 现在同一套方向，不用再按框分两边）。
 - 测试 **2230** 项全过（新增 22 条「BC」组）；全量变异 **819** 条 0 MISS / 0 SKIP / 0 BROKEN。
   FEATURES **560** 条（新增 30）0 失配；逐字节一致。
-- ipa **229420** 字节 sha256 `bd465895…`；三方 531987 字节（android 多了 50 字节的原生标记）。
+- ipa **230013** 字节 sha256 `40597aaf…`；三方 533530 字节（android 多了 50 字节的原生标记）。
 
 ## 1.0.43：依赖设置（Node / Python / Linux 源 + 依赖代理 + 清依赖缓存）
 
@@ -216,7 +230,7 @@
 > - **老面板没这个接口时明说**（`/api/crons/{id}/instances` 是较新版本才有的）：
 >   页面写「这个面板版本还不支持运行实例列表」，不把「服务器错误 HTTP 404」甩给用户。
 >
-> **装 1.0.44，别装 1.0.43 及更早的**。
+> **装 1.0.45，别装 1.0.44 及更早的**。
 >
 > 历史：1.0.16 是功能版（底栏五项 / 主页 + 近 7 日趋势图 / 日志搜索 / 面板卡头像）；
 > 1.0.17 加了头像真图但真机上不显示，已作废；1.0.18 修好头像、加了任务详情三处直达；
@@ -239,6 +253,7 @@
 > 1.0.39 给任务 / 变量页批量栏加了「加 / 删标签」两个按钮（共用 promptLabels 弹层）。
 > 1.0.40 加了「数据备份」页（手动备份弹系统分享菜单 + 自动发现青龙里的备份任务）。
 > 1.0.41 加了「通知设置」页（25 个渠道 + 保存时先试发一条测试消息）。
+> 1.0.45 给「改定时」弹层加了名单预览（确认前能看见要动哪几个任务）。
 > 1.0.44 给任务批量栏加了「改定时」（选中多个一起改 cron，弹层实时翻人话 + 算下次执行时间）。
 > 1.0.43 加了「依赖设置」页（Node / Python / Linux 源 + 依赖代理 + 清依赖缓存，
 预设芯片一键切换），顺带补上了「其他设置 → 面板语言」下拉的保存逻辑。
@@ -248,8 +263,8 @@
 核对下载到的包对不对：
 
 ```bash
-sha256sum QingLongClient-1.0.44-trollstore.ipa
-# 应该得到 bd46589595b942b7cea577c82bfca57f6b05b71af62c5f601f3d6f7b404d27fd
+sha256sum QingLongClient-1.0.45-trollstore.ipa
+# 应该得到 40597aaf9cba57bb5542344c804517d220de7606ecd5fb031409531e9710224b
 ```
 
 **你现在直接做的事**：把上面那个 ipa 传到手机 → 打开 TrollStore → 右下角 `+` → 选它。
@@ -419,7 +434,7 @@ GitHub → Settings → Developer settings → Personal access tokens → **Toke
 **这次已经帮你下好了**，就在：
 
 ```
-qinglong-ios/out/QingLongClient-1.0.44-trollstore.ipa
+qinglong-ios/out/QingLongClient-1.0.45-trollstore.ipa
 ```
 
 以后自己下：点进那次成功的构建 → 页面底部 **Artifacts** → `QingLongClient-<版本>-trollstore`
@@ -431,15 +446,15 @@ qinglong-ios/out/QingLongClient-1.0.44-trollstore.ipa
 **这一整套已经脚本化了**，改完页面出完包跑一句就行，任一项不过会 `exit 1`：
 
 ```bash
-python tools/verify_ipa.py out/QingLongClient-1.0.44-trollstore.ipa
+python tools/verify_ipa.py out/QingLongClient-1.0.45-trollstore.ipa
 ```
 
 | 检查项 | 结果 |
 |---|---|
 | `Payload/QingLongClient.app/` 结构 | ✅ 12 个条目 |
 | `_CodeSignature/CodeResources`（ad-hoc 签名结构） | ✅ 2961 字节 |
-| `index.html` | ✅ 531987 字节，**与本地构建产物逐字节一致** |
-| 页面 `APP_VER` | ✅ 1.0.44（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
+| `index.html` | ✅ 533530 字节，**与本地构建产物逐字节一致** |
+| 页面 `APP_VER` | ✅ 1.0.45（与 `MARKETING_VERSION`、ipa 文件名三处一致） |
 | `FALLBACK_SERVER` | ✅ `''`（空，不预填面板地址） |
 | 页面里有无硬编码真实公网 IP | ✅ 无（只有示例 `1.2.3.4`、回环 `127.0.0.1`、输入框 placeholder `192.168.1.10`） |
 | 应用设置（列表 / 8 项权限枚举 / 保留名 / 删除走 id 数组 / 密钥默认打码） | ✅ 5 个锚点全在 |
@@ -772,6 +787,12 @@ python tools/verify_ipa.py out/QingLongClient-1.0.44-trollstore.ipa
 | 1.0.41 新增：通知设置 委托分支 保存 | ✅ 1 个锚点全在 |
 | 1.0.41 新增：通知设置 委托分支 重试 | ✅ 1 个锚点全在 |
 | 1.0.41 新增：通知设置 下拉 change 委托 | ✅ 1 个锚点全在 |
+| 1.0.45 新增：改定时 名单 helper | ✅ 1 个锚点全在 |
+| 1.0.45 新增：改定时 名单最多 3 个 | ✅ 1 个锚点全在 |
+| 1.0.45 新增：改定时 名单超 14 字截断 | ✅ 1 个锚点全在 |
+| 1.0.45 新增：改定时 名单超出报总数 | ✅ 1 个锚点全在 |
+| 1.0.45 新增：改定时 名单要 esc | ✅ 1 个锚点全在 |
+| 1.0.45 新增：改定时 传的是任务名字 | ✅ 1 个锚点全在 |
 | 1.0.44 新增：批量改定时 按钮 | ✅ 1 个锚点全在 |
 | 1.0.44 新增：批量改定时 分支 | ✅ 1 个锚点全在 |
 | 1.0.44 新增：批量改定时 取输入 | ✅ 1 个锚点全在 |

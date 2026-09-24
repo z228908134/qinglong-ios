@@ -806,6 +806,29 @@ FEATURES = [
     # 清掉之后发出去就是匿名请求，面板不认（等于白发）。失败也不影响退出流程。
     ("真登出 发 logout", r"try \{ api\('\/api\/user\/logout', \{ method: 'POST' \}\)\.catch\(function \(\) \{\}\); \} catch \(e\) \{\}"),
     ("真登出 在清 token 之前", r"catch \(e\) \{\}\s+S\.token = '';"),
+
+    # 1.0.46：日志搜索的「上 / 下一个」跳转。三个日志视图（任务运行日志 / 日志文件 / 面板日志）
+    #   共用 logStepMatch 回环步进 + logJumpScroll 滚到当前命中行 + logJumpBar 同步跳转条。
+    #   搜索不是「搜到就停在开头」，而是能逐个跳着看每一个命中处。
+    ("日志搜索 跳转条（三处）", r'hitjump hidden'),
+    ("日志搜索 上一条按钮", r'data-logjump="-1"'),
+    ("日志搜索 下一条按钮", r'data-logjump="1"'),
+    ("日志搜索 当前命中高亮", r'\.logbox \.lnr\.hitcur'),
+    ("日志搜索 回环步进函数", r'function logStepMatch\('),
+    ("日志搜索 滚到命中行", r'function logJumpScroll\('),
+    ("日志搜索 跳转条同步", r'function logJumpBar\('),
+    ("日志搜索 绑监听", r'function bindLogJump\('),
+    ("日志搜索 任务运行日志跳转条", r'id="cronLogJump"'),
+    ("日志搜索 日志文件跳转条", r'id="logFileJump"'),
+    ("日志搜索 面板日志跳转条", r'id="sysLogJump"'),
+
+    # 1.0.46 附带修复：任务详情页 / 更多菜单的「编辑 / 复制命令 / 删除」按钮只带自己的
+    #   data-edit / data-copycmd / data-del（**没有 data-id**），而 onClick 里以前传的是
+    #   `id`（= el.dataset.id，恒 undefined）→ 编辑弹层变「新建任务」、复制命令复制空、
+    #   删除传 NaN 静默不动。值就在各自的属性里，改成读自己的属性。
+    ("详情页编辑 读 data-edit", r"openCronEdit\(el\.dataset\.edit\)"),
+    ("详情页复制命令 读 data-copycmd", r"Number\(el\.dataset\.copycmd\)"),
+    ("详情页删除 读 data-del", r"cronAction\(el\.dataset\.del, 'delete'\)"),
 ]
 
 # 1.0.15 从系统设置弹层里撤掉的东西：这四个入口点了没反应（青龙没这些页面 /

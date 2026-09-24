@@ -506,6 +506,8 @@ textarea{max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;overflow-w
 /* 搜索命中的字。同样是**写死的颜色**（.logbox 底色恒为深色）：
    黄底 + 近黑字，深底上最扎眼，也不跟主题走。 */
 .logbox .hl{background:#ffd479;color:#1a1200;border-radius:2px}
+/* 1.0.46：日志搜索当前命中的那一行高亮（跟 .hl 同一个黄，作用域限定 .logbox） */
+.logbox .lnr.hitcur{background:rgba(255,212,121,.18);border-radius:2px;box-shadow:0 0 0 1px rgba(255,212,121,.5)}
 /* 列表里的搜索命中：**同一个黄底**（用户已经知道「黄底 = 命中」，不另造一套）。
    作用域必须单独写 —— 上面那条是 `.logbox .hl`，出了日志框不生效。
    黄底 + 深色字在两套主题下都看得清，所以写死颜色，不跟主题变量。 */
@@ -1413,7 +1415,7 @@ var S = {
      的 .log 文件首尾拼起来的一大段**纯文本**（不是 {code,data} 包装），所以走
      apiText()。range 只留「今天 / 近 7 天」两档 —— 手机上摆不开日期选择器，
      面板自己也只允许查最近 7 天。 */
-  syslog: { text: '', range: 'today', loading: false, err: '', onlyErr: false, q: '', painted: false },
+  syslog: { text: '', range: 'today', loading: false, err: '', onlyErr: false, q: '', painted: false, mi: 0 },
   busy: false
 };
 
@@ -3522,7 +3524,7 @@ async function openCron(id) {
   S.detailId = id;
   /* 换任务就把上一份的筛选清掉 —— 上一个任务开着「只看错误」，
      新任务的日志一进来就只剩几行，看着像日志是空的。 */
-  S.cronlog = { lines: [], errN: 0, onlyErr: false, q: '', painted: false };
+  S.cronlog = { lines: [], errN: 0, onlyErr: false, q: '', painted: false, mi: 0 };
   openSheet(t.name || '未命名任务', '<div class="center"><span class="spin"></span>加载中…</div>');
   renderCronDetail(t);
   loadCronLog(id, false);
@@ -4218,7 +4220,12 @@ function renderCronDetail(t) {
   h += '<div class="searchbar" style="margin-bottom:8px;display:flex;gap:8px;align-items:center">' +
     '<input id="cronLogFind" type="search" placeholder="在这份运行日志里搜关键字" style="flex:1">' +
     '<button class="btn" id="btnCronLogErr" style="display:none;padding:6px 10px;font-size:calc(12px*var(--fs));flex:0 0 auto">只看错误</button>' +
-    '</div>';
+    '</div>' +
+  '<div class="hitjump hidden" id="cronLogJump">' +
+    '<button class="jb" data-logjump="-1" aria-label="上一个匹配">↑</button>' +
+    '<span class="jn" id="cronLogJumpN">-/0</span>' +
+    '<button class="jb" data-logjump="1" aria-label="下一个匹配">↓</button>' +
+  '</div>';
   h += '<div class="logbox" id="logBox">加载中…</div>';
   h += '<div class="f11 t3" id="cronLogMeta" style="margin:8px 4px;line-height:1.6"></div>';
 
@@ -4248,8 +4255,13 @@ function renderCronDetail(t) {
   var cfin = $('#cronLogFind');
   if (cfin) cfin.addEventListener('input', function () {
     S.cronlog.q = cfin.value.trim();
+    S.cronlog.mi = 0;
     paintCronLog();
   });
+  bindLogJump('cronLogJump',
+    function () { return S.cronlog; },
+    function () { return logPick(S.cronlog.lines, S.cronlog.onlyErr, S.cronlog.q).length; },
+    paintCronLog);
 
   /* 「最新日志」那行先把文件名补上。日志树没拉过就拉一次（**不 await**，
      详情页要立刻能看），回来只改那一个 span，不重渲染整张详情。
@@ -4362,10 +4374,10 @@ function paintCronLog() {
      只有「已经画过内容、且用户往**上**翻了」才该原地不动。
      1.0.44 起正序，新端在**底**（scrollTop = scrollHeight），所以这里判断的是「在不在底」。 */
   var stick = !cl.painted || atBottom(box);
-  box.innerHTML = cl.lines.length ? logBoxHtml(cl.lines, cl.onlyErr, cl.q) : '（日志为空）';
+  box.innerHTML = cl.lines.length ? logBoxHtml(cl.lines, cl.onlyErr, cl.q, cl.mi) : '（日志为空）';
   cl.painted = true;
-  /* 搜索时滚到**第一条匹配**（正序下第一条匹配就在靠上的位置，滚到顶就是它） */
-  if (cl.q) box.scrollTop = 0;
+  /* 搜索时滚到**当前命中的那一行**（1.0.46 的上/下一条跳转在这里落地） */
+  if (cl.q) logJumpScroll(box, cl.mi);
   /* 1.0.44 起新端在底：跟着跑 = 滚到最下面那几行最新日志。 */
   else if (stick) box.scrollTop = box.scrollHeight;
   var eb = $('#btnCronLogErr');
@@ -4383,6 +4395,7 @@ function paintCronLog() {
     else if (cl.lines.length) mt.textContent = '共 ' + cl.lines.length + ' 行' + (cl.errN ? ' · 错误 ' + cl.errN : '');
     else mt.textContent = '';
   }
+  logJumpBar('cronLogJump', cl.mi, logPick(cl.lines, cl.onlyErr, cl.q).length, !!cl.q);
   /* 重画之后滚动位置刚被上面改过，按钮的显隐要跟着重算（自动刷新是 3 秒一次，
      不重算的话「跳到最新」会一直停在上一轮的状态）。 */
   bindLogTailScroll(box);
@@ -5398,7 +5411,7 @@ async function openLogFile(node) {
     if (lines.length && lines[lines.length - 1] === '') lines.pop();
     var errN = logErrLines(lines).length;
     /* 存进 S：复制 / 只看错误这两个按钮走**全局事件委托**，拿不到闭包变量 */
-    S.logfile = { lines: lines, txt: txt, onlyErr: false, q: '' };
+    S.logfile = { lines: lines, txt: txt, onlyErr: false, q: '', mi: 0 };
     $('#shB').innerHTML =
       '<div class="row" style="margin:0 4px 8px;gap:8px;align-items:center">' +
         '<div class="f11 t3 sp">' + esc(fmtSize(node.size)) + ' · ' + lines.length + ' 行' +
@@ -5412,6 +5425,11 @@ async function openLogFile(node) {
         '<input id="logFind" type="search" placeholder="在这份日志里搜关键字" style="flex:1">' +
         '<div class="f11 t3" id="logFindN" style="flex:0 0 auto"></div>' +
       '</div>' +
+      '<div class="hitjump hidden" id="logFileJump" style="margin:0 4px 8px">' +
+        '<button class="jb" data-logjump="-1" aria-label="上一个匹配">↑</button>' +
+        '<span class="jn" id="logFileJumpN">-/0</span>' +
+        '<button class="jb" data-logjump="1" aria-label="下一个匹配">↓</button>' +
+      '</div>' +
       '<pre class="logbox lg" id="logPre"></pre>' +
       '<div class="row" style="margin-top:12px;gap:8px">' +
         '<button class="btn" id="btnCopyLog" style="flex:1">复制内容</button>' +
@@ -5423,8 +5441,13 @@ async function openLogFile(node) {
     var fin = $('#logFind');
     if (fin) fin.addEventListener('input', function () {
       S.logfile.q = fin.value.trim();
+      S.logfile.mi = 0;
       paintLogFile();
     });
+    bindLogJump('logFileJump',
+      function () { return S.logfile; },
+      function () { return logPick(S.logfile.lines, S.logfile.onlyErr, S.logfile.q).length; },
+      paintLogFile);
     /* 内容交给 paintLogFile 填（顺带贴到底），和切「只看错误」走同一条路 ——
        两处各写一遍的话，改了一处忘了另一处就不一致了。 */
     paintLogFile();
@@ -6855,7 +6878,7 @@ async function createConfig() {
 /* ================= 所有功能 ================= */
 /* 客户端版本只在这里写一次，「系统设置」里读它 —— 之前版本号散在几处硬编码，
    升级时漏掉一处就会显示旧版本。 */
-var APP_VER = '1.0.45';
+var APP_VER = '1.0.46';
 
 /* 照参考图：2 列卡片网格，每张 = 标题 + 圆形进入按钮 + 彩色圆角图标。
    图标是渐变色块压白色字形（不是线性图标），每张配一组渐变色 + 同色系的投影。
@@ -8811,15 +8834,65 @@ function logHi(line, q) {
    筛选（只看错误 / 搜索）时行首带行号，行号是**独立**的 span，
    不套在 .lv-error 里面，否则行号也会跟着变红；
    不筛选时**不带行号**，保持终端观感。 */
-function logBoxHtml(lines, onlyErr, q) {
+function logBoxHtml(lines, onlyErr, q, mi) {
   var list = logPick(lines, onlyErr, q);
   var num = !!(onlyErr || q);
-  return list.map(function (x) {
+  var curMi = (q && mi >= 0) ? mi : -1;
+  return list.map(function (x, i) {
     var lv = logLv(x.t);
-    return (num ? '<span class="ln">' + x.n + '</span>' : '') +
-      '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' + logHi(x.t, q) + '\n</span>';
+    var cls = 'lnr' + (i === curMi ? ' hitcur' : '');
+    return '<span class="' + cls + '" data-mi="' + i + '">' +
+      (num ? '<span class="ln">' + x.n + '</span>' : '') +
+      '<span' + (lv ? ' class="lv-' + lv + '"' : '') + '>' + logHi(x.t, q) + '\n</span></span>';
   }).join('');
 }
+
+/* 1.0.46：日志搜索的「上 / 下一个」。三个日志视图（任务运行日志 / 日志文件 / 面板日志）共用。
+   mi 是当前下标（没跳过时 0），total 是匹配数，dir 只认 ±1。越界回环：
+   到头再按↓回到第一个，到尾再按↑回到最后一个。total<=0 恒返回 0（没匹配就别跳）。 */
+function logStepMatch(mi, total, dir) {
+  if (total <= 0) return 0;
+  return mi < 0 ? (dir > 0 ? 0 : total - 1) : (mi + dir + total) % total;
+}
+
+/* 把当前命中行滚进视野。scrollIntoView 在老 WebView 上可能没有，挡一道。 */
+function logJumpScroll(box, mi) {
+  if (!box) return;
+  /* 测试桩的元素没有 querySelector：退化为滚到顶（跟原来「搜到就回顶」一致） */
+  if (!box.querySelector) { box.scrollTop = 0; return; }
+  var cur = box.querySelector('[data-mi="' + mi + '"]');
+  if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'center' });
+  else box.scrollTop = 0;
+}
+
+/* 同步跳转条（↑/↓ + cur/total）。**只在搜索时**露脸：跳转条是给「逐个看命中处」
+   用的，光开「只看错误」（没搜索词）时既没有命中高亮也不滚动，露出来只会让人
+   以为点了没反应。没匹配也整条藏起来。 */
+function logJumpBar(id, mi, total, searching) {
+  var bar = $('#' + id);
+  if (!bar) return;
+  if (!searching || !total) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  /* 测试桩的元素没有 querySelector：显隐已切好，.jn 文案那步跳过 */
+  if (!bar.querySelector) return;
+  var n = bar.querySelector('.jn');
+  if (n) n.textContent = (mi < 0 ? 0 : mi + 1) + '/' + total;
+}
+
+/* 给一个日志跳转条挂 ↑/↓ 监听。getState 取状态对象、getTotal 算当前匹配数、paint 重画。 */
+function bindLogJump(barId, getState, getTotal, paint) {
+  var bar = $('#' + barId);
+  if (!bar || !bar.querySelectorAll) return;
+  bar.querySelectorAll('[data-logjump]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var st = getState();
+      var total = getTotal();
+      st.mi = logStepMatch(st.mi, total, parseInt(b.dataset.logjump, 10) || 0);
+      paint();
+    });
+  });
+}
+
 /* 「复制」到底复制什么：**按当前显示的那份来** ——
    开了「只看错误」还复制全文，用户会以为没生效（或者以为复制漏了）。
    走 S.logfile 里的原文，不读 DOM：DOM 里那份带了行号和高亮标签。 */
@@ -8836,11 +8909,12 @@ function paintLogFile() {
   var lf = S.logfile;
   var pre = $('#logPre');
   if (!pre) return;
-  pre.innerHTML = logBoxHtml(lf.lines, lf.onlyErr, lf.q);
-  /* 滚到哪儿：搜索时滚到**第一条匹配**（否则搜完还停在末尾，看着像没搜到）；
+  pre.innerHTML = logBoxHtml(lf.lines, lf.onlyErr, lf.q, lf.mi);
+  /* 滚到哪儿：搜索时滚到**当前命中的那一行**（1.0.46 上/下一条跳转在这里落地）；
      其它情况贴到底 —— 新的日志追加在文件末尾，最新在下面。
      必须等 innerHTML 落地之后再滚，否则 scrollHeight 还是旧值。 */
-  pre.scrollTop = lf.q ? 0 : pre.scrollHeight;
+  if (lf.q) logJumpScroll(pre, lf.mi);
+  else pre.scrollTop = pre.scrollHeight;
   var eb = $('#btnLogErr');
   if (eb) eb.textContent = lf.onlyErr ? '看全部' : '只看错误';
   var cp = $('#btnCopyLog');
@@ -8849,6 +8923,7 @@ function paintLogFile() {
   if (fn) {
     fn.textContent = lf.q ? (logPick(lf.lines, lf.onlyErr, lf.q).length + ' 行匹配') : '';
   }
+  logJumpBar('logFileJump', lf.mi, logPick(lf.lines, lf.onlyErr, lf.q).length, !!lf.q);
   bindLogTailScroll(pre);
   syncLogTail();
 }
@@ -8875,9 +8950,10 @@ function paintSysLog() {
   /* 贴底判断要在换 innerHTML 之前做（换完 scrollTop 会被重置成 0），
      第一次画直接跳到底：面板日志最新的一行在最下面，停在开头等于什么都没看到。 */
   var stick = !g.painted || atBottom(pre);
-  pre.innerHTML = lines.length ? logBoxHtml(lines, g.onlyErr, g.q) : '（日志为空）';
+  pre.innerHTML = lines.length ? logBoxHtml(lines, g.onlyErr, g.q, g.mi) : '（日志为空）';
   g.painted = true;
-  if (g.q) pre.scrollTop = 0;
+  /* 搜索时滚到当前命中的那一行（1.0.46 上/下一条跳转在这里落地） */
+  if (g.q) logJumpScroll(pre, g.mi);
   else if (stick) pre.scrollTop = pre.scrollHeight;
   var eb = $('#btnSysLogErr');
   if (eb) {
@@ -8889,6 +8965,7 @@ function paintSysLog() {
   if (cp) cp.textContent = g.q ? '复制匹配行' : (g.onlyErr ? '复制错误行' : '复制');
   var fn = $('#sysLogFindN');
   if (fn) fn.textContent = g.q ? (logPick(lines, g.onlyErr, g.q).length + ' 行匹配') : '';
+  logJumpBar('sysLogJump', g.mi, logPick(lines, g.onlyErr, g.q).length, !!g.q);
   var mt = $('#sysLogMeta');
   if (mt) {
     if (g.onlyErr || g.q) {
@@ -8930,6 +9007,11 @@ function renderSysLog() {
     h += '<div class="searchbar" style="margin:0 4px 8px;display:flex;gap:8px;align-items:center">' +
       '<input id="sysLogFind" type="search" placeholder="在面板日志里搜关键字" style="flex:1">' +
       '<div class="f11 t3" id="sysLogFindN" style="flex:0 0 auto"></div>' +
+      '</div>' +
+      '<div class="hitjump hidden" id="sysLogJump" style="margin:0 4px 8px">' +
+        '<button class="jb" data-logjump="-1" aria-label="上一个匹配">↑</button>' +
+        '<span class="jn" id="sysLogJumpN">-/0</span>' +
+        '<button class="jb" data-logjump="1" aria-label="下一个匹配">↓</button>' +
       '</div>';
     h += '<pre class="logbox lg" id="syslogPre"></pre>';
     h += '<div class="row" style="margin-top:12px;gap:8px">' +
@@ -8949,9 +9031,14 @@ function renderSysLog() {
     sfin.value = g.q;
     sfin.addEventListener('input', function () {
       S.syslog.q = sfin.value.trim();
+      S.syslog.mi = 0;
       paintSysLog();
     });
   }
+  bindLogJump('sysLogJump',
+    function () { return S.syslog; },
+    function () { return logPick(sysLogLines(), S.syslog.onlyErr, S.syslog.q).length; },
+    paintSysLog);
   /* 正文交给 paintSysLog 填（顺带按「第一次画 / 本来就贴着底」决定滚到哪儿），
      和切「只看错误」走同一条路 —— 不搞两套滚动逻辑。 */
   if ($('#syslogPre')) paintSysLog();
@@ -9556,16 +9643,20 @@ function onClick(ev) {
   /* 任务详情 / 更多菜单里的动作 */
   if (el.dataset.mact) { closeSheet(); return cronAction(id, el.dataset.mact); }
   if (el.dataset.dact) { cronAction(id, el.dataset.dact); return; }
-  if (el.dataset.edit) return openCronEdit(id);
+  /* 详情页 / 更多菜单里的「编辑 / 复制命令 / 删除」三个按钮只带自己的
+     data-edit / data-copycmd / data-del，**没有 data-id** —— 之前这里传的是
+     `id`（= el.dataset.id，恒为 undefined），结果编辑当成新建、复制命令找不到任务、
+     删除传 NaN 静默什么都不做。值就在各自的属性里，直接取用。 */
+  if (el.dataset.edit) return openCronEdit(el.dataset.edit);
   if (el.dataset.copycmd) {
-    var t = S.crons.list.filter(function (x) { return x.id === Number(id); })[0];
+    var t = S.crons.list.filter(function (x) { return x.id === Number(el.dataset.copycmd); })[0];
     if (t) copyText(t.command || '');
     return;
   }
   if (el.dataset.del) {
     if (!confirm('确认删除这个任务？删除后不可恢复。')) return;
     closeSheet();
-    cronAction(id, 'delete');
+    cronAction(el.dataset.del, 'delete');
     return;
   }
 
@@ -9594,6 +9685,7 @@ function onClick(ev) {
      点一次只看错误、再点一次看全部，**不重新打接口**。 */
   if (el.id === 'btnCronLogErr') {
     S.cronlog.onlyErr = !S.cronlog.onlyErr;
+    S.cronlog.mi = 0;
     return paintCronLog();
   }
 
@@ -9602,6 +9694,7 @@ function onClick(ev) {
      既慢又会闪一下）。复制走原文 —— 读 DOM 的话筛选态会把行号一起复制走。 */
   if (el.id === 'btnSysLogErr') {
     S.syslog.onlyErr = !S.syslog.onlyErr;
+    S.syslog.mi = 0;
     return paintSysLog();
   }
   if (el.id === 'btnSysLogCopy') {
@@ -9707,6 +9800,7 @@ function onClick(ev) {
   /* 切「只看错误」：**不重新打接口**，内容已经在 S.logfile 里了 */
   if (el.id === 'btnLogErr') {
     S.logfile.onlyErr = !S.logfile.onlyErr;
+    S.logfile.mi = 0;
     return paintLogFile();
   }
   if (el.id === 'btnDelLog') {

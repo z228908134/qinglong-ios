@@ -1,110 +1,44 @@
-"""生成 1024x1024 的 App 图标（纯标准库，无需 Pillow）。
-设计：teal 底 + 白色闪电（呼应青龙面板）。抗锯齿用 4x 行超采样。
-"""
-import struct
-import zlib
+import os
+from PIL import Image, ImageDraw, ImageFont
 
-W = H = 1024
-SS = 4
+SIZE = 1024
+ACCENT = (23, 161, 112, 255)
+WHITE = (255, 255, 255, 255)
 
-BG = (29, 158, 117)      # #1D9E75
-FG = (255, 255, 255)
+OUT_DIR = os.path.join(
+    "C:/Users/ZYW/WorkBuddy/2026-10-06-18-59-37/qinglong-ios/QingLong/Resources/Assets.xcassets/AppIcon.appiconset"
+)
+os.makedirs(OUT_DIR, exist_ok=True)
 
-# 闪电多边形（0~1 归一化坐标）
-RAW = [
-    (0.58, 0.06),
-    (0.28, 0.52),
-    (0.46, 0.52),
-    (0.40, 0.94),
-    (0.72, 0.46),
-    (0.54, 0.46),
-]
+img = Image.new("RGBA", (SIZE, SIZE), ACCENT)
+draw = ImageDraw.Draw(img)
 
-SCALE = 0.66
-CX = CY = 0.5
-PTS = [
-    (CX + (x - CX) * SCALE, CY + (y - CY) * SCALE)
-    for (x, y) in RAW
-]
-PTS = [(x * W, y * H) for (x, y) in PTS]
-N = len(PTS)
+font = None
+for candidate in [
+    "C:/Windows/Fonts/ariblk.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+    "C:/Windows/Fonts/segoeuib.ttf",
+    "C:/Windows/Fonts/arial.ttf",
+]:
+    if os.path.exists(candidate):
+        font = ImageFont.truetype(candidate, 372)
+        print("font:", candidate)
+        break
 
+if font is None:
+    raise SystemExit("no usable font found")
 
-def add_span(row, x0, x1, weight):
-    if x1 <= x0:
-        return
-    if x0 < 0:
-        x0 = 0.0
-    if x1 > W:
-        x1 = float(W)
-    if x1 <= x0:
-        return
-    i0 = int(x0)
-    i1 = int(x1)
-    if i0 == i1:
-        row[i0] += weight * (x1 - x0)
-        return
-    row[i0] += weight * (i0 + 1 - x0)
-    last = min(i1, W - 1)
-    for i in range(i0 + 1, last):
-        row[i] += weight
-    if i1 < W:
-        row[i1] += weight * (x1 - i1)
-    else:
-        row[W - 1] += weight * (x1 - last)
+draw.text((SIZE / 2, 452), "QL", font=font, fill=WHITE, anchor="mm")
 
-
-coverage = [[0.0] * W for _ in range(H)]
-
-for y in range(H):
-    row = coverage[y]
-    for s in range(SS):
-        yy = y + (s + 0.5) / SS
-        xs = []
-        for i in range(N):
-            x1, y1 = PTS[i]
-            x2, y2 = PTS[(i + 1) % N]
-            if (y1 <= yy < y2) or (y2 <= yy < y1):
-                t = (yy - y1) / (y2 - y1)
-                xs.append(x1 + t * (x2 - x1))
-        xs.sort()
-        for k in range(0, len(xs) - 1, 2):
-            add_span(row, xs[k], xs[k + 1], 1.0 / SS)
-
-raw = bytearray()
-for y in range(H):
-    raw.append(0)
-    row = coverage[y]
-    for x in range(W):
-        c = row[x]
-        if c <= 0.0:
-            raw += bytes(BG) + b"\xff"
-        elif c >= 1.0:
-            raw += bytes(FG) + b"\xff"
-        else:
-            r = int(BG[0] + (FG[0] - BG[0]) * c + 0.5)
-            g = int(BG[1] + (FG[1] - BG[1]) * c + 0.5)
-            b = int(BG[2] + (FG[2] - BG[2]) * c + 0.5)
-            raw += bytes((r, g, b, 255))
-
-
-def chunk(tag, data):
-    return (
-        struct.pack(">I", len(data))
-        + tag
-        + data
-        + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-    )
-
-
-out = (
-    b"\x89PNG\r\n\x1a\n"
-    + chunk(b"IHDR", struct.pack(">IIBBBBB", W, H, 8, 6, 0, 0, 0))
-    + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
-    + chunk(b"IEND", b"")
+bar_w, bar_h = 268, 34
+bar_x = (SIZE - bar_w) / 2
+bar_y = 700
+draw.rounded_rectangle(
+    [bar_x, bar_y, bar_x + bar_w, bar_y + bar_h],
+    radius=bar_h / 2,
+    fill=WHITE,
 )
 
-path = "QingLongClient/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png"
-with open(path, "wb") as f:
-    f.write(out)
-print("written:", path, len(out), "bytes")
+path = os.path.join(OUT_DIR, "AppIcon.png")
+img.convert("RGB").save(path, "PNG")
+print("saved:", path, img.size)

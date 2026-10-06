@@ -1,77 +1,48 @@
-# XcodeGen 工程定义。
-#
-# 目标：装 qinglong-pwa 产出的单文件 index.html 的原生壳（跟安卓 1.0.10 同一份页面），
-# 产出可直接用 TrollStore（巨魔）安装的 ipa。
-#
-# 故意不用 SwiftUI / 不引三方包：这套工程在 GitHub 的 macOS 机器上编，
-# 我这边没有 Mac 能先跑一遍，依赖越少、用到的 API 越老，一次编过的概率越高。
-
-name: QingLongClient
+name: QingLong
 
 options:
   bundleIdPrefix: com.qinglong
-  deploymentTarget:
-    iOS: "15.0"
   createIntermediateGroups: true
   groupSortPosition: top
-  generateEmptyDirectories: false
-  # 生成的 .xcodeproj 用什么格式（对应 pbxproj 里的 objectVersion）。
-  #
-  # XcodeGen 2.45 起新增这个选项，**默认是 xcode16_0**，也就是 objectVersion 77。
-  # 但 Xcode 15.x 只认到 60，遇到 77 会直接拒绝打开：
-  #   "The project cannot be opened because it is in a future Xcode project
-  #    file format (77)."
-  # ——第一次跑 CI 就是这么挂的（runner 是 macos-14 + Xcode 15.4）。
-  #
-  # 钉在 xcode15_3（objectVersion 60）：Xcode 15.3+ 和 Xcode 16.x 都能读，
-  # 兼容面最宽。这里没用任何 Xcode 16 独有的工程特性（比如 syncedFolder），
-  # 所以降到 15.3 格式没有任何损失。
-  projectFormat: xcode15_3
+  deploymentTarget:
+    iOS: "14.0"
 
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
     ENABLE_BITCODE: NO
-    # 用户脚本沙箱在某些 Xcode 版本上会影响 WKUserScript 注入，直接关掉
-    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    ALWAYS_SEARCH_USER_PATHS: NO
+    SWIFT_OPTIMIZATION_LEVEL: "-O"
+    SWIFT_COMPILATION_MODE: wholemodule
 
 targets:
-  QingLongClient:
+  QingLong:
     type: application
     platform: iOS
+    deploymentTarget: "14.0"
     sources:
-      - path: QingLongClient
+      - path: QingLong
         excludes:
           - "Resources/Info.plist"
     settings:
       base:
-        PRODUCT_NAME: QingLongClient
-        PRODUCT_BUNDLE_IDENTIFIER: com.qinglong.client
-        INFOPLIST_FILE: QingLongClient/Resources/Info.plist
-        GENERATE_INFOPLIST_FILE: NO
-        TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "1.0.46"
-        CURRENT_PROJECT_VERSION: "45"
-        # 打包时完全不签名；出包后再用 ad-hoc 补一个签名给 TrollStore 用。
-        # 这里千万别写 CODE_SIGN_STYLE: Automatic —— CI 上没有开发者账号会直接卡死。
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGNING_REQUIRED: NO
-        CODE_SIGNING_ALLOWED: NO
+        PRODUCT_NAME: QingLong
+        PRODUCT_BUNDLE_IDENTIFIER: com.qinglong.ios
+        INFOPLIST_FILE: QingLong/Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        SKIP_INSTALL: NO
-
-# 显式声明共享 scheme。
-# 不写的话 CI 上 `xcodebuild -scheme QingLongClient` 会直接报「scheme 不存在」
-# —— Xcode 图形界面打开工程时会自动补 scheme，命令行不会。
-schemes:
-  QingLongClient:
-    build:
-      targets:
-        QingLongClient: all
-    run:
-      config: Debug
-    archive:
-      config: Release
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: NO
+        IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""
+        SWIFT_EMIT_LOC_STRINGS: NO
+        CLANG_ENABLE_MODULES: YES
+    scheme:
+      gatherCoverageData: false

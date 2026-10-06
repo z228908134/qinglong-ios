@@ -1,160 +1,82 @@
-name: Build TrollStore IPA
+name: Build IPA
 
-# 手动触发（推荐），或在改动源码后自动触发
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - "QingLongClient/**"
-      - "project.yml"
-      - ".github/workflows/build-ipa.yml"
+    branches: [main, master, native-swiftui]
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Archive and package IPA
-    # macos-14 上是 Xcode 15.4，而 XcodeGen 2.45+ 默认生成 Xcode 16 的工程格式，
-    # 两者对不上会直接报 "future Xcode project file format (77)"。
-    # 工程侧已经把 projectFormat 钉到 xcode15_3 兜底，这里再用 macos-15（Xcode 16.x）
-    # 把「生成的格式」和「读它的 Xcode」都放到新版上，两头都不容易再出问题。
+    name: Build unsigned IPA for TrollStore
     runs-on: macos-15
-    timeout-minutes: 30
+
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 版本号**只从 project.yml 取一处**，后面拼文件名/artifact 名全用它。
-      # 以前这里是写死的 "1.0.9"：升到 1.0.10 后包内 Info.plist 是 1.0.10，
-      # 但文件名和 artifact 名还是 1.0.9 —— 下下来根本分不清新旧。
-      - name: Resolve version
-        id: ver
+      - name: Show toolchain
         run: |
-          set -euo pipefail
-          V=$(grep -o 'MARKETING_VERSION: "[^"]*"' project.yml | sed 's/.*"\(.*\)"/\1/')
-          test -n "$V" || { echo "::error::project.yml 里没找到 MARKETING_VERSION"; exit 1; }
-          echo "version=$V" >> "$GITHUB_OUTPUT"
-          echo "版本：$V"
-
-      # 防呆：页面是作为资源**提交进仓库**的（tools/prepare_web.py 拷进来）。
-      # 改了 PWA 忘了重拷就 push，编出来的包里装的是旧页面 —— 那种 bug 在手机上
-      # 只会表现为「功能还是老的」，根本想不到是打包的问题。
-      - name: Sanity check bundled page
-        run: |
-          set -euo pipefail
-          F="QingLongClient/Resources/index.html"
-          test -f "$F" || { echo "::error::$F 不存在，先跑 python tools/prepare_web.py"; exit 1; }
-          SZ=$(wc -c < "$F" | tr -d ' ')
-          echo "index.html $SZ 字节"
-          test "$SZ" -gt 100000 || { echo "::error::index.html 只有 $SZ 字节，像是没拷全"; exit 1; }
-          VER=$(grep -o "var APP_VER = '[^']*'" "$F" | head -1 | sed "s/.*'\(.*\)'/\1/")
-          PV=$(grep -o 'MARKETING_VERSION: "[^"]*"' project.yml | sed 's/.*"\(.*\)"/\1/')
-          echo "页面版本 $VER / 工程版本 $PV"
-          test "$VER" = "$PV" || { echo "::error::版本对不上（页面 $VER / 工程 $PV）"; exit 1; }
-
-      # plist 先 lint 一遍。XML 注释里出现连续两个减号（比如写 CSS 变量名）会让整个
-      # plist 非法，而 xcodebuild 报的错很含糊、定位不到注释上，所以提前查。
-      #
-      # 注意：plutil -lint **不吃 JSON**（颜色集的 Contents.json 会报
-      # "Unexpected character { at line 1"），所以 JSON 单独用 python3 校验。
-      - name: Lint Info.plist
-        run: |
-          set -euo pipefail
-          plutil -lint QingLongClient/Resources/Info.plist
-          C="QingLongClient/Resources/Assets.xcassets/LaunchBackground.colorset/Contents.json"
-          if command -v python3 >/dev/null 2>&1; then
-            python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$C"
-            echo "$C: JSON OK"
-          else
-            echo "没有 python3，跳过 $C 的 JSON 校验（actool 编译时也会报错）"
-          fi
+          xcodebuild -version
+          swift --version
+          sw_vers
 
       - name: Install XcodeGen
-        run: |
-          brew install xcodegen || brew upgrade xcodegen || true
-          xcodegen --version
+        run: brew install xcodegen
 
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Xcode version
-        run: xcodebuild -version
-
-      # 诊断用：把工程格式和当前 Xcode 都打出来。
-      # 这俩对不上时报的错是 "future Xcode project file format"，光看那句猜不到
-      # 是 XcodeGen 换了默认格式，所以提前把数字亮出来。
-      - name: Check project format
+      - name: Build app bundle (code signing disabled)
         run: |
-          set -euo pipefail
-          OV=$(grep -m1 -o 'objectVersion = [0-9]*' QingLongClient.xcodeproj/project.pbxproj | grep -o '[0-9]*')
-          echo "objectVersion = $OV"
-          echo "Xcode: $(xcodebuild -version | head -1)"
-          # 实测 projectFormat: xcode15_3 生成的是 63。
-          # 60 及以下归为 Xcode 14/15 格式，70/77 是 Xcode 16 格式（Xcode 15.x 打不开）。
-          case "$OV" in
-            5[0-9]|6[0-3]) echo "格式为 Xcode 15.x，Xcode 15 与 16 均可打开" ;;
-            7[0-9]) echo "::warning::格式为 Xcode 16（objectVersion $OV），Xcode 15.x 打不开" ;;
-            *) echo "::warning::未知 objectVersion $OV" ;;
-          esac
-
-      # 不做开发者签名：TrollStore 走的是 CoreTrust 绕过，不需要 Apple 的证书。
-      # 但包**必须有签名结构**（完全没签名的 ipa 巨魔会拒），所以出包后补一个 ad-hoc。
-      - name: Archive without signing
-        run: |
-          set -o pipefail
-          xcodebuild archive \
-            -project QingLongClient.xcodeproj \
-            -scheme QingLongClient \
+          xcodebuild build \
+            -project QingLong.xcodeproj \
+            -target QingLong \
             -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/QingLongClient.xcarchive" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
+            -sdk iphoneos \
+            CONFIGURATION_BUILD_DIR="$PWD/build/Release-iphoneos" \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_ENTITLEMENTS=""
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
 
-      - name: Package into .ipa
-        env:
-          VER: ${{ steps.ver.outputs.version }}
+      - name: Assemble IPA payload
         run: |
-          set -euo pipefail
-          APP="$RUNNER_TEMP/QingLongClient.xcarchive/Products/Applications/QingLongClient.app"
-          test -d "$APP" || { echo "::error::没找到 .app，archive 失败了"; exit 1; }
-          IPA="QingLongClient-${VER}-trollstore.ipa"
-          rm -rf Payload "$IPA"
+          APP_PATH="build/Release-iphoneos/QingLong.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::No .app bundle was produced by xcodebuild"
+            ls -R build || true
+            exit 1
+          fi
+          echo "App bundle: $APP_PATH"
           mkdir -p Payload
-          cp -R "$APP" Payload/
+          cp -R "$APP_PATH" "Payload/QingLong.app"
+          du -sh Payload/QingLong.app
 
-          # ad-hoc 签名（identity "-"）：给包一个合法的签名结构。
-          # 没有这一步，完全裸奔的 ipa 在巨魔里会报签名无效。
-          codesign --force --sign - --timestamp=none --generate-entitlement-der \
-            Payload/QingLongClient.app || true
-
-          zip -qry "$IPA" Payload
-          # 出包前最后一道对账：包内 Info.plist 的版本必须等于文件名里的版本。
-          IN=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
-                Payload/QingLongClient.app/Info.plist)
-          echo "文件名版本 $VER / 包内版本 $IN"
-          test "$IN" = "$VER" || { echo "::error::包内版本 $IN 与 project.yml 的 $VER 对不上"; exit 1; }
-
-      - name: Verify IPA
-        env:
-          VER: ${{ steps.ver.outputs.version }}
+      - name: Pseudo-sign with ldid (TrollStore friendly)
+        continue-on-error: true
         run: |
-          set -euo pipefail
-          IPA="QingLongClient-${VER}-trollstore.ipa"
-          ls -lh "$IPA"
-          unzip -l "$IPA" | grep -E "Payload/|index.html|QLBootstrap.js" | head -10
-          # 包里的页面和桥脚本必须在，少一个就是「装上了但空白 / 点了没反应」
-          unzip -p "$IPA" "Payload/QingLongClient.app/index.html" | wc -c
-          unzip -l "$IPA" | grep -c "QLBootstrap.js" \
-            || { echo "::error::包里没有 QLBootstrap.js"; exit 1; }
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
-            Payload/QingLongClient.app/Info.plist
+          brew install ldid
+          ldid -S "Payload/QingLong.app/QingLong"
+          echo "Binary pseudo-signed with ldid"
 
-      - name: Upload IPA
+      - name: Zip IPA
+        run: |
+          zip -qry QingLong-unsigned.ipa Payload
+          rm -rf Payload
+          ls -lh QingLong-unsigned.ipa
+          unzip -l QingLong-unsigned.ipa | head -n 20
+
+      - name: Verify IPA contents
+        run: python3 tools/verify_ipa.py QingLong-unsigned.ipa
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QingLongClient-${{ steps.ver.outputs.version }}-trollstore
-          path: QingLongClient-${{ steps.ver.outputs.version }}-trollstore.ipa
-          if-no-files-found: error
+          name: QingLong-unsigned-ipa
+          path: QingLong-unsigned.ipa
           retention-days: 30
+          if-no-files-found: error

@@ -1,238 +1,198 @@
-# 青龙管家 · QingLongClient（iOS）
+# 青龙面板 · 原生 iOS 客户端
 
-一个对接 **青龙面板 v2.21.x** 的 iOS 客户端：原生 `WKWebView` 壳 + 与安卓 1.0.46 完全相同的
-单文件页面（`qinglong-pwa/index.html`），**零第三方依赖**。
-面板地址**留空**，第一次打开自己填（不预填 IP，免得仓库公开后泄露面板地址）。
+一个 **纯原生 SwiftUI** 实现的青龙面板客户端，不是网页套壳，也不是 WebView 内嵌。
 
-> ⚠️ **先看这一条**：代码是完整可编译的 iOS 工程，但 **`.ipa` 只能由 macOS + Xcode 产出**，
-> Windows 上无法构建（没有 iOS SDK 和签名工具链）。
-> **没有 Mac 也能出 ipa** —— 用 GitHub 的免费 macOS 构建机，全程只需要 Windows：
-> 见 **[BUILD-IPA.md](BUILD-IPA.md)**。
+界面全部用 SwiftUI 手写，数据走青龙面板的 OpenAPI（`/open/*`），凭据保存在系统钥匙串里。编译产物是**未签名 IPA**，用巨魔（TrollStore）安装即可永久使用，不需要证书、不需要 7 天续签。
 
 ---
 
-## 一、已实现的功能
+## 一、开始之前：你需要准备什么
+
+| 事项 | 说明 |
+|---|---|
+| **一台已经部署好的青龙面板** | 本 app 是**客户端**，面板本体必须运行在你的服务器 / NAS / Docker 上。iPhone 不能直接运行青龙（iOS 禁止 app 启动 Shell / Python 子进程，这是系统级限制，签名工具解决不了）。 |
+| **iOS 14.0 – 17.0 + 巨魔** | TrollStore 支持 14.0 beta2 ~ 16.6.1、16.7 RC (20H18)、17.0。17.0.1 及以上无法安装巨魔。 |
+| **青龙 2.9 或更高版本** | OpenAPI 从 2.9 开始提供。 |
+
+> 为什么不能让青龙跑在手机上：青龙的核心能力是「定时拉起外部进程去执行 Python / Shell / JS 脚本」，而 iOS 沙盒禁止 fork/exec，系统里根本没有 `/bin/sh` 和 `python3`。所以唯一可行的形态就是：**面板跑在服务器上，iPhone 作为原生客户端去管理它。**
+
+---
+
+## 二、在青龙面板创建应用凭据
+
+1. 浏览器打开青龙面板 → **系统设置** → **应用设置**
+2. 点击 **添加应用**，填一个名字，并勾选你要用到的权限模块
+3. 保存后列表里会出现 **Client ID** 和 **Client Secret**，复制下来
+
+> ⚠️ **权限一定要勾全，尤其别漏掉「面板概览 / dashboard」。**
+> 青龙把这几个权限做成了**互相独立**的 scope：
+>
+> | 要用的功能 | 需要的权限 |
+> |---|---|
+> | 定时任务列表、运行、停止、增删改 | 定时任务 |
+> | 环境变量 | 环境变量 |
+> | 订阅管理 | 订阅管理 |
+> | 依赖管理 | 依赖管理 |
+> | 脚本管理 | 脚本管理 |
+> | 日志文件 | 日志 |
+> | **首页统计（成功率、平均耗时、执行趋势、正在运行、面板内存负载）** | **面板概览（dashboard）** |
+>
+> 概览权限和任务权限是分开授予的。**只勾了任务权限、漏勾概览权限时，首页会出现"成功率 0%、平均耗时 —、正在运行为空"**，但任务列表一切正常——因为接口被拒（403），不是没有数据。
+>
+> 新版 app 会在首页显示一条黄色提示条，直接告诉你缺哪个权限、去哪里补。
+
+> 令牌默认 30 天有效。在面板上「重置密钥」会让已发出的令牌立即失效，app 里重新登录一次即可。
+> 改完权限后不需要重新创建应用，也**不需要重新登录**——回首页下拉刷新即可。
+
+---
+
+## 三、编译出 IPA（GitHub Actions 云编译，不需要 Mac）
+
+编译交给 GitHub 的 macOS 云端机器全自动完成，全程不需要 Mac。
+
+### 产物已就绪
+
+| 项 | 值 |
+|---|---|
+| 仓库 | `z228908134/qinglong-ios` |
+| 分支 | `native-swiftui` |
+
+> 仓库里原有的 `main` 分支保留着更早的 WebView 版本，两个分支互不影响。这套原生实现放在 `native-swiftui` 上，确认没问题后再合并到 `main` 即可。
+
+### 下载编译好的 IPA
+
+1. 打开 https://github.com/z228908134/qinglong-ios/actions
+2. 点最新一次 **Build IPA**（绿色对勾那次）
+3. 页面底部找到 **Artifacts**，下载 **`QingLong-unsigned-ipa`**
+4. 解压得到 `QingLong-unsigned.ipa`（约 3.2 MB）
+5. 传到手机：AirDrop、iCloud Drive、微信文件传输助手，或者放到面板服务器上用 Safari 下载
+
+### 改了代码后重新出包
+
+```bash
+git add .
+git commit -m "改动说明"
+git push origin native-swiftui
+```
+
+推上去会自动重新编译，约 2～4 分钟。
+
+### 产物自检
+
+流水线每次都会自动运行 `tools/verify_ipa.py`，校验 16 项硬指标：Mach-O 架构为 arm64、`LC_CODE_SIGNATURE` 与签名 blob magic 是否正确（**这一项直接决定 TrollStore 能否装上**）、`MinimumOSVersion`、ATS 明文放行、必要动态库等。任何一项不通过，构建会直接标红，以免下载到装不上的包。
+
+想手动复核已下载的 IPA：
+
+```bash
+python3 tools/verify_ipa.py QingLong-unsigned.ipa
+```
+
+---
+
+## 四、用巨魔安装
+
+1. 打开 **TrollStore**
+2. 点右上角 **`+`**
+3. 选择刚才的 `QingLong-unsigned.ipa`
+4. 安装完成后桌面会出现绿色 **QL** 图标
+
+如果安装时报错，按下面的顺序排查：
+
+| 报错 | 处理方式 |
+|---|---|
+| 安装后点图标闪退 | 在 TrollStore 里长按图标 → **Rebuild Icon Cache**，或卸载后重装 |
+| 提示 `ldid not installed` | 这是旧版巨魔的行为，升级到 TrollStore 2.x 即可 |
+| iOS 版本不在支持范围 | 17.0.1 及以上无法使用巨魔，需改用 eSign 等签名方案 |
+
+---
+
+## 五、首次启动
+
+1. 打开 app，填**面板地址**。支持以下写法（会自动补协议与端口）：
+   - `192.168.1.8` → 自动补成 `http://192.168.1.8:5700`
+   - `192.168.1.8:5700` → 原样使用
+   - `https://ql.example.com` → 保留 443，不补端口
+2. 粘贴 **Client ID** 和 **Client Secret**
+3. 点 **登录**
+
+之后每次打开会自动恢复会话，令牌过期前会显示剩余天数。
+
+---
+
+## 六、功能清单
 
 | 模块 | 能力 |
-| --- | --- |
-| 登录 | 面板地址 + 账号密码；支持两步验证（TOTP）自动识别；token 存钥匙串，冷启动免登录；被踢下线自动回登录页 |
-| 主页概览 | 面板 / 任务 / 运行时三张卡 + 今日成功·失败六格 + **近 7 / 30 日趋势图**（可切换，点柱子看当天成功/失败明细）；「N 个任务正在执行」整段可点，直达任务页「运行中」筛选 |
-| 任务列表 | 分页加载、下拉刷新、服务端搜索（名称/命令/标签）；置顶标记、状态徽标、标签、上次执行时间；**下次时间带今天/明天前缀**（去秒数，跟「上次」风格统一）；**搜索结果可逐个跳转**（↑ n/N ↓，命中项套黄边） |
-| 任务详情 | 调度/执行命令/脚本/日志/操作；**定时规则旁带人类可读描述**（「每天 8:00」「周一至周五 9:30」等） |
-| 运行实例 | 开了「允许同时运行多个实例」的任务：任务详情「其他 → 运行实例」直达（那行带「N 个在跑」）。一个实例一张卡 —— 进程号 / 启动时间 / 已运行时长 / 结束时间 / 退出码，**只有还在跑的带「停止这个实例」**。状态只看 `finished_at`（不认后端 `status` 枚举编号），143 = SIGTERM 单独说「已停止」；老面板没这个接口时明说「版本不支持」 |
-| 任务筛选 | 工具条四档筛选：**全部 / 运行中 / 未使用 / 已禁用**（按后端 `status` 分档，见下） |
-| 定时视图 | 任务页顶部一排 tab，对应面板的「定时视图」—— **是保存好的筛选条件，不是时间轴**。切 tab 就把该视图的 `filters` / `sorts` / `filterRelation` 整个透传成 `queryString` 重新查任务。只做切换，创建/编辑去面板网页版；接口拉不到（老面板没这个接口）时整条 tab 栏自动隐藏，任务页照常可用 |
-| 任务批量 | 「编辑」进多选模式：全选、批量运行/停止/启用/禁用/删除（删除有二次确认），编辑时底栏自动让位 |
-| 任务操作 | 左滑运行/停止，右滑启用/禁用/删除，长按菜单置顶、复制命令、编辑 |
-| 任务详情 | 状态、定时规则、**下次执行时间本地推算**、上次执行时间、**上次运行时长**、PID、执行命令；运行/停止/启用/置顶按钮 |
-| 运行日志 | 自动拉取 `crons/{id}/log`，运行中每 3 秒自动刷新（可关），ANSI 颜色码清理，全屏查看 + 复制 + 分享；**正序（新端在底）**，往上翻离开底部后右下角浮出「跳到最新」；**搜关键字可逐个跳转**（↑ n/N ↓，当前命中行套黄底黄边），跟日志文件弹层、面板日志是同一套 |
-| 任务编辑 | 新建/编辑任务，常用 cron 规则一键套用，保存前实时预览下次执行时间 |
-| 环境变量 | 列表 + 搜索；**变量值默认打码**，点「显示值」**换行显示完整**并**一键复制**（京东 cookie 一百多字符，单行省略号截断过一整个版本）；批量全选/启用/禁用/删除（只作用于当前筛出来的）；新建/编辑/删除/启用/禁用；**按状态筛选**（全部 / 已启用 / 已禁用）+ **一键全部展开 / 折叠** |
-| 脚本管理 | `GET /api/scripts` 脚本树浏览、搜索（命中上黄底）、查看内容、新建/编辑/删除；**搜索结果可逐个跳转**（同名文件按父目录区分） |
-| 订阅管理 | `GET /api/subscriptions` 订阅列表；新建/编辑/删除、手动运行、启用/禁用、查看日志、**批量操作**（全选 / 运行 / 停止 / 启用 / 禁用 / 删除，按选中项状态过滤）；**搜索结果命中上黄底**（名称 / 链接 / 类型 / 排期 / 分支） |
-| 依赖管理 | `GET /api/dependencies` 依赖列表；按类型（nodejs/python/linux）分组、安装/卸载、重新安装；**卡片默认折叠**（点一下展开「日志/重装/更多」），**支持批量操作**（全选 / 重装 / 删除 / 强制删除）；**搜索结果命中上黄底**（名称和备注一起圈） |
-| 面板设置 | `GET /api/configs/files` 配置文件列表，`config.sh` 等文件的内容查看与保存；**按文件名搜索**（整份列表本地过滤，不重打接口） |
-| 日志文件 | 面板 `log` 目录树浏览（目录可逐级下钻）、文件内容查看、删除日志文件 |
-| 我的 | **底栏最后一项**，是 App 的功能总入口：面板概览（内存 / 运行时长 / 负载 / 今日执行）+ **15 张功能卡片**（定时任务、环境变量、脚本管理、订阅管理、依赖管理、配置文件、日志文件、面板日志、数据备份、通知设置、依赖设置、应用设置、其他设置、登录日志、系统设置）+ 顶部「切换账号」胶囊；最上面一排**「最近打开」**（最近点过的 3 个模块，省得每次在 15 张卡片里翻） |
-| 面板日志 | 面板「系统设置 → 系统日志」：面板进程自己的运行日志（**纯文本流**，跟任务日志不是一回事）。今天 / 近 7 天两档，按级别（info / warn / error）上色，可刷新 / 清空 |
-| 多账号 | 登录历史（最多 8 条，按「用户名@面板地址」去重）；系统设置里一键切换，**不用重输密码**；显示最后登录时间，可删除单条 |
-| 系统设置 | 外观模式（跟随系统/浅色/深色）、**字号无级调节**（拖动条 80%–140%，两端 A−/A+ 各进一档）、多账号切换 |
-| 应用设置 | 面板「系统设置 → 应用设置」：开放接口应用的 Client ID / Secret（**默认打码**，点「显示」才明文）、8 项权限勾选、新建 / 编辑 / 删除 / 重置密钥 |
-| 其他设置 | 面板「系统设置 → 其他设置」：面板标题、日志删除频率、任务并发数、时区、全局 SSH 密钥、语言；**数据备份导出 / 还原**、检查更新、重启面板 |
-| 登录日志 | 面板「系统设置 → 登录日志」：登录时间 / 地址 / IP / 设备 / 状态（成功绿、失败红），最多 100 条；**「只看失败」开关（按钮上带失败条数）** + **按 IP / 地址 / 设备搜索**（命中上黄底，筛完副标题给「命中 / 总数」，纯本地过滤） |
-
-### iOS 壳特有的三件事
-
-这三个是「网页壳」跟系统对接的地方，页面本身感知不到：
-
-| 能力 | 怎么做的 |
-| --- | --- |
-| **左边缘右滑返回** | 页面是单视图 SPA、没用 `history` API，系统手势背后是空栈。改由页面通过 `QLNative.setBack(bool)` 声明「现在能不能返回」，原生用 `UIScreenEdgePanGestureRecognizer` 开关，回调 `window.__qlBack()` |
-| **状态栏自适应** | `WKWebView` 必须铺满**整个** `view`（不能顶在 `safeAreaLayoutGuide` 下面，否则页面 `env(safe-area-inset-top)` 恒为 0，顶部露出一条壳的底色）。页面再通过 `QLNative.setTheme()` 把深浅告知原生，控制状态栏文字颜色 |
-| **字号缩放** | 页面里所有字号写成 `calc(Npx * var(--fs))`，**不用 CSS `zoom`** —— `zoom` 会把 `env(safe-area-inset-*)` 一起放大。`--fs` 由「系统设置 → 字体大小」的拖动条控制（0.8–1.4，连续可调） |
+|---|---|
+| **概览** | 连接状态与令牌剩余天数、任务总数 / 今日执行 / 成功率 / 平均耗时、正在运行的任务（可一键停止）、近 7 日执行趋势图、面板内存与负载；**接口失败时显示诊断提示条并给出修复指引** |
+| **定时任务** | 列表 / 搜索 / 状态筛选，立即运行、停止、启用、禁用、置顶、编辑、删除，任务详情（完整字段），**详情页内嵌运行日志框**（固定高度、框内滚动、5 秒自动刷新、可展开，宽度自适应屏幕），新建任务（含常用 cron 快捷选项） |
+| **环境变量** | 列表 / 搜索 / 筛选，新增、编辑、删除，启用 / 禁用，置顶，值默认打码、点按显示、一键复制 |
+| **订阅管理** | 列表 / 搜索，**每行右侧直接「拉取」/「停止」**（启用、禁用、删除在长按菜单里），查看拉取日志，新建公开仓库订阅 |
+| **依赖管理** | NodeJs / Python3 / Linux 三类，列表 / 搜索 / 类型筛选，添加、重装、取消、删除，查看安装日志 |
+| **日志文件** | 浏览面板日志目录树，查看任意日志文件内容（自动清理 ANSI 颜色码），一键复制 |
+| **脚本管理** | **搜索（同时匹配文件名与所在目录）**，浏览脚本目录树，查看源码，**点右上角文字「编辑」按钮进入编辑、改完点「保存」**，一键复制 |
+| **面板与账号** | 连接信息与令牌到期时间，浏览器打开面板，复制地址，重新登录，退出登录 |
+| **外观** | 三种主题模式：**跟随系统 / 白天 / 深色**。在「更多」页顶部切换，立即生效并记住选择。整套界面基于系统语义色，深色下品牌色会自动提亮 |
 
 ---
 
-## 二、目录结构
+## 七、常见问题
+
+**连不上面板？**
+- 局域网 HTTP 需要面板监听 `0.0.0.0` 而不是 `127.0.0.1`。Docker 部署时把端口映射成 `-p 5700:5700` 即可。
+- 确认手机和面板在同一 Wi-Fi。公网访问请走 HTTPS 反代。
+- app 已在 Info.plist 中放开 ATS（允许任意 HTTP），局域网 HTTP 是可以连的。
+
+**首页成功率显示 0%、平均耗时是「—」、正在运行为空？**
+几乎可以确定是**应用漏勾了「面板概览 / dashboard」权限**。青龙把概览统计做成了独立的权限 scope，和任务列表是分开授予的——只勾了任务权限时，概览接口返回 403，界面就只剩一排 0，很容易被误读成"任务全失败了"。
+
+处理：面板「系统设置 → 应用设置」→ 编辑该应用 → 勾上「面板概览 / dashboard」→ 保存 → 回 app 首页下拉刷新。**不用重新登录**。
+
+app 首页现在会直接显示一条黄色提示条说明缺哪个权限，并逐条列出每个接口的失败原因（如 `今日统计：code 403`），不用再猜。
+
+**订阅页面只能看，不能运行？**
+运行按钮就在每一行的右侧，写着「拉取」（运行中会变成「停止」）。启用、禁用、删除在长按该行后的菜单里。
+
+**脚本改不了、或找不到某个脚本？**
+- 打开任意脚本 → 右上角点文字按钮 **「编辑」** → 改完点 **「保存」**。之前这里只有一个小铅笔图标，很难注意到它可点。
+- 搜索框在页面顶部，会同时匹配**文件名**和**所在目录**。青龙的脚本接口本身不支持搜索参数，所以是在本地对整棵脚本树做匹配——根页面拿到的就是全量树，因此根页面的搜索是全局的。
+
+**有些字段显示不出来？**
+不同面板版本返回的字段略有差异，app 已经做了容错处理；如果个别模块仍解析失败，通常意味着你的面板版本较旧，升级一下青龙即可。
+
+**想改最低系统版本？**
+编辑 `project.yml` 里的 `IPHONEOS_DEPLOYMENT_TARGET` 和 `options.deploymentTarget.iOS`，改成 `15.0` 可以用上更多系统特性（如原生下拉刷新）。
+
+**编译失败？**
+到 Actions 页面看红叉那一步的日志。最常见的两种情况：
+- GitHub 把 `macos-15` 镜像下架了 → 把 `.github/workflows/build-ipa.yml` 里的 `runs-on: macos-15` 改成 `macos-latest`
+- 某个 Swift API 在新 Xcode 里被废弃 → 按日志提示的文件与行号调整
+
+---
+
+## 八、工程结构
 
 ```
 qinglong-ios/
-├── project.yml                     # XcodeGen 工程描述（CI 用它生成 .xcodeproj）
-├── README.md
-├── BUILD-IPA.md                    # 怎么打出巨魔能装的 ipa（Windows 全流程）
-├── .github/workflows/
-│   └── build-ipa.yml               # GitHub Actions：archive → ad-hoc 签名 → ipa
+├── project.yml                        XcodeGen 工程定义（生成 .xcodeproj）
+├── .github/workflows/build-ipa.yml    云编译工作流（构建后自动校验产物）
 ├── tools/
-│   ├── make_icon.py                # 生成 1024×1024 App 图标（纯标准库）
-│   ├── prepare_web.py              # 把 qinglong-pwa/index.html 拷进来并核对版本
-│   └── verify_ipa.py               # 出包后解包逐项核对（含与本地构建产物逐字节对账）
-├── _legacy-swiftui/                # 早期那版纯 SwiftUI 实现（已不用，不参与编译）
-└── QingLongClient/
-    ├── App/
-    │   └── AppDelegate.swift       # @main 入口（经典 UIKit 生命周期）
-    ├── Web/
-    │   ├── WebViewController.swift # 撑满屏幕的 WKWebView
-    │   ├── QLBootstrap.js          # 注入页面：接管 fetch + QLNative 桥
-    │   ├── QLNet.swift             # URLSession 发请求（含 multipart 组装）
-    │   └── QLBridge.swift          # 消息桥：网络 / 本地存储 / 保存文件
-    └── Resources/
-        ├── index.html              # qinglong-pwa 的构建产物（跟安卓 1.0.37 同一份）
-        ├── Info.plist              # 含 ATS 明文放行配置
-        └── Assets.xcassets/
+│   ├── make_icon.py                   生成 1024×1024 应用图标
+│   └── verify_ipa.py                  校验产出的 IPA 是否可被巨魔安装
+└── QingLong/
+    ├── App/                           入口与 Tab 结构
+    ├── Core/
+    │   ├── APIClient.swift            网络层：地址规范化、请求封装、错误归类
+    │   ├── APIError.swift             面向用户的错误文案
+    │   ├── JSONValue.swift            宽松 JSON 解析（兼容面板版本差异）
+    │   ├── KeychainStore.swift        钥匙串封装
+    │   └── PanelStore.swift           全局状态 + 各模块业务操作
+    ├── Models/                        任务 / 变量 / 订阅 / 依赖 / 概览 数据模型
+    ├── UI/                            主题、组件、通用控件
+    └── Features/                      登录、概览、任务、变量、订阅、依赖、日志、脚本、设置
 ```
 
 ---
 
-## 三、怎么编译
+## 许可
 
-### 方式 0：没有 Mac（Windows 用户走这条）
-
-见 **[BUILD-IPA.md](BUILD-IPA.md)**：把代码推到 GitHub，用自带的
-`.github/workflows/build-ipa.yml` 在免费 macOS runner 上自动打出
-`QingLongClient-<版本>-trollstore.ipa`（版本号从 `project.yml` 的 `MARKETING_VERSION` 自动取），
-直接丢进 **TrollStore** 安装。全程不需要 Mac。
-
-### 方式 A：XcodeGen（推荐，最省事）
-
-```bash
-brew install xcodegen
-cd qinglong-ios
-xcodegen generate          # 生成 QingLongClient.xcodeproj
-open QingLongClient.xcodeproj
-```
-
-然后在 Xcode 里：选中 Target → **Signing & Capabilities** → 勾上 *Automatically manage signing* → Team 选你自己的 Apple ID → 选一台模拟器或真机 → ⌘R。
-
-### 方式 B：手动建工程
-
-1. Xcode → **File → New → Project → iOS → App**
-2. Product Name 填 `QingLongClient`，Interface 选 **SwiftUI**，Language 选 **Swift**
-3. 删掉 Xcode 自动生成的 `ContentView.swift` 和 `QingLongClientApp.swift`
-4. 把 `qinglong-ios/QingLongClient/` 下的所有 `.swift` 拖进工程（勾选 *Copy items if needed*），`Assets.xcassets` 也拖进去
-5. **Info.plist 用本仓库里的那份覆盖掉工程的**（关键是里面的 `NSAppTransportSecurity`，否则连 `http://` 面板会被系统直接拒绝）
-6. Signing 里选自己的 Team，⌘R
-
-### 装到 iPhone
-
-- **免费 Apple ID**：真机运行可用，但签名 7 天过期，到期后要重新用 Xcode 装一次
-- **付费开发者账号**（99 美元/年）：签名有效期 1 年，也可以走 TestFlight 分发
-- **侧载工具**（AltStore / Sideloadly）：需要先打出 `.ipa`（Xcode → Product → Archive → Ad Hoc / Development 导出）
-
----
-
-## 四、接口实现要点（踩过的坑都在这）
-
-| 接口 | 用途 |
-| --- | --- |
-| `POST /api/user/login` | 登录，返回 `data.token` |
-| `PUT /api/user/two-factor/login` | 两步验证登录（`code` + 账号密码） |
-| `GET /api/user` | 当前用户（含 `twoFactorActivated`、`avatar`） |
-| `GET /api/system` | 面板版本 / 分支 / 更新日志 |
-| `GET /api/crons?searchValue=&page=&size=` | 任务列表，返回 `data:{ data:[...], total:n }` |
-| `GET /api/crons/{id}` | 单个任务 |
-| `PUT /api/crons/run` / `stop` / `enable` / `disable` / `pin` / `unpin` | body 是 **id 数组** |
-| `DELETE /api/crons` | body 是 id 数组 |
-| `POST` / `PUT /api/crons` | 新建 / 更新任务 |
-| `GET /api/crons/{id}/log` | 任务日志，返回 `data:"文本"` + 顶层 `logStatus` |
-| `GET /api/envs?searchValue=` | 环境变量列表 |
-| `POST` / `PUT` / `DELETE /api/envs`、`/api/envs/enable|disable` | 变量增删改与启停 |
-| `GET /api/logs` | 日志目录树（`title/key/type/parent/createTime/size/children`） |
-| `GET /api/logs/detail?path=&file=` | 日志文件内容 |
-| `DELETE /api/logs` | 删除日志文件 |
-
-### 1. 最容易踩的坑：User-Agent 决定 platform
-
-青龙后端 `getPlatform(UA)` 会把请求分成 `mobile` / `desktop`，登录时把 token 写进 `tokens[platform]`，
-后续校验走 `isValidToken(authInfo, headerToken, req.platform)` —— **也是按 platform 取 token**。
-
-所以客户端**每一个请求都必须带完全一致的 UA**，否则会出现「登录成功、下一个请求就 401」的诡异现象。
-实现见 `APIClient.userAgent`（固定为包含 `iPhone` 的 UA，因此面板里会显示为 *mobile 端登录*）。
-
-### 2. 任务状态枚举（v2.21 与老版本不同）
-
-```
-0 = 运行中 (running)
-1 = 未使用 (idle)      ← 青龙网页版叫「未使用」，老文档里写「空闲」
-2 = 已禁用 (disabled)
-3 = 排队中 (queued)
-```
-
-另外任务上还有独立的 `isDisabled` 字段，代码里两个都判断了。
-
-任务页那四档筛选就是按这两个字段分档的（`cronBucket()`）：
-
-| 筛选项 | 命中条件 |
-| --- | --- |
-| 全部 | 不过滤 |
-| 运行中 | `isDisabled !== 1` 且 `status !== 2` 且 `status !== 1`（即 0 和 3） |
-| 未使用 | `status === 1` |
-| 已禁用 | `isDisabled === 1` 或 `status === 2` |
-
-注意 **3（排队中）归进「运行中」** —— 它也是「在用」的任务，单列一档没有意义。
-四档互斥且穷尽：任何一个任务必然落进其中一档，不会漏。
-
-### 3. Joi 严格校验
-
-`POST/PUT /api/crons` 和 `/api/envs` 用的 `celebrate + Joi.object()` **默认不允许未知字段**，
-而且 `name: Joi.string()` 不接受空串。所以：
-
-- 请求体里只放后端 schema 声明过的字段（多一个就 400）
-- 空值一律**不发送**（Swift 的 Optional + 合成编码器的 `encodeIfPresent` 正好干这个）
-- 变量名还要满足 `^[a-zA-Z_][0-9a-zA-Z_]*$`，客户端做了本地校验
-
-### 4. 明文 HTTP 与 ATS
-
-面板跑在 `http://` 上，iOS 默认会拦截。`Info.plist` 里已经配好：
-
-```xml
-<key>NSAppTransportSecurity</key>
-<dict>
-  <key>NSAllowsArbitraryLoads</key><true/>
-  <key>NSAllowsLocalNetworking</key><true/>
-</dict>
-```
-
-如果面板在内网 IP（192.168.x.x / 10.x.x.x），iOS 14+ 还会弹「本地网络」权限，`NSLocalNetworkUsageDescription` 也已加上。
-
-### 5. 其他
-
-- 日志文件里带终端 ANSI 颜色转义，客户端做了清理（`String.strippingANSI`）
-- 时间戳字段（`last_execution_time` 等）单位是**毫秒**，不是秒
-- 6 段 cron（带秒）也支持，但「下次执行时间」按分钟粒度估算
-
----
-
-## 五、没做的部分（有意留的边界）
-
-- 运行实例列表 `/api/crons/{id}/instances`、单实例停止
-- 任务的历史日志文件列表 `/api/crons/{id}/logs`
-- 定时视图的**创建 / 编辑 / 删除 / 启停 / 排序** —— 客户端只做「切换」：
-  读面板上已经配好的视图，按它的条件查任务。编那种「字段 + 操作符 + 值 + 且或」
-  的多条件表单在手机小屏上太局促，要改去面板网页版改，切回来就能看到
-
-App 图标已生成（`tools/make_icon.py`，纯标准库画的 1024×1024 闪电图标，改配色重跑即可）。
-
----
-
-## 六、安全提醒
-
-1. **明文 http = 密码和 token 在网络里裸奔**。这台面板挂在公网 IP 上，用 `http://` 登录时，
-   运营商链路、公共 Wi-Fi 上的任何人都可能抓到你的账号密码和 JWT。
-   强烈建议：**给面板配 HTTPS**（Nginx/Caddy 反代 + Let's Encrypt 证书），然后客户端里把地址换成 `https://...`。
-2. 建议开启面板的两步验证，客户端已支持。
-3. 令牌存在系统钥匙串（`kSecAttrAccessibleAfterFirstUnlock`），不写入 UserDefaults，不上传任何第三方。
-
----
-
-## 七、没有 Mac 怎么办
-
-`.ipa` 只能由 macOS 上的 `xcodebuild` 产出（需要 iOS SDK + Mach-O 链接器 + codesign），
-Windows 上没有这套工具链。三条可行路径：
-
-1. **GitHub Actions 的免费 macOS runner**（推荐，全程 Windows）——
-   **不需要开发者证书**，先出一个未签名的 ipa，再用 Sideloadly 拿你自己的免费 Apple ID 签名安装。
-   完整步骤见 **[BUILD-IPA.md](BUILD-IPA.md)**。
-2. **借一台 Mac**（旧款 MacBook Air 也行），装 Xcode 15 就能跑通上面「方式 A」。
-   有 99 美元/年的开发者账号的话，签名有效期 1 年，比免费账号的 7 天省心。
-3. **改用 PWA**：单文件网页，iPhone 用 Safari 打开 →「添加到主屏幕」，图标和全屏体验接近原生，
-   **不需要 Mac、不需要签名、不会 7 天过期**，功能可以做到和本客户端一致（任务/日志/变量）。
+仅供个人使用。请遵守你所在地区的法律法规，勿用于任何违法违规用途。

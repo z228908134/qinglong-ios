@@ -1,19 +1,17 @@
-# Xcode 生成的工程（由 project.yml 经 XcodeGen 生成，不入库）
-QingLongClient.xcodeproj/
-*.xcworkspace/
-
-# 构建产物
+# macOS / Xcode
 build/
 DerivedData/
-*.ipa
-Payload/
-
-# 从 Actions 拉下来的产物（ipa 的 zip 包等）
-out/
-
-# 本机
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
 .DS_Store
 
-# 从 GitHub Actions 拉下来的构建日志（排查用，不入库）
-.ci-logs/
-ci-*.log
+# 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 临时产物
+*.ipa
+Payload/

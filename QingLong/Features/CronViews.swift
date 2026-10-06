@@ -147,7 +147,16 @@ struct CronListView: View {
                 }
             }
         }
-        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.cardBackground))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Theme.cardBorder, lineWidth: 1)
+                )
+        )
+        .compositingGroup()
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 3)
         .padding(.horizontal, 16)
     }
 
@@ -178,10 +187,14 @@ struct CronRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            IconTile(icon: "terminal", tint: badge.color, size: 30)
+            // 语言角标块：只显示 PY/JS/TS/SH 字样。
+            // 原先在 terminal 图标上再叠文字，两个字形会互相压住，观感脏。
+            RoundedRectangle(cornerRadius: 9)
+                .fill(badge.color.opacity(0.15))
+                .frame(width: 32, height: 32)
                 .overlay(
                     Text(badge.text)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 10.5, weight: .bold))
                         .foregroundColor(badge.color)
                 )
 

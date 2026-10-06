@@ -20,9 +20,29 @@ struct QingLongApp: App {
         }
     }
 
-    /// 让列表与卡片使用 iOS 原生分组背景，避免默认白底在深色模式下刺眼。
+    /// 让导航栏、Tab 栏与页面背景融为一体，避免深色模式下
+    /// 顶部/底部出现一截突兀的纯黑条（截图里「大黑框」观感的主要来源之一）。
     private func applyAppearance() {
         UITableView.appearance().backgroundColor = .clear
+
+        let page = Theme.uiPageBackground
+
+        let nav = UINavigationBarAppearance()
+        nav.configureWithOpaqueBackground()
+        nav.backgroundColor = page
+        nav.shadowColor = .clear
+        UINavigationBar.appearance().standardAppearance = nav
+        UINavigationBar.appearance().scrollEdgeAppearance = nav
+        UINavigationBar.appearance().compactAppearance = nav
+
+        let tab = UITabBarAppearance()
+        tab.configureWithOpaqueBackground()
+        tab.backgroundColor = page
+        tab.shadowColor = .clear
+        UITabBar.appearance().standardAppearance = tab
+        if #available(iOS 15.0, *) {
+            UITabBar.appearance().scrollEdgeAppearance = tab
+        }
     }
 }
 

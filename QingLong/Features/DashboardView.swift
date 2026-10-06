@@ -16,6 +16,7 @@ struct DashboardView: View {
                         if !store.dashboardIssues.isEmpty {
                             diagnosticCard
                         }
+                        heroCard
                         metricsGrid
                         runningCard
                         TrendChartCard(points: store.trend)
@@ -166,38 +167,75 @@ struct DashboardView: View {
     /// 实际上只是没有数据。所以这种情况统一显示为未知。
     private var hasStats: Bool { store.overview != nil }
 
-    private var metricsGrid: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                MetricTile(
-                    title: "定时任务",
-                    value: "\(store.overview?.total ?? store.crons.count)",
-                    caption: "启用 \(store.overview?.enabled ?? store.crons.filter { !$0.isDisabledTask }.count) · 禁用 \(store.overview?.disabled ?? store.crons.filter { $0.isDisabledTask }.count)",
-                    tint: Theme.accent
-                )
-                MetricTile(
-                    title: "今日执行",
-                    value: hasStats ? "\(store.overview?.todayRuns ?? 0)" : "—",
-                    caption: hasStats
+    /// 主视觉卡：品牌绿渐变底 + 成功率圆环 + 今日执行大数字。
+    private var heroCard: some View {
+        let rateText = hasStats ? (store.overview?.successRate ?? "0") : nil
+        let rate = rateText.flatMap { Double($0) }.map { max(0, min(1, $0 / 100)) }
+
+        return HStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.28), lineWidth: 8)
+                if let rate = rate {
+                    Circle()
+                        .trim(from: 0, to: CGFloat(rate))
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.6), value: rate)
+                }
+                VStack(spacing: 1) {
+                    Text(rateText.map { "\($0)%" } ?? "—")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("成功率")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.85))
+                }
+            }
+            .frame(width: 76, height: 76)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("今日执行")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
+                Text(hasStats ? "\(store.overview?.todayRuns ?? 0)" : "—")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Text(hasStats
                         ? "成功 \(store.overview?.todaySuccess ?? 0) · 失败 \(store.overview?.todayFail ?? 0)"
-                        : "面板未返回统计数据",
-                    tint: Theme.info
-                )
+                        : "面板未返回统计数据")
+                    .font(.system(size: 11.5))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
             }
-            HStack(spacing: 10) {
-                MetricTile(
-                    title: "今日成功率",
-                    value: hasStats ? "\(store.overview?.successRate ?? "0")%" : "—",
-                    caption: hasStats ? "基于今日执行次数" : "面板未返回统计数据",
-                    tint: Theme.success
-                )
-                MetricTile(
-                    title: "平均耗时",
-                    value: hasStats ? durationText(store.overview?.avgTime ?? 0) : "—",
-                    caption: hasStats ? "今日单次平均" : "面板未返回统计数据",
-                    tint: Theme.warning
-                )
-            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Theme.heroGradient)
+                .shadow(color: Theme.heroBottom.opacity(0.35), radius: 12, x: 0, y: 5)
+        )
+    }
+
+    private var metricsGrid: some View {
+        HStack(spacing: 10) {
+            MetricTile(
+                title: "定时任务",
+                value: "\(store.overview?.total ?? store.crons.count)",
+                caption: "启用 \(store.overview?.enabled ?? store.crons.filter { !$0.isDisabledTask }.count) · 禁用 \(store.overview?.disabled ?? store.crons.filter { $0.isDisabledTask }.count)",
+                tint: Theme.accent
+            )
+            MetricTile(
+                title: "平均耗时",
+                value: hasStats ? durationText(store.overview?.avgTime ?? 0) : "—",
+                caption: hasStats ? "今日单次平均" : "面板未返回统计数据",
+                tint: Theme.warning
+            )
         }
     }
 
@@ -396,7 +434,11 @@ struct TrendChartCard: View {
                     .fill(Theme.fieldBackground)
                     .frame(height: 72)
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(hasFail ? Theme.danger.opacity(0.85) : Theme.accent)
+                    .fill(LinearGradient(
+                        gradient: Gradient(colors: hasFail
+                            ? [Theme.danger, Theme.danger.opacity(0.55)]
+                            : [Theme.heroTop, Theme.heroBottom]),
+                        startPoint: .top, endPoint: .bottom))
                     .frame(height: height)
             }
 

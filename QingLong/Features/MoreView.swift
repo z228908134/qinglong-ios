@@ -6,9 +6,24 @@ struct MoreView: View {
 
     @EnvironmentObject private var store: PanelStore
 
+    /// 与 App 入口共用同一个键，改动即时生效
+    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
+
     var body: some View {
         NavigationView {
             List {
+                Section(
+                    header: Text("外观"),
+                    footer: Text("品牌色已为深色模式单独适配，切换后立即生效，不需要重启。")
+                ) {
+                    Picker("主题", selection: $appearanceRaw) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Text(mode.title).tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+
                 Section(header: Text("面板管理")) {
                     MenuRow(
                         icon: "cube.box.fill",

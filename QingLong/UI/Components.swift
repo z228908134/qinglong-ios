@@ -6,11 +6,36 @@ import UIKit
 /// 颜色全部走系统语义色，因此在浅色 / 深色模式下自动适配，
 /// 只有品牌主色（青龙绿）是固定值。
 enum Theme {
-    static let accent = Color(red: 0.09, green: 0.63, blue: 0.44)
-    static let success = Color(red: 0.09, green: 0.63, blue: 0.44)
-    static let info = Color(red: 0.15, green: 0.49, blue: 0.86)
-    static let warning = Color(red: 0.89, green: 0.60, blue: 0.11)
-    static let danger = Color(red: 0.84, green: 0.26, blue: 0.24)
+    /// 构造「浅色 / 深色」两套取值的自适应颜色。
+    ///
+    /// 背景与文字色本来就取自系统语义色，会自动跟随明暗；但品牌色是写死的 RGB，
+    /// 若深色模式下沿用浅色那一套，会显得发闷、对比度不足，因此单独各配一套更亮的变体。
+    private static func adaptive(light: UIColor, dark: UIColor) -> Color {
+        Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark ? dark : light
+        })
+    }
+
+    static let accent = adaptive(
+        light: UIColor(red: 0.09, green: 0.63, blue: 0.44, alpha: 1),
+        dark: UIColor(red: 0.22, green: 0.80, blue: 0.58, alpha: 1)
+    )
+    static let success = adaptive(
+        light: UIColor(red: 0.09, green: 0.63, blue: 0.44, alpha: 1),
+        dark: UIColor(red: 0.26, green: 0.83, blue: 0.60, alpha: 1)
+    )
+    static let info = adaptive(
+        light: UIColor(red: 0.15, green: 0.49, blue: 0.86, alpha: 1),
+        dark: UIColor(red: 0.37, green: 0.65, blue: 1.00, alpha: 1)
+    )
+    static let warning = adaptive(
+        light: UIColor(red: 0.89, green: 0.60, blue: 0.11, alpha: 1),
+        dark: UIColor(red: 1.00, green: 0.73, blue: 0.28, alpha: 1)
+    )
+    static let danger = adaptive(
+        light: UIColor(red: 0.84, green: 0.26, blue: 0.24, alpha: 1),
+        dark: UIColor(red: 1.00, green: 0.44, blue: 0.40, alpha: 1)
+    )
     static let neutral = Color(UIColor.systemGray)
 
     static let primaryText = Color(UIColor.label)

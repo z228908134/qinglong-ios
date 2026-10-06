@@ -6,11 +6,16 @@ struct QingLongApp: App {
 
     @StateObject private var store = PanelStore.shared
 
+    /// 外观模式（跟随系统 / 白天 / 深色）。
+    /// 与设置页共用同一个 `@AppStorage` 键，改动后立即生效，不需要重启。
+    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(store)
                 .accentColor(Theme.accent)
+                .preferredColorScheme(AppearanceMode(rawValue: appearanceRaw)?.colorScheme)
                 .onAppear(perform: applyAppearance)
         }
     }

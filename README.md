@@ -28,42 +28,46 @@
 
 ---
 
-## 三、编译出 IPA（推荐：GitHub Actions，不需要 Mac）
+## 三、编译出 IPA（GitHub Actions 云编译，不需要 Mac）
 
-我在 Windows 上无法编译 iOS，所以把编译放到了 GitHub 的 macOS 云端机器上，全自动出包。
+编译交给 GitHub 的 macOS 云端机器全自动完成，全程不需要 Mac。
 
-### 1. 新建 GitHub 仓库
+### 产物已就绪
 
-到 GitHub 上新建一个仓库，**建议设为 Public**（私有仓库的 Actions 免费额度较少，且这个仓库里没有任何敏感信息——你的 Client Secret 不会被写进代码）。
+| 项 | 值 |
+|---|---|
+| 仓库 | `z228908134/qinglong-ios` |
+| 分支 | `native-swiftui` |
 
-### 2. 推送代码
+> 仓库里原有的 `main` 分支保留着更早的 WebView 版本，两个分支互不影响。这套原生实现放在 `native-swiftui` 上，确认没问题后再合并到 `main` 即可。
 
-在 `qinglong-ios` 目录下执行：
+### 下载编译好的 IPA
+
+1. 打开 https://github.com/z228908134/qinglong-ios/actions
+2. 点最新一次 **Build IPA**（绿色对勾那次）
+3. 页面底部找到 **Artifacts**，下载 **`QingLong-unsigned-ipa`**
+4. 解压得到 `QingLong-unsigned.ipa`（约 3.2 MB）
+5. 传到手机：AirDrop、iCloud Drive、微信文件传输助手，或者放到面板服务器上用 Safari 下载
+
+### 改了代码后重新出包
 
 ```bash
-cd qinglong-ios
-git init
 git add .
-git commit -m "青龙面板 iOS 原生客户端"
-git branch -M main
-git remote add origin https://github.com/<你的用户名>/<仓库名>.git
-git push -u origin main
+git commit -m "改动说明"
+git push origin native-swiftui
 ```
 
-> 把 `<你的用户名>` 和 `<仓库名>` 换成你自己的。GitHub 需要用 Personal Access Token 或 GitHub CLI 登录。
+推上去会自动重新编译，约 2～4 分钟。
 
-### 3. 等编译跑完，下载 IPA
+### 产物自检
 
-推送后 GitHub 会自动触发 `Build IPA` 工作流：
+流水线每次都会自动运行 `tools/verify_ipa.py`，校验 16 项硬指标：Mach-O 架构为 arm64、`LC_CODE_SIGNATURE` 与签名 blob magic 是否正确（**这一项直接决定 TrollStore 能否装上**）、`MinimumOSVersion`、ATS 明文放行、必要动态库等。任何一项不通过，构建会直接标红，以免下载到装不上的包。
 
-1. 打开仓库 → **Actions** 标签页
-2. 点击最新一次运行
-3. 等待 3～6 分钟，构建成功后页面底部会出现 **Artifacts**
-4. 下载 **`QingLong-unsigned-ipa`**，解压得到 `QingLong-unsigned.ipa`
+想手动复核已下载的 IPA：
 
-### 4. 传到手机
-
-最简单的方式是把 IPA 文件放到任意能被手机访问的地方：iCloud Drive、AirDrop（从 Mac）、微信文件传输助手、或者放到你的青龙面板所在服务器上用 Safari 下载。
+```bash
+python3 tools/verify_ipa.py QingLong-unsigned.ipa
+```
 
 ---
 
@@ -140,7 +144,10 @@ git push -u origin main
 ```
 qinglong-ios/
 ├── project.yml                        XcodeGen 工程定义（生成 .xcodeproj）
-├── .github/workflows/build-ipa.yml    云编译工作流
+├── .github/workflows/build-ipa.yml    云编译工作流（构建后自动校验产物）
+├── tools/
+│   ├── make_icon.py                   生成 1024×1024 应用图标
+│   └── verify_ipa.py                  校验产出的 IPA 是否可被巨魔安装
 └── QingLong/
     ├── App/                           入口与 Tab 结构
     ├── Core/

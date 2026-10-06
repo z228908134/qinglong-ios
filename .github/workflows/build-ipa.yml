@@ -70,6 +70,9 @@ jobs:
           ls -lh QingLong-unsigned.ipa
           unzip -l QingLong-unsigned.ipa | head -n 20
 
+      - name: Verify IPA contents
+        run: python3 tools/verify_ipa.py QingLong-unsigned.ipa
+
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:

@@ -311,7 +311,8 @@ struct CronDetailView: View {
                 VStack(spacing: 12) {
                     headerCard
                     actionCard
-                    detailCard
+                    scriptCard
+                    logHistoryCard
                     logCard
                     if live.isSubscribed {
                         subscriptionCard
@@ -326,6 +327,7 @@ struct CronDetailView: View {
         .navigationBarItems(trailing: Button("编辑") { showEdit = true })
         .onAppear {
             Task { await reloadLog() }
+            Task { await loadLogFiles() }
             startLogPolling()
         }
         .onDisappear {
@@ -491,6 +493,19 @@ struct CronDetailView: View {
 
     private static let logTailLineLimit = 200
 
+    /// 运行时长格式化。
+    /// 面板的 `last_running_time` 是毫秒数，不能当时间戳格式化成日期
+    /// （否则会显示成 1970-01-01 08:00:10 这种 epoch 起点时间）。
+    static func durationText(_ ms: Int) -> String {
+        if ms < 1000 { return "\(ms) 毫秒" }
+        let sec = Double(ms) / 1000
+        if sec < 60 { return String(format: "%.1f 秒", sec) }
+        let m = Int(sec) / 60
+        let s = Int(sec) % 60
+        if m < 60 { return "\(m) 分 \(s) 秒" }
+        return "\(m / 60) 小时 \(m % 60) 分"
+    }
+
     private var headerCard: some View {
         SectionCard {
             VStack(alignment: .leading, spacing: 10) {
@@ -590,6 +605,117 @@ struct CronDetailView: View {
         }
     }
 
+    // MARK: - 脚本 / 日志历史
+
+    @State private var logFiles: [String] = []
+    @State private var logFilesLoading = false
+
+    /// 从命令里提取脚本相对路径：`task xxx/yyy.js` → `xxx/yyy.js`。
+    private var scriptPath: String? {
+        let cmd = live.command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cmd.hasPrefix("task ") else { return nil }
+        let rest = cmd.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
+        return rest.isEmpty ? nil : rest
+    }
+
+    private func loadLogFiles() async {
+        logFilesLoading = true
+        logFiles = await store.cronLogFileNames(id: cron.id)
+        logFilesLoading = false
+    }
+
+    private var scriptCard: some View {
+        SectionCard("脚本") {
+            if let path = scriptPath {
+                let dir = path.contains("/")
+                    ? String(path[..<path.range(of: "/", options: .backwards)!.lowerBound])
+                    : ""
+                let name = (path as NSString).lastPathComponent
+                let node = FileNode(
+                    id: "f:" + path,
+                    title: name,
+                    path: path,
+                    parent: dir,
+                    isDirectory: false,
+                    children: []
+                )
+                NavigationLink(destination: ScriptEditorView(path: dir, node: node)) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "doc.text.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(Theme.accent)
+                        Text(path)
+                            .font(.system(size: 12.5, design: .monospaced))
+                            .foregroundColor(Theme.info)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.55)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11.5))
+                            .foregroundColor(Theme.tertiaryText)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                Text("该任务的命令不包含脚本文件（如 task xxx.js），无法直接跳转编辑。")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(Theme.secondaryText)
+            }
+        }
+    }
+
+    private var logHistoryCard: some View {
+        SectionCard("日志") {
+            if logFilesLoading && logFiles.isEmpty {
+                HStack(spacing: 8) {
+                    ProgressView().scaleEffect(0.8)
+                    Text("正在读取日志历史…")
+                        .font(.system(size: 12))
+                        .foregroundColor(Theme.secondaryText)
+                }
+                .padding(.vertical, 6)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    historyRow(
+                        title: "最新日志",
+                        value: logFiles.first ?? "跟随任务",
+                        destination: AnyView(CronLogView(cron: live))
+                    )
+                    Divider()
+                        .background(Theme.separator)
+                    historyRow(
+                        title: "日志历史",
+                        value: logFiles.isEmpty ? "—" : "\(logFiles.count) 个文件",
+                        destination: AnyView(CronLogHistoryView(cron: live, files: logFiles))
+                    )
+                }
+            }
+        }
+    }
+
+    private func historyRow(title: String, value: String, destination: AnyView) -> some View {
+        NavigationLink(destination: destination) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 13.5))
+                    .foregroundColor(Theme.primaryText)
+                Spacer(minLength: 8)
+                Text(value)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(Theme.info)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.tertiaryText)
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
     private var detailCard: some View {
         SectionCard("任务信息") {
             VStack(spacing: 9) {
@@ -600,7 +726,7 @@ struct CronDetailView: View {
                 if let running = live.lastRunningTime, running > 0 {
                     InfoRow(
                         label: "运行时长",
-                        value: Date(timeIntervalSince1970: TimeInterval(running)).qlFullText
+                        value: Self.durationText(running)
                     )
                 }
 

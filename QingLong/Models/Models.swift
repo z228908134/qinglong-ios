@@ -749,3 +749,80 @@ extension Date {
         return formatter.string(from: self)
     }
 }
+
+
+// MARK: - 配置文件
+
+/// 面板配置文件列表项（`GET /api/configs/files` 返回 {title, value}）。
+struct ConfigFileItem: Codable, Identifiable {
+    var title: String = ""
+    var value: String = ""
+
+    var id: String { value.isEmpty ? title : value }
+
+    enum CodingKeys: String, CodingKey { case title, value }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        title = (try? c.decode(String.self, forKey: .title)) ?? ""
+        value = (try? c.decode(String.self, forKey: .value)) ?? ""
+    }
+
+    init(title: String) {
+        self.title = title
+        self.value = title
+    }
+}
+
+/// 配置文件保存：面板要求提交 {name, content}（`POST /api/configs/save`）。
+struct ConfigSavePayload: Encodable {
+    var name: String
+    var content: String
+}
+
+// MARK: - 登录日志
+
+/// 面板登录记录（`GET /api/user/login-log`）。
+/// 服务端把每次登录写进 info：{timestamp, address, ip, platform, status}，
+/// timestamp 为毫秒；status 可能是字符串（success/fail）或枚举值，做容错解析。
+struct LoginLogEntry: Codable, Identifiable {
+    var timestamp: Double = 0
+    var ip: String = ""
+    var address: String = ""
+    var platform: String = ""
+    var status: String = ""
+
+    var id: String { "\(timestamp)-\(ip)-\(status)" }
+
+    enum CodingKeys: String, CodingKey { case timestamp, ip, address, platform, status }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        if let v = try? c.decode(Double.self, forKey: .timestamp) {
+            timestamp = v
+        } else if let s = try? c.decode(String.self, forKey: .timestamp), let v = Double(s) {
+            timestamp = v
+        }
+        ip = (try? c.decode(String.self, forKey: .ip)) ?? ""
+        address = (try? c.decode(String.self, forKey: .address)) ?? ""
+        platform = (try? c.decode(String.self, forKey: .platform)) ?? ""
+        status = (try? c.decode(String.self, forKey: .status)) ?? ""
+    }
+
+    init() {}
+
+    var dateText: String {
+        let sec = timestamp > 1e11 ? timestamp / 1000 : timestamp
+        let d = Date(timeIntervalSince1970: sec)
+        let f = DateFormatter()
+        f.dateFormat = "MM-dd HH:mm:ss"
+        return f.string(from: d)
+    }
+
+    var isSuccess: Bool {
+        let s = status.lowercased()
+        if s.contains("succ") || s.contains("ok") { return true }
+        if s.contains("fail") || s.contains("error") || s.contains("den") { return false }
+        return true
+    }
+}

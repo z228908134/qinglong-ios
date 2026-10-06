@@ -71,6 +71,8 @@ final class PanelStore: ObservableObject {
     @Published var trend: [DashboardTrendPoint] = []
     @Published var runtime: RuntimeInfo?
     @Published var systemStat: SystemStat?
+    @Published var configFiles: [ConfigFileItem] = []
+    @Published var loginLogs: [LoginLogEntry] = []
 
     /// 概览各接口的加载失败原因。面板把概览数据放在独立的 `dashboard` 权限
     /// scope 下，未授权会返回 403；必须把原因显式呈现给用户，
@@ -503,6 +505,85 @@ final class PanelStore: ObservableObject {
                 as: JSONValue.self
             )
             envs = ListDecoder.decode(response.data, as: QLEnv.self)
+        }
+    }
+
+
+    // MARK: - 配置文件
+
+    func loadConfigFiles() async {
+        await perform("config-files") {
+            let response = try await APIClient.shared.send(
+                .get, "configs/files", as: JSONValue.self
+            )
+            configFiles = ListDecoder.decode(response.data, as: ConfigFileItem.self)
+        }
+    }
+
+    /// 读取配置文件内容。
+    /// 新版面板走 `GET /api/configs/detail?path=<文件名>`；旧版走 `GET /api/configs/:file`，
+    /// 两个都试，谁通用谁。
+    func loadConfigContent(_ file: String) async -> String {
+        if let response = try? await APIClient.shared.send(
+            .get, "configs/detail",
+            query: [("path", file)],
+            as: String.self
+        ), let text = response.data, !text.isEmpty {
+            return text
+        }
+        if let response = try? await APIClient.shared.send(
+            .get, "configs/\(file)", as: String.self
+        ) {
+            return response.data ?? ""
+        }
+        return ""
+    }
+
+    func saveConfigFile(name: String, content: String) async -> Bool {
+        let payload = ConfigSavePayload(name: name, content: content)
+        // 旧版面板用 PUT，新版 develop 用 POST，两个都试
+        do {
+            _ = try await APIClient.shared.send(
+                .put, "configs/save", body: payload, as: JSONValue.self
+            )
+            return true
+        } catch {}
+        do {
+            _ = try await APIClient.shared.send(
+                .post, "configs/save", body: payload, as: JSONValue.self
+            )
+            return true
+        } catch {}
+        return false
+    }
+
+    // MARK: - 登录日志
+
+    func loadLoginLogs() async {
+        await perform("login-logs") {
+            let response = try await APIClient.shared.send(
+                .get, "user/login-log", as: JSONValue.self
+            )
+            loginLogs = ListDecoder.decode(response.data, as: LoginLogEntry.self)
+        }
+    }
+
+    /// 任务日志历史文件名（`GET /api/crons/:id/logs`，最新在前）。
+    /// 与上面的 `cronLogFiles(id:) -> [FileNode]` 区分命名，避免同名同参重定义。
+    func cronLogFileNames(id: Int) async -> [String] {
+        do {
+            let response = try await APIClient.shared.send(
+                .get, "crons/\(id)/logs", as: JSONValue.self
+            )
+            var files: [String] = []
+            if let arr = response.data?.arrayValue {
+                files = arr.compactMap { $0.stringValue }
+            } else if let s = response.data?.stringValue {
+                files = [s]
+            }
+            return files
+        } catch {
+            return []
         }
     }
 

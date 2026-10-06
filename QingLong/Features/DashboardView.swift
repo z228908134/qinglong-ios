@@ -91,7 +91,7 @@ struct DashboardView: View {
 
                 HStack(spacing: 18) {
                     labeledValue("登录账号", store.connection?.accountName ?? "-")
-                    labeledValue("令牌状态", store.connection?.expirationText ?? "-")
+                    labeledValue("登录方式", "账号密码")
                 }
 
                 if let system = store.systemStat, !system.platform.isEmpty {
@@ -446,9 +446,14 @@ struct TrendChartCard: View {
     }
 
     private func bar(for point: DashboardTrendPoint) -> some View {
+        // 堆叠分段柱：绿色 = 成功（下段），红色 = 失败（上段），
+        // 高度按当日成功/失败占比切分——之前只要当天有失败就整根染红，
+        // 7 天柱子全是红的，成功/失败图例完全对不上。
         let ratio = CGFloat(point.total) / CGFloat(maxValue)
         let height = max(point.total > 0 ? 6 : 3, ratio * 72)
-        let hasFail = point.fail > 0
+        let okRatio = point.total > 0 ? CGFloat(point.success) / CGFloat(point.total) : 0
+        let okH = height * okRatio
+        let badH = height - okH
 
         return VStack(spacing: 5) {
             Text(point.total > 0 ? "\(point.total)" : "")
@@ -459,13 +464,21 @@ struct TrendChartCard: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Theme.fieldBackground)
                     .frame(height: 72)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(LinearGradient(
-                        gradient: Gradient(colors: hasFail
-                            ? [Theme.danger, Theme.danger.opacity(0.55)]
-                            : [Theme.heroTop, Theme.heroBottom]),
-                        startPoint: .top, endPoint: .bottom))
-                    .frame(height: height)
+                VStack(spacing: 1.5) {
+                    if badH > 1.5 {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Theme.danger.opacity(0.9))
+                            .frame(height: badH - 1.5)
+                    }
+                    if okH > 1.5 {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(LinearGradient(
+                                gradient: Gradient(colors: [Theme.success, Theme.success.opacity(0.7)]),
+                                startPoint: .top, endPoint: .bottom))
+                            .frame(height: okH - (badH > 1.5 ? 1.5 : 0))
+                    }
+                }
+                .frame(height: height, alignment: .bottom)
             }
 
             Text(point.date)

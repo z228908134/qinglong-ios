@@ -48,11 +48,18 @@ struct MoreView: View {
                         destination: ScriptBrowserView()
                     )
                     MenuRow(
-                        icon: "key.fill",
-                        title: "环境变量",
-                        subtitle: "查看与编辑任务运行所需的变量",
+                        icon: "wrench.and.screwdriver",
+                        title: "配置文件",
+                        subtitle: "查看与编辑 config.sh 等面板配置",
                         tint: Theme.info,
-                        destination: EnvListContent(inlineTitle: true)
+                        destination: ConfigListView(inlineTitle: true)
+                    )
+                    MenuRow(
+                        icon: "clock.arrow.circlepath",
+                        title: "登录日志",
+                        subtitle: "查看面板登录记录与来源 IP",
+                        tint: Theme.warning,
+                        destination: LoginLogView(inlineTitle: true)
                     )
                 }
 

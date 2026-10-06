@@ -1,0 +1,17 @@
+# macOS / Xcode
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+.DS_Store
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 临时产物
+*.ipa
+Payload/

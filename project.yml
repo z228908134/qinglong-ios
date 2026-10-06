@@ -1,0 +1,48 @@
+name: QingLong
+
+options:
+  bundleIdPrefix: com.qinglong
+  createIntermediateGroups: true
+  groupSortPosition: top
+  deploymentTarget:
+    iOS: "14.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_BITCODE: NO
+    ALWAYS_SEARCH_USER_PATHS: NO
+    SWIFT_OPTIMIZATION_LEVEL: "-O"
+    SWIFT_COMPILATION_MODE: wholemodule
+
+targets:
+  QingLong:
+    type: application
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: QingLong
+        excludes:
+          - "Resources/Info.plist"
+    settings:
+      base:
+        PRODUCT_NAME: QingLong
+        PRODUCT_BUNDLE_IDENTIFIER: com.qinglong.ios
+        INFOPLIST_FILE: QingLong/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: NO
+        IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""
+        SWIFT_EMIT_LOC_STRINGS: NO
+        CLANG_ENABLE_MODULES: YES
+    scheme:
+      gatherCoverageData: false

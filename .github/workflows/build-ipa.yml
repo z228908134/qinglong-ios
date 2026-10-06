@@ -1,0 +1,79 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main, master, native-swiftui]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build unsigned IPA for TrollStore
+    runs-on: macos-15
+
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          sw_vers
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app bundle (code signing disabled)
+        run: |
+          xcodebuild build \
+            -project QingLong.xcodeproj \
+            -target QingLong \
+            -configuration Release \
+            -sdk iphoneos \
+            CONFIGURATION_BUILD_DIR="$PWD/build/Release-iphoneos" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Assemble IPA payload
+        run: |
+          APP_PATH="build/Release-iphoneos/QingLong.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::No .app bundle was produced by xcodebuild"
+            ls -R build || true
+            exit 1
+          fi
+          echo "App bundle: $APP_PATH"
+          mkdir -p Payload
+          cp -R "$APP_PATH" "Payload/QingLong.app"
+          du -sh Payload/QingLong.app
+
+      - name: Pseudo-sign with ldid (TrollStore friendly)
+        continue-on-error: true
+        run: |
+          brew install ldid
+          ldid -S "Payload/QingLong.app/QingLong"
+          echo "Binary pseudo-signed with ldid"
+
+      - name: Zip IPA
+        run: |
+          zip -qry QingLong-unsigned.ipa Payload
+          rm -rf Payload
+          ls -lh QingLong-unsigned.ipa
+          unzip -l QingLong-unsigned.ipa | head -n 20
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingLong-unsigned-ipa
+          path: QingLong-unsigned.ipa
+          retention-days: 30
+          if-no-files-found: error

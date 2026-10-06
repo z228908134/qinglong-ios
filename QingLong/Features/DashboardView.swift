@@ -13,6 +13,9 @@ struct DashboardView: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         connectionCard
+                        if !store.dashboardIssues.isEmpty {
+                            diagnosticCard
+                        }
                         metricsGrid
                         runningCard
                         TrendChartCard(points: store.trend)
@@ -117,7 +120,51 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // MARK: - 诊断提示
+
+    /// 概览接口失败时的提示条。
+    ///
+    /// 面板把概览数据归在独立的 `dashboard` 权限 scope 下，创建应用时很容易漏勾；
+    /// 一旦漏勾，接口返回 403，界面上就只剩一排 0。这里把失败原因直接摆出来，
+    /// 并给出可操作的修复路径，避免用户误以为"任务全失败了"。
+    private var diagnosticCard: some View {
+        SectionCard {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(Theme.warning)
+                    Text(store.dashboardScopeDenied ? "当前应用缺少「面板概览」权限" : "部分概览数据未能加载")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Theme.primaryText)
+                    Spacer(minLength: 0)
+                }
+
+                if store.dashboardScopeDenied {
+                    Text("概览统计、执行趋势、运行实例属于独立的 dashboard 权限，与任务列表的权限是分开授予的。请到面板「系统设置 → 应用设置」编辑当前应用，勾上「面板概览 / dashboard」并保存，然后回到本页刷新即可。")
+                        .font(.system(size: 12))
+                        .foregroundColor(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                ForEach(store.dashboardIssues, id: \.self) { issue in
+                    Text("· \(issue)")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(Theme.tertiaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
     // MARK: - 今日指标
+
+    /// 面板是否真的返回了今日统计。
+    ///
+    /// 值为 nil 表示 `/dashboard/overview` 不可用（典型原因是应用未授予
+    /// `dashboard` 权限）。此时显示 "0%" 会造成误导——用户会以为任务全部失败，
+    /// 实际上只是没有数据。所以这种情况统一显示为未知。
+    private var hasStats: Bool { store.overview != nil }
 
     private var metricsGrid: some View {
         VStack(spacing: 10) {
@@ -130,22 +177,24 @@ struct DashboardView: View {
                 )
                 MetricTile(
                     title: "今日执行",
-                    value: "\(store.overview?.todayRuns ?? 0)",
-                    caption: "成功 \(store.overview?.todaySuccess ?? 0) · 失败 \(store.overview?.todayFail ?? 0)",
+                    value: hasStats ? "\(store.overview?.todayRuns ?? 0)" : "—",
+                    caption: hasStats
+                        ? "成功 \(store.overview?.todaySuccess ?? 0) · 失败 \(store.overview?.todayFail ?? 0)"
+                        : "面板未返回统计数据",
                     tint: Theme.info
                 )
             }
             HStack(spacing: 10) {
                 MetricTile(
                     title: "今日成功率",
-                    value: "\(store.overview?.successRate ?? "0")%",
-                    caption: "基于今日执行次数",
+                    value: hasStats ? "\(store.overview?.successRate ?? "0")%" : "—",
+                    caption: hasStats ? "基于今日执行次数" : "面板未返回统计数据",
                     tint: Theme.success
                 )
                 MetricTile(
                     title: "平均耗时",
-                    value: durationText(store.overview?.avgTime ?? 0),
-                    caption: "今日单次平均",
+                    value: hasStats ? durationText(store.overview?.avgTime ?? 0) : "—",
+                    caption: hasStats ? "今日单次平均" : "面板未返回统计数据",
                     tint: Theme.warning
                 )
             }
@@ -162,22 +211,59 @@ struct DashboardView: View {
 
     // MARK: - 正在运行
 
+    /// 正在运行的任务列表。
+    ///
+    /// 优先采用 `/dashboard/runtime`（带真实 PID 与精确运行时长）；当该接口不可用时
+    /// （例如应用未授予 `dashboard` 权限），退回用任务列表的 `status == running(0)`
+    /// 自行推导，并把 `last_running_time` 换算成已运行时长。这样即便概览接口被拒，
+    /// 这块信息也不会凭空消失。
+    private var runningTasks: [RunningTask] {
+        if let runtime = store.runtime, !runtime.running.isEmpty {
+            return runtime.running
+        }
+        let now = Int(Date().timeIntervalSince1970)
+        return store.crons
+            .filter { !$0.isDisabledTask && $0.runStatus.isActive }
+            .map { cron in
+                RunningTask(cron: cron, elapsed: cron.lastRunningTime.map { max(0, now - $0) } ?? 0)
+            }
+    }
+
+    /// 运行中任务的副标题：有 PID 显示 PID，有时长显示时长，都没有则说明状态。
+    private func runningSubtitle(_ task: RunningTask) -> String {
+        var parts: [String] = []
+        if let pid = task.pid, pid > 0 { parts.append("PID \(pid)") }
+        if task.elapsed > 0 { parts.append("已运行 \(task.elapsedText)") }
+        return parts.isEmpty ? "运行中" : parts.joined(separator: " · ")
+    }
+
     private var runningCard: some View {
-        SectionCard {
+        let running = runningTasks
+
+        return SectionCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("正在运行")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Theme.secondaryText)
                     Spacer()
-                    let active = store.runtime?.running.count ?? store.crons.filter { $0.runStatus.isActive }.count
-                    Text("\(active) 个任务")
+                    Text("\(running.count) 个任务")
                         .font(.system(size: 11.5))
                         .foregroundColor(Theme.tertiaryText)
                 }
 
-                if let runtime = store.runtime, !runtime.running.isEmpty {
-                    ForEach(runtime.running) { task in
+                if running.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "moon.zzz")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.tertiaryText)
+                        Text("当前没有正在运行的任务")
+                            .font(.system(size: 12.5))
+                            .foregroundColor(Theme.secondaryText)
+                    }
+                    .padding(.vertical, 6)
+                } else {
+                    ForEach(running) { task in
                         HStack(spacing: 10) {
                             Circle()
                                 .fill(Theme.info)
@@ -188,7 +274,7 @@ struct DashboardView: View {
                                     .font(.system(size: 13.5, weight: .medium))
                                     .foregroundColor(Theme.primaryText)
                                     .lineLimit(1)
-                                Text("PID \(task.pid ?? 0) · 已运行 \(task.elapsedText)")
+                                Text(runningSubtitle(task))
                                     .font(.system(size: 11))
                                     .foregroundColor(Theme.tertiaryText)
                             }
@@ -200,16 +286,6 @@ struct DashboardView: View {
                             }
                         }
                     }
-                } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: "moon.zzz")
-                            .font(.system(size: 14))
-                            .foregroundColor(Theme.tertiaryText)
-                        Text("当前没有正在运行的任务")
-                            .font(.system(size: 12.5))
-                            .foregroundColor(Theme.secondaryText)
-                    }
-                    .padding(.vertical, 6)
                 }
             }
         }

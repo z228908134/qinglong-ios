@@ -73,6 +73,14 @@ final class PanelStore: ObservableObject {
     @Published var runtime: RuntimeInfo?
     @Published var systemStat: SystemStat?
 
+    /// 概览各接口的加载失败原因。面板把概览数据放在独立的 `dashboard` 权限
+    /// scope 下，未授权会返回 403；必须把原因显式呈现给用户，
+    /// 否则界面上的 0% 会被误读成"数据真的是 0"。
+    @Published var dashboardIssues: [String] = []
+
+    /// 失败原因中是否包含权限拒绝（401/403），用于给出针对性指引。
+    @Published var dashboardScopeDenied = false
+
     // MARK: 搜索词（由视图绑定，刷新时沿用）
 
     @Published var cronSearch = ""
@@ -213,26 +221,103 @@ final class PanelStore: ObservableObject {
 
     // MARK: - 概览
 
+    /// 逐条拉取概览数据。
+    ///
+    /// 这里刻意**不再用 `try?` 静默吞掉错误**：四个端点在面板侧属于独立的
+    /// `dashboard` 权限 scope，任何一个失败如果被吞掉，界面只会显示 0% / 空白，
+    /// 用户无从判断是「数据真的是 0」还是「接口被拒绝」。因此每个失败都会记录
+    /// 到 `dashboardIssues`，由概览页明确展示出来。
     func loadDashboard() async {
         await perform("dashboard") {
-            if let response = try? await APIClient.shared.send(.get, "dashboard/overview", as: JSONValue.self),
-               let object = response.data {
-                let payload = try? JSONEncoder().encode(object)
-                if let payload = payload {
-                    overview = try? JSONDecoder().decode(DashboardOverview.self, from: payload)
+            dashboardIssues = []
+            var permissionDenied = false
+
+            // 1) 今日统计（总数 / 启用 / 成功失败 / 成功率 / 平均耗时）
+            do {
+                let response = try await APIClient.shared.send(.get, "dashboard/overview", as: JSONValue.self)
+                if let object = response.data,
+                   let payload = try? JSONEncoder().encode(object),
+                   let decoded = try? JSONDecoder().decode(DashboardOverview.self, from: payload) {
+                    overview = decoded
+                } else {
+                    overview = nil
+                    dashboardIssues.append("今日统计：返回结构无法解析")
                 }
+            } catch {
+                overview = nil
+                if Self.isPermissionDenied(error) { permissionDenied = true }
+                dashboardIssues.append("今日统计：\(Self.brief(error))")
             }
-            if let response = try? await APIClient.shared.send(.get, "dashboard/trend", query: [("days", "7")], as: JSONValue.self) {
+
+            // 2) 近 7 日执行趋势
+            do {
+                let response = try await APIClient.shared.send(
+                    .get, "dashboard/trend", query: [("days", "7")], as: JSONValue.self
+                )
                 trend = ListDecoder.decode(response.data, as: DashboardTrendPoint.self)
+            } catch {
+                trend = []
+                if Self.isPermissionDenied(error) { permissionDenied = true }
+                dashboardIssues.append("执行趋势：\(Self.brief(error))")
             }
-            if let response = try? await APIClient.shared.send(.get, "dashboard/runtime", as: JSONValue.self),
-               let object = response.data, let payload = try? JSONEncoder().encode(object) {
-                runtime = try? JSONDecoder().decode(RuntimeInfo.self, from: payload)
+
+            // 3) 正在运行的实例
+            do {
+                let response = try await APIClient.shared.send(.get, "dashboard/runtime", as: JSONValue.self)
+                if let object = response.data, let payload = try? JSONEncoder().encode(object) {
+                    runtime = try? JSONDecoder().decode(RuntimeInfo.self, from: payload)
+                }
+            } catch {
+                runtime = nil
+                if Self.isPermissionDenied(error) { permissionDenied = true }
+                dashboardIssues.append("运行实例：\(Self.brief(error))")
             }
-            if let response = try? await APIClient.shared.send(.get, "dashboard/system", as: JSONValue.self),
-               let object = response.data, let payload = try? JSONEncoder().encode(object) {
-                systemStat = try? JSONDecoder().decode(SystemStat.self, from: payload)
+
+            // 4) 面板运行环境（内存 / 负载 / 核数）
+            do {
+                let response = try await APIClient.shared.send(.get, "dashboard/system", as: JSONValue.self)
+                if let object = response.data, let payload = try? JSONEncoder().encode(object) {
+                    systemStat = try? JSONDecoder().decode(SystemStat.self, from: payload)
+                }
+            } catch {
+                systemStat = nil
+                dashboardIssues.append("面板环境：\(Self.brief(error))")
             }
+
+            dashboardScopeDenied = permissionDenied
+        }
+    }
+
+    /// 该错误是否属于「应用未被授予对应模块权限」。403 在青龙里表示
+    /// 应用存在但 scopes 不含该模块，与网络故障要区分开提示。
+    private static func isPermissionDenied(_ error: Error) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        switch apiError {
+        case .business(let code, _):
+            return code == 401 || code == 403
+        case .http(let code):
+            return code == 401 || code == 403
+        default:
+            return false
+        }
+    }
+
+    /// 把错误压成一行，用于概览页的诊断清单。
+    private static func brief(_ error: Error) -> String {
+        guard let apiError = error as? APIError else {
+            return error.localizedDescription
+        }
+        switch apiError {
+        case .http(let code):
+            return "HTTP \(code)"
+        case .business(let code, let message):
+            return message.isEmpty ? "code \(code)" : "code \(code) · \(message)"
+        case .sessionExpired:
+            return "登录状态已失效"
+        case .transport(let underlying):
+            return APIError.describe(underlying)
+        default:
+            return apiError.errorDescription ?? "未知错误"
         }
     }
 

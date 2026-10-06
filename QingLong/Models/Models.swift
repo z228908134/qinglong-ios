@@ -610,6 +610,18 @@ struct RunningTask: Codable, Identifiable {
 
     init() {}
 
+    /// 兜底构造：当 `/dashboard/runtime` 不可用（例如应用未授予概览权限）时，
+    /// 用任务自身的 `status` 与 `last_running_time` 推导出运行实例，
+    /// 保证「正在运行」区域在降级情况下依然可用。
+    init(cron: Cron, elapsed: Int) {
+        self.instanceId = 0
+        self.id = cron.id
+        self.name = cron.displayName
+        self.pid = cron.pid
+        self.elapsed = max(0, elapsed)
+        self.logPath = cron.logPath
+    }
+
     var elapsedText: String {
         if elapsed < 60 { return "\(elapsed) 秒" }
         if elapsed < 3600 { return "\(elapsed / 60) 分 \(elapsed % 60) 秒" }

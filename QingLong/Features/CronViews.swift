@@ -279,6 +279,13 @@ struct CronDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
 
+    // 内嵌运行日志
+    @State private var logText = ""
+    @State private var logLoading = true
+    @State private var logAutoRefresh = true
+    @State private var logExpanded = false
+    @State private var logPollTask: Task<Void, Never>?
+
     private var live: Cron {
         store.crons.first(where: { $0.id == cron.id }) ?? cron
     }
@@ -292,6 +299,7 @@ struct CronDetailView: View {
                     headerCard
                     actionCard
                     detailCard
+                    logCard
                     if live.isSubscribed {
                         subscriptionCard
                     }
@@ -303,6 +311,14 @@ struct CronDetailView: View {
         }
         .navigationBarTitle("任务详情", displayMode: .inline)
         .navigationBarItems(trailing: Button("编辑") { showEdit = true })
+        .onAppear {
+            Task { await reloadLog() }
+            startLogPolling()
+        }
+        .onDisappear {
+            logPollTask?.cancel()
+            logPollTask = nil
+        }
         .sheet(isPresented: $showEdit) {
             CronEditView(cron: live).environmentObject(store)
         }
@@ -320,6 +336,147 @@ struct CronDetailView: View {
             )
         }
     }
+
+    // MARK: - 内嵌运行日志
+
+    /// 详情页内嵌的运行日志框。
+    ///
+    /// 刻意做成「固定高度 + 框内滚动」：日志动辄上千行，直接铺开会把整页撑爆，
+    /// 小屏手机上尤其糟糕。具体做法：
+    /// - 宽度跟随屏幕自适应（`maxWidth: .infinity`），不写死宽度；
+    /// - 高度固定 148pt，内容超出在框内纵向滚动，页面本身长度不受日志影响；
+    /// - 点「展开」临时加高到 340pt，便于看更多上下文；
+    /// - 送入渲染的文本只取尾部若干行，避免超长文本拖慢滚动。
+    private var logCard: some View {
+        let boxHeight: CGFloat = logExpanded ? 340 : 148
+
+        return SectionCard("运行日志") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Toggle(isOn: $logAutoRefresh) {
+                        Text("自动刷新")
+                            .font(.system(size: 12.5))
+                            .foregroundColor(Theme.secondaryText)
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: Theme.accent))
+
+                    Spacer(minLength: 0)
+
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) { logExpanded.toggle() }
+                    }) {
+                        Text(logExpanded ? "收起" : "展开")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.accent)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Button(action: { Task { await reloadLog() } }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.accent)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+
+                logBody(boxHeight: boxHeight)
+
+                HStack(spacing: 0) {
+                    Text(logSummary)
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.tertiaryText)
+
+                    Spacer(minLength: 0)
+
+                    NavigationLink(destination: CronLogView(cron: live)) {
+                        HStack(spacing: 4) {
+                            Text("完整日志")
+                                .font(.system(size: 12, weight: .medium))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10))
+                        }
+                        .foregroundColor(Theme.accent)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func logBody(boxHeight: CGFloat) -> some View {
+        if logLoading && logText.isEmpty {
+            HStack(spacing: 8) {
+                ProgressView().scaleEffect(0.75)
+                Text("正在读取日志…")
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.secondaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: boxHeight)
+        } else if logText.isEmpty {
+            VStack(spacing: 6) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 16))
+                    .foregroundColor(Theme.tertiaryText)
+                Text("暂无日志输出")
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.secondaryText)
+                Text("任务执行后会自动显示在这里")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.tertiaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: boxHeight)
+        } else {
+            ScrollView(.vertical, showsIndicators: true) {
+                Text(displayedLogText)
+                    .font(.system(size: 10.5, design: .monospaced))
+                    .foregroundColor(Theme.primaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: boxHeight)
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 9).fill(Theme.fieldBackground))
+        }
+    }
+
+    /// 送入渲染的日志内容。
+    ///
+    /// 日志可能有上万行，全量交给 `Text` 会明显拖慢滚动，因此只保留尾部若干行；
+    /// 需要看全部可以进「完整日志」页。
+    private var displayedLogText: String {
+        let lines = logText.split(separator: "\n", omittingEmptySubsequences: false)
+        guard lines.count > Self.logTailLineLimit else { return logText }
+        return "…（仅显示最后 \(Self.logTailLineLimit) 行）\n"
+            + lines.suffix(Self.logTailLineLimit).joined(separator: "\n")
+    }
+
+    private var logSummary: String {
+        guard !logText.isEmpty else { return "" }
+        let count = logText.split(separator: "\n", omittingEmptySubsequences: false).count
+        return "共 \(count) 行"
+    }
+
+    private func startLogPolling() {
+        logPollTask?.cancel()
+        logPollTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                if Task.isCancelled { break }
+                guard logAutoRefresh else { continue }
+                await reloadLog(showSpinner: false)
+            }
+        }
+    }
+
+    private func reloadLog(showSpinner: Bool = true) async {
+        if showSpinner && logText.isEmpty { logLoading = true }
+        logText = await store.cronLog(id: cron.id, tail: true)
+        logLoading = false
+    }
+
+    private static let logTailLineLimit = 200
 
     private var headerCard: some View {
         SectionCard {

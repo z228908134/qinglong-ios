@@ -151,6 +151,9 @@ struct TextDetailView: View {
     var isLoading: Bool = false
     var onRefresh: (() -> Void)? = nil
     var onSave: ((String) -> Void)? = nil
+    /// 传入后，导航栏用文字按钮（「编辑」/「保存」）代替铅笔图标。
+    /// 小图标太不起眼，用户容易以为页面只能看。
+    var editLabel: String? = nil
 
     @State private var editableText: String = ""
     @State private var isEditing = false
@@ -205,15 +208,24 @@ struct TextDetailView: View {
                     .font(.system(size: 15))
             }
 
-            if onSave != nil {
-                Button(action: toggleEditing) {
-                    Image(systemName: isEditing ? "checkmark.circle.fill" : "square.and.pencil")
-                        .font(.system(size: 15))
-                }
-            } else if let onRefresh = onRefresh {
+            // 刷新与编辑现在可以并存：原先是 else-if，只要有保存回调就把刷新挤掉了；
+            // 编辑过程中隐藏刷新，避免刷新把未保存的改动冲掉。
+            if !isEditing, let onRefresh = onRefresh {
                 Button(action: onRefresh) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 15))
+                }
+            }
+
+            if onSave != nil {
+                Button(action: toggleEditing) {
+                    if let editLabel = editLabel {
+                        Text(isEditing ? "保存" : editLabel)
+                            .font(.system(size: 14, weight: .medium))
+                    } else {
+                        Image(systemName: isEditing ? "checkmark.circle.fill" : "square.and.pencil")
+                            .font(.system(size: 15))
+                    }
                 }
             }
         }

@@ -175,13 +175,44 @@ struct SubscriptionRowView: View {
                     tone: isDisabled ? .muted : item.runStatus.tone
                 )
 
-                NavigationLink(destination: SubscriptionLogView(subscription: item)) {
-                    Text("日志")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Theme.info)
+                HStack(spacing: 6) {
+                    // 运行 / 停止做成常驻按钮直接放在行上。
+                    // 原先这几个操作只存在于长按菜单（contextMenu）里，
+                    // iOS 上必须长按才弹出，极易被当成"这个页面只能看"。
+                    Button(action: {
+                        Task {
+                            if item.runStatus.isActive {
+                                await store.stopSubscriptions([item.id])
+                            } else {
+                                await store.runSubscriptions([item.id])
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: item.runStatus.isActive ? "stop.fill" : "play.fill")
+                                .font(.system(size: 9))
+                            Text(item.runStatus.isActive ? "停止" : "拉取")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(item.runStatus.isActive ? Theme.danger : Theme.accent)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
-                        .background(Capsule().fill(Theme.info.opacity(0.12)))
+                        .background(
+                            Capsule().fill(
+                                (item.runStatus.isActive ? Theme.danger : Theme.accent).opacity(0.12)
+                            )
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    NavigationLink(destination: SubscriptionLogView(subscription: item)) {
+                        Text("日志")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Theme.info)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Theme.info.opacity(0.12)))
+                    }
                 }
             }
         }

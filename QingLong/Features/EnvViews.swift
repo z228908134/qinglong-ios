@@ -28,7 +28,7 @@ struct EnvListContent: View {
     @State private var filter: EnvFilter = .all
     @State private var sheet: EnvSheet?
     @State private var pendingDelete: QLEnv?
-    @State private var revealed: Set<Int> = []
+    @State private var revealed: Set<String> = []
     @State private var searchWorkItem: DispatchWorkItem?
 
     /// 用一个枚举统一驱动弹窗，避免同一视图上挂多个 sheet 造成互相覆盖。
@@ -185,7 +185,7 @@ struct EnvListContent: View {
         .padding(.horizontal, 16)
     }
 
-    private func toggleReveal(_ id: Int) {
+    private func toggleReveal(_ id: String) {
         if revealed.contains(id) {
             revealed.remove(id)
         } else {

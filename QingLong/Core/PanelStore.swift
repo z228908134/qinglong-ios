@@ -426,27 +426,27 @@ final class PanelStore: ObservableObject {
         }
     }
 
-    func runCrons(_ ids: [Int]) async {
+    func runCrons(_ ids: [String]) async {
         await mutate("crons/run", ids: ids) { await self.loadCrons() }
     }
 
-    func stopCrons(_ ids: [Int]) async {
+    func stopCrons(_ ids: [String]) async {
         await mutate("crons/stop", ids: ids) { await self.loadCrons() }
     }
 
-    func enableCrons(_ ids: [Int]) async {
+    func enableCrons(_ ids: [String]) async {
         await mutate("crons/enable", ids: ids) { await self.loadCrons() }
     }
 
-    func disableCrons(_ ids: [Int]) async {
+    func disableCrons(_ ids: [String]) async {
         await mutate("crons/disable", ids: ids) { await self.loadCrons() }
     }
 
-    func pinCrons(_ ids: [Int], pinned: Bool) async {
+    func pinCrons(_ ids: [String], pinned: Bool) async {
         await mutate(pinned ? "crons/pin" : "crons/unpin", ids: ids) { await self.loadCrons() }
     }
 
-    func deleteCrons(_ ids: [Int]) async {
+    func deleteCrons(_ ids: [String]) async {
         await mutate("crons", ids: ids, method: .delete) { await self.loadCrons() }
     }
 
@@ -467,7 +467,7 @@ final class PanelStore: ObservableObject {
     }
 
     /// 读取任务实时日志。`tail` 为 true 时只取末尾片段，适合查看正在运行的任务。
-    func cronLog(id: Int, tail: Bool = true) async -> String {
+    func cronLog(id: String, tail: Bool = true) async -> String {
         do {
             let response = try await APIClient.shared.send(
                 .get,
@@ -483,7 +483,7 @@ final class PanelStore: ObservableObject {
     }
 
     /// 某个任务的历史日志文件列表。
-    func cronLogFiles(id: Int) async -> [FileNode] {
+    func cronLogFiles(id: String) async -> [FileNode] {
         do {
             let response = try await APIClient.shared.send(.get, "crons/\(id)/logs", as: JSONValue.self)
             return FileNode.parseList(response.data)
@@ -570,7 +570,7 @@ final class PanelStore: ObservableObject {
 
     /// 任务日志历史文件名（`GET /api/crons/:id/logs`，最新在前）。
     /// 与上面的 `cronLogFiles(id:) -> [FileNode]` 区分命名，避免同名同参重定义。
-    func cronLogFileNames(id: Int) async -> [String] {
+    func cronLogFileNames(id: String) async -> [String] {
         // 第一路：新版面板专用接口，直接返回文件名数组（最新在前）
         do {
             let response = try await APIClient.shared.send(
@@ -591,7 +591,7 @@ final class PanelStore: ObservableObject {
         do {
             let response = try await APIClient.shared.send(.get, "logs", as: JSONValue.self)
             let roots = FileNode.parseList(response.data)
-            let idText = String(id)
+            let idText = id
 
             var target: FileNode?
             for root in roots where root.isDirectory {
@@ -632,7 +632,7 @@ final class PanelStore: ObservableObject {
         return succeeded
     }
 
-    func updateEnv(id: Int, name: String, value: String, remarks: String) async -> Bool {
+    func updateEnv(id: String, name: String, value: String, remarks: String) async -> Bool {
         var succeeded = false
         await perform("env-save") {
             let payload = EnvUpdatePayload(
@@ -649,19 +649,19 @@ final class PanelStore: ObservableObject {
         return succeeded
     }
 
-    func deleteEnvs(_ ids: [Int]) async {
+    func deleteEnvs(_ ids: [String]) async {
         await mutate("envs", ids: ids, method: .delete) { await self.loadEnvs() }
     }
 
-    func enableEnvs(_ ids: [Int]) async {
+    func enableEnvs(_ ids: [String]) async {
         await mutate("envs/enable", ids: ids) { await self.loadEnvs() }
     }
 
-    func disableEnvs(_ ids: [Int]) async {
+    func disableEnvs(_ ids: [String]) async {
         await mutate("envs/disable", ids: ids) { await self.loadEnvs() }
     }
 
-    func pinEnvs(_ ids: [Int], pinned: Bool) async {
+    func pinEnvs(_ ids: [String], pinned: Bool) async {
         await mutate(pinned ? "envs/pin" : "envs/unpin", ids: ids) { await self.loadEnvs() }
     }
 
@@ -680,23 +680,23 @@ final class PanelStore: ObservableObject {
         }
     }
 
-    func runSubscriptions(_ ids: [Int]) async {
+    func runSubscriptions(_ ids: [String]) async {
         await mutate("subscriptions/run", ids: ids) { await self.loadSubscriptions() }
     }
 
-    func stopSubscriptions(_ ids: [Int]) async {
+    func stopSubscriptions(_ ids: [String]) async {
         await mutate("subscriptions/stop", ids: ids) { await self.loadSubscriptions() }
     }
 
-    func enableSubscriptions(_ ids: [Int]) async {
+    func enableSubscriptions(_ ids: [String]) async {
         await mutate("subscriptions/enable", ids: ids) { await self.loadSubscriptions() }
     }
 
-    func disableSubscriptions(_ ids: [Int]) async {
+    func disableSubscriptions(_ ids: [String]) async {
         await mutate("subscriptions/disable", ids: ids) { await self.loadSubscriptions() }
     }
 
-    func deleteSubscriptions(_ ids: [Int]) async {
+    func deleteSubscriptions(_ ids: [String]) async {
         await mutate("subscriptions", ids: ids, method: .delete) { await self.loadSubscriptions() }
     }
 
@@ -710,7 +710,7 @@ final class PanelStore: ObservableObject {
         return succeeded
     }
 
-    func subscriptionLog(id: Int) async -> String {
+    func subscriptionLog(id: String) async -> String {
         do {
             let response = try await APIClient.shared.send(
                 .get,
@@ -755,22 +755,22 @@ final class PanelStore: ObservableObject {
         return succeeded
     }
 
-    func reinstallDependencies(_ ids: [Int]) async {
+    func reinstallDependencies(_ ids: [String]) async {
         await mutate("dependencies/reinstall", ids: ids) { await self.loadDependencies() }
     }
 
-    func cancelDependencies(_ ids: [Int]) async {
+    func cancelDependencies(_ ids: [String]) async {
         await mutate("dependencies/cancel", ids: ids) { await self.loadDependencies() }
     }
 
-    func deleteDependencies(_ ids: [Int], force: Bool = false) async {
+    func deleteDependencies(_ ids: [String], force: Bool = false) async {
         await mutate(force ? "dependencies/force" : "dependencies", ids: ids, method: .delete) {
             await self.loadDependencies()
         }
     }
 
     /// 依赖的安装 / 卸载日志（面板以字符串数组返回）
-    func dependenceLog(id: Int) async -> [String] {
+    func dependenceLog(id: String) async -> [String] {
         do {
             let response = try await APIClient.shared.send(.get, "dependencies/\(id)", as: JSONValue.self)
             guard let object = response.data, let payload = try? JSONEncoder().encode(object),
@@ -885,10 +885,10 @@ final class PanelStore: ObservableObject {
 
     // MARK: - 通用批量写操作
 
-    /// 面板的批量接口（run / stop / enable / disable / pin / delete）请求体都是纯数字数组。
+    /// 面板的批量接口（run / stop / enable / disable / pin / delete）请求体都是 id 字符串数组。
     private func mutate(
         _ path: String,
-        ids: [Int],
+        ids: [String],
         method: HTTPMethod = .put,
         reload: @escaping () async -> Void
     ) async {

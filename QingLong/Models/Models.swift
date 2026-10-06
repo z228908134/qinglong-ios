@@ -49,7 +49,9 @@ struct ExtraSchedule: Codable {
 }
 
 struct Cron: Codable, Identifiable {
-    var id: Int = 0
+    /// 青龙的任务 id 是 MongoDB ObjectId 字符串（`_id`）。
+    /// 旧版面板可能返回数字 `id`，flexString 两种都能解。
+    var id: String = ""
     var name: String?
     var command: String = ""
     var schedule: String?
@@ -63,7 +65,7 @@ struct Cron: Codable, Identifiable {
     var labels: [String] = []
     var lastRunningTime: Int?
     var lastExecutionTime: Int?
-    var subId: Int?
+    var subId: String?
     var taskBefore: String?
     var taskAfter: String?
     var logName: String?
@@ -72,7 +74,9 @@ struct Cron: Codable, Identifiable {
     var extraSchedules: [ExtraSchedule]?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, command, schedule, timestamp, status, pid, labels
+        case id = "_id"
+        case idAlias = "id"
+        case name, command, schedule, timestamp, status, pid, labels
         case isSystem, isDisabled, isPinned
         case logPath = "log_path"
         case lastRunningTime = "last_running_time"
@@ -88,7 +92,7 @@ struct Cron: Codable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexInt(.id) ?? 0
+        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
         name = c.flexString(.name)
         command = c.flexString(.command) ?? ""
         schedule = c.flexString(.schedule)
@@ -102,7 +106,7 @@ struct Cron: Codable, Identifiable {
         labels = c.flexStringArray(.labels) ?? []
         lastRunningTime = c.flexInt(.lastRunningTime)
         lastExecutionTime = c.flexInt(.lastExecutionTime)
-        subId = c.flexInt(.subId)
+        subId = c.flexString(.subId)
         taskBefore = c.flexString(.taskBefore)
         taskAfter = c.flexString(.taskAfter)
         logName = c.flexString(.logName)
@@ -130,7 +134,7 @@ struct Cron: Codable, Identifiable {
 
     var isDisabledTask: Bool { (isDisabled ?? 0) == 1 }
 
-    var isSubscribed: Bool { (subId ?? 0) > 0 }
+    var isSubscribed: Bool { !(subId ?? "").isEmpty }
 
     /// 最近一次执行时间的可读文本
     var lastRunText: String {
@@ -153,12 +157,12 @@ struct Cron: Codable, Identifiable {
 /// 只包含面板 Joi 校验允许的字段——多传未知字段会被直接拒绝（400）。
 /// 可选字段为 nil 时不会出现在请求体里。
 struct CronPayload: Encodable {
-    var id: Int?
+    var id: String?
     var name: String?
     var command: String
     var schedule: String
     var labels: [String]?
-    var subId: Int?
+    var subId: String?
     var taskBefore: String?
     var taskAfter: String?
     var logName: String?
@@ -176,12 +180,12 @@ struct CronPayload: Encodable {
     }
 
     init(
-        id: Int? = nil,
+        id: String? = nil,
         name: String?,
         command: String,
         schedule: String,
         labels: [String]? = nil,
-        subId: Int? = nil,
+        subId: String? = nil,
         taskBefore: String? = nil,
         taskAfter: String? = nil,
         logName: String? = nil,
@@ -212,7 +216,8 @@ struct CronPayload: Encodable {
 // MARK: - 环境变量
 
 struct QLEnv: Codable, Identifiable {
-    var id: Int = 0
+    /// 面板的变量 id 是 ObjectId 字符串（`_id`），旧版可能是数字 `id`。
+    var id: String = ""
     var name: String = ""
     var value: String = ""
     var remarks: String = ""
@@ -223,13 +228,15 @@ struct QLEnv: Codable, Identifiable {
     var timestamp: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, value, remarks, status, position, labels, timestamp
+        case id = "_id"
+        case idAlias = "id"
+        case name, value, remarks, status, position, labels, timestamp
         case isPinned
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexInt(.id) ?? 0
+        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
         name = c.flexString(.name) ?? ""
         value = c.flexString(.value) ?? ""
         remarks = c.flexString(.remarks) ?? ""
@@ -242,7 +249,7 @@ struct QLEnv: Codable, Identifiable {
 
     init() {}
 
-    init(id: Int, name: String, value: String, remarks: String = "") {
+    init(id: String, name: String, value: String, remarks: String = "") {
         self.id = id
         self.name = name
         self.value = value
@@ -265,7 +272,7 @@ struct EnvCreatePayload: Encodable {
 
 /// 更新环境变量：面板要求提交"单个对象"，且必须带 id。
 struct EnvUpdatePayload: Encodable {
-    var id: Int
+    var id: String
     var name: String
     var value: String
     var remarks: String?
@@ -280,7 +287,8 @@ struct SubscriptionInterval: Codable {
 }
 
 struct QLSubscription: Codable, Identifiable {
-    var id: Int = 0
+    /// ObjectId 字符串（`_id`），旧版可能是数字 `id`。
+    var id: String = ""
     var name: String?
     var alias: String = ""
     var type: String?
@@ -301,7 +309,9 @@ struct QLSubscription: Codable, Identifiable {
     var autoDelCron: Int?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, alias, type, schedule, url, whitelist, blacklist,
+        case id = "_id"
+        case idAlias = "id"
+        case name, alias, type, schedule, url, whitelist, blacklist,
              dependences, branch, status, pid, command
         case scheduleType = "schedule_type"
         case intervalSchedule = "interval_schedule"
@@ -312,7 +322,7 @@ struct QLSubscription: Codable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexInt(.id) ?? 0
+        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
         name = c.flexString(.name)
         alias = c.flexString(.alias) ?? c.flexString(.name) ?? ""
         type = c.flexString(.type)
@@ -432,7 +442,8 @@ enum DependenceStatus: Int {
 }
 
 struct QLDependence: Codable, Identifiable {
-    var id: Int = 0
+    /// ObjectId 字符串（`_id`），旧版可能是数字 `id`。
+    var id: String = ""
     var name: String = ""
     var type: Int?
     var status: Int?
@@ -441,12 +452,14 @@ struct QLDependence: Codable, Identifiable {
     var timestamp: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, type, status, remark, log, timestamp
+        case id = "_id"
+        case idAlias = "id"
+        case name, type, status, remark, log, timestamp
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexInt(.id) ?? 0
+        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
         name = c.flexString(.name) ?? ""
         type = c.flexInt(.type)
         status = c.flexInt(.status)
@@ -617,18 +630,24 @@ struct DashboardTrendPoint: Codable, Identifiable {
 
 struct RunningTask: Codable, Identifiable {
     var instanceId: Int = 0
-    var id: Int = 0
+    /// ObjectId 字符串（`_id`），旧版可能是数字 `id`。
+    var id: String = ""
     var name: String = ""
     var pid: Int?
     var elapsed: Int = 0
     var logPath: String?
 
-    enum CodingKeys: String, CodingKey { case instanceId, id, name, pid, elapsed, logPath }
+    enum CodingKeys: String, CodingKey {
+        case instanceId
+        case id = "_id"
+        case idAlias = "id"
+        case name, pid, elapsed, logPath
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         instanceId = c.flexInt(.instanceId) ?? 0
-        id = c.flexInt(.id) ?? 0
+        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
         name = c.flexString(.name) ?? ""
         pid = c.flexInt(.pid)
         elapsed = c.flexInt(.elapsed) ?? 0

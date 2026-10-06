@@ -49,10 +49,7 @@ struct ScriptBrowserView: View {
     /// 面板返回的 `value` 字段是**父目录**，`title` 才是文件名，
     /// 所以打开文件时必须把两者拼起来当作 `path` 传回去。
     private func fullPath(_ node: FileNode) -> String {
-        let parent = node.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        if parent.isEmpty { return node.title }
-        if node.title.hasPrefix(parent) { return node.title }
-        return parent + "/" + node.title
+        node.relativeFullPath
     }
 
     private func isFirstLevel(_ node: FileNode) -> Bool {
@@ -117,14 +114,14 @@ struct ScriptBrowserView: View {
     @ViewBuilder
     private func row(for node: FileNode, showPath: Bool) -> some View {
         if node.isDirectory {
-            NavigationLink(destination: ScriptBrowserView(title: node.title, path: fullPath(node))) {
+            NavigationLink(destination: ScriptBrowserView(title: node.title, path: node.relativeFullPath)) {
                 rowContent(node, showPath: false)
             }
             .buttonStyle(PlainButtonStyle())
         } else {
             // 关键修复：path 传文件真实的父目录，而不是当前浏览目录。
             // 原先在根页面传空 path，导致子目录里的脚本读不出来。
-            NavigationLink(destination: ScriptEditorView(path: node.path, node: node)) {
+            NavigationLink(destination: ScriptEditorView(path: node.directoryPath, node: node)) {
                 rowContent(node, showPath: showPath)
             }
             .buttonStyle(PlainButtonStyle())

@@ -55,12 +55,12 @@ struct LogBrowserView: View {
     @ViewBuilder
     private func row(for node: FileNode) -> some View {
         if node.isDirectory {
-            NavigationLink(destination: LogBrowserView(title: node.title, path: node.path, presetNodes: node.children)) {
+            NavigationLink(destination: LogBrowserView(title: node.title, path: node.relativeFullPath, presetNodes: node.children)) {
                 rowContent(node)
             }
             .buttonStyle(PlainButtonStyle())
         } else {
-            NavigationLink(destination: LogDetailView(path: path, node: node)) {
+            NavigationLink(destination: LogDetailView(path: node.directoryPath, node: node)) {
                 rowContent(node)
             }
             .buttonStyle(PlainButtonStyle())

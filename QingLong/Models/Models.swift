@@ -477,10 +477,33 @@ struct DependenceCreatePayload: Encodable {
 struct FileNode: Identifiable, Hashable {
     var id: String
     var title: String
-    /// 相对路径（部分响应里叫 value / path / key）
+    /// 完整相对路径（含文件 / 目录名本身，面板节点的 key 字段）
     var path: String
+    /// 父目录相对路径（面板节点的 parent 字段），根目录为空串
+    var parent: String
     var isDirectory: Bool
     var children: [FileNode]
+
+    /// 文件所在的父目录（读取文件时的 `path` 参数）。根目录返回 ""。
+    ///
+    /// 青龙的目录树节点同时带 `key`（完整路径，含文件名）与 `parent`（父目录）；
+    /// 旧版面板缺 parent 时，从完整路径里剥离文件名兜底。
+    var directoryPath: String {
+        let trimmedParent = parent.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if !trimmedParent.isEmpty { return trimmedParent }
+        if path == title { return "" }
+        if path.hasSuffix("/" + title) {
+            return String(path.dropLast(title.count + 1))
+        }
+        return path
+    }
+
+    /// 完整相对路径（含文件名）。搜索展示与目录跳转都用它。
+    var relativeFullPath: String {
+        if path == title || path.hasSuffix("/" + title) { return path }
+        let trimmed = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return trimmed.isEmpty ? title : trimmed + "/" + title
+    }
 
     var fileExtension: String {
         (title as NSString).pathExtension.lowercased()
@@ -508,10 +531,13 @@ struct FileNode: Identifiable, Hashable {
             ?? object["value"]?.stringValue
             ?? "未命名"
 
-        let path = object["value"]?.stringValue
+        // 面板节点字段：key = 完整相对路径（含文件名），parent = 父目录；
+        // 旧版本可能用 value / path 表达其一
+        let path = object["key"]?.stringValue
+            ?? object["value"]?.stringValue
             ?? object["path"]?.stringValue
-            ?? object["key"]?.stringValue
             ?? title
+        let parent = object["parent"]?.stringValue ?? ""
 
         let typeText = object["type"]?.stringValue
             ?? object["isDirectory"]?.stringValue
@@ -530,6 +556,7 @@ struct FileNode: Identifiable, Hashable {
             id: identifier,
             title: title,
             path: path,
+            parent: parent,
             isDirectory: isDirectory,
             children: children
         )

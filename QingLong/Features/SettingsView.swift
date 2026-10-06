@@ -21,7 +21,7 @@ struct PanelSettingsView: View {
                     SectionCard("连接信息") {
                         VStack(spacing: 9) {
                             InfoRow(label: "面板地址", value: connection?.baseURLString ?? "-", monospaced: true)
-                            InfoRow(label: "Client ID", value: connection?.clientIDMasked ?? "-", monospaced: true)
+                            InfoRow(label: "登录账号", value: connection?.accountName ?? "-")
                             InfoRow(
                                 label: "令牌状态",
                                 value: connection?.expirationText ?? "-",
@@ -45,7 +45,7 @@ struct PanelSettingsView: View {
                             }
                             Divider().background(Theme.separator).padding(.leading, 46)
                             actionRow(icon: "arrow.clockwise", title: "重新登录并刷新令牌", tint: Theme.accent) {
-                                Task { await store.refreshAll() }
+                                Task { await store.reSignInAndRefresh() }
                             }
                             Divider().background(Theme.separator).padding(.leading, 46)
                             actionRow(icon: "rectangle.portrait.and.arrow.right", title: "退出登录", tint: Theme.danger) {
@@ -59,7 +59,7 @@ struct PanelSettingsView: View {
                             Text("青龙面板 · 原生 iOS 客户端")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(Theme.primaryText)
-                            Text("这是社区实现的原生客户端，需要你已经在服务器 / NAS / Docker 上部署好青龙面板。它通过面板提供的 OpenAPI 应用凭据进行连接，不保存面板账号密码，也不会上传任何数据到第三方服务器。")
+                            Text("这是社区实现的原生客户端，需要你已经在服务器 / NAS / Docker 上部署好青龙面板。它使用面板账号密码登录（与网页端同一套凭据），令牌失效时会自动续期。凭据只保存在本机钥匙串，不会上传到任何第三方服务器。")
                                 .font(.system(size: 11.5))
                                 .foregroundColor(Theme.secondaryText)
                                 .lineSpacing(3)
@@ -78,7 +78,7 @@ struct PanelSettingsView: View {
         .alert(isPresented: $showSignOutConfirm) {
             Alert(
                 title: Text("退出登录"),
-                message: Text("将清除本机保存的 Client Secret 与访问令牌，下次打开需要重新填写。面板上的数据不受影响。"),
+                message: Text("将清除本机保存的账号密码与访问令牌，下次打开需要重新登录。面板上的数据不受影响。"),
                 primaryButton: .destructive(Text("退出")) { store.signOut() },
                 secondaryButton: .cancel(Text("取消"))
             )

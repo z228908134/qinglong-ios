@@ -5,6 +5,24 @@ import UIKit
 
 struct EnvListView: View {
 
+    var body: some View {
+        NavigationView {
+            EnvListContent()
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+    }
+}
+
+/// 环境变量列表内容。任务 Tab 与「更多」页共用。
+struct EnvListContent: View {
+
+    /// 「更多」页里以 inline 标题推入；Tab 里用大标题。
+    var inlineTitle: Bool = false
+
+    init(inlineTitle: Bool = false) {
+        self.inlineTitle = inlineTitle
+    }
+
     @EnvironmentObject private var store: PanelStore
 
     @State private var filter: EnvFilter = .all
@@ -66,8 +84,7 @@ struct EnvListView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ZStack {
+        ZStack {
                 Theme.groupedBackground.edgesIgnoringSafeArea(.all)
 
                 ScrollView {
@@ -95,7 +112,7 @@ struct EnvListView: View {
                     .padding(.bottom, 30)
                 }
             }
-            .navigationBarTitle("环境变量", displayMode: .large)
+            .navigationBarTitle("环境变量", displayMode: inlineTitle ? .inline : .large)
             .navigationBarItems(
                 leading: ToolbarIconButton(icon: "arrow.clockwise", isEnabled: !store.isLoading("envs")) {
                     Task { await store.loadEnvs() }
@@ -105,8 +122,6 @@ struct EnvListView: View {
                         .font(.system(size: 17, weight: .medium))
                 }
             )
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
         .sheet(item: $sheet) { target in
             EnvEditView(item: target.item).environmentObject(store)
         }

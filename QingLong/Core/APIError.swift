@@ -26,7 +26,7 @@ enum APIError: LocalizedError {
         case .invalidBaseURL:
             return "面板地址无法解析，请检查格式，例如 192.168.1.8:5700"
         case .notAuthorized:
-            return "尚未登录，请先填写 Client ID 与 Client Secret"
+            return "尚未登录，请先填写面板账号密码"
         case .sessionExpired:
             return "登录状态已失效，请重新登录"
         case .transport(let error):

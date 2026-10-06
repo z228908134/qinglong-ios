@@ -3,15 +3,19 @@ import UIKit
 
 /// 登录页。
 ///
-/// 青龙面板的第三方对接方式不是"账号密码"，而是在面板内创建"应用"后拿到
-/// Client ID / Client Secret，再用它换取访问令牌。这里如实按这套流程设计。
+/// 直接使用青龙面板网页端同一套账号密码。用户令牌拥有全部模块权限，
+/// 省去创建 OpenAPI 应用、逐项勾选 scopes 的麻烦；令牌失效时客户端
+/// 会用保存的账号密码自动续期，无需反复登录。
 struct LoginView: View {
 
     @EnvironmentObject private var store: PanelStore
 
     @State private var address = ""
-    @State private var clientID = ""
-    @State private var clientSecret = ""
+    @State private var username = ""
+    @State private var password = ""
+    /// 面板开启两步验证时才出现（登录返回 code 420 后显示）。
+    @State private var twoFactorCode = ""
+    @State private var needTwoFactor = false
     @State private var showHelp = false
     @State private var probeState: ProbeState = .idle
 
@@ -127,15 +131,20 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - 应用凭据
+    // MARK: - 账号密码
 
     private var credentialCard: some View {
-        SectionCard("应用凭据") {
+        SectionCard("面板账号") {
             VStack(alignment: .leading, spacing: 12) {
-                LabeledField(title: "Client ID", placeholder: "例如 AbC1dEf2GhI3", text: $clientID)
-                LabeledField(title: "Client Secret", placeholder: "粘贴应用密钥", text: $clientSecret, isSecure: true)
+                LabeledField(title: "用户名", placeholder: "面板网页端的登录用户名", text: $username)
+                LabeledField(title: "密码", placeholder: "面板网页端的登录密码", text: $password, isSecure: true)
 
-                Text("凭据保存在系统钥匙串中，不会上传到任何第三方服务器。")
+                if needTwoFactor {
+                    LabeledField(title: "两步验证码", placeholder: "6 位动态验证码", text: $twoFactorCode, keyboard: .numberPad)
+                    BannerView(text: "该账号开启了两步验证，请输入验证器 App 里的当前动态码后重新登录。", tone: .info)
+                }
+
+                Text("账号密码保存在系统钥匙串中，仅用于令牌失效后自动续期，不会上传到任何第三方服务器。")
                     .font(.system(size: 11))
                     .foregroundColor(Theme.tertiaryText)
             }
@@ -146,18 +155,29 @@ struct LoginView: View {
 
     private var loginButton: some View {
         VStack(spacing: 10) {
+            if needTwoFactor {
+                Text("已开启两步验证，输入动态码后再点登录")
+                    .font(.system(size: 11.5))
+                    .foregroundColor(Theme.warning)
+            }
+
             PrimaryButton(
-                title: store.isAuthenticating ? "正在连接面板…" : "登录",
+                title: store.isAuthenticating ? "正在连接面板…" : (needTwoFactor ? "验证并登录" : "登录"),
                 icon: store.isAuthenticating ? nil : "arrow.right.circle.fill",
                 isLoading: store.isAuthenticating,
-                isEnabled: !address.isEmpty && !clientID.isEmpty && !clientSecret.isEmpty
+                isEnabled: !address.isEmpty && !username.isEmpty && !password.isEmpty
+                    && (!needTwoFactor || !twoFactorCode.isEmpty)
             ) {
                 Task {
-                    await store.signIn(
+                    let outcome = await store.signIn(
                         address: address,
-                        clientID: clientID,
-                        clientSecret: clientSecret
+                        username: username,
+                        password: password,
+                        twoFactorCode: needTwoFactor ? twoFactorCode : nil
                     )
+                    if outcome == .needTwoFactor {
+                        needTwoFactor = true
+                    }
                 }
             }
 
@@ -178,7 +198,7 @@ struct LoginView: View {
                     HStack {
                         Image(systemName: "questionmark.circle")
                             .font(.system(size: 13))
-                        Text("如何获取 Client ID 与 Client Secret？")
+                        Text("登录遇到问题？")
                             .font(.system(size: 13, weight: .medium))
                         Spacer()
                         Image(systemName: showHelp ? "chevron.up" : "chevron.down")
@@ -189,14 +209,14 @@ struct LoginView: View {
 
                 if showHelp {
                     VStack(alignment: .leading, spacing: 6) {
-                        helpStep("1", "在浏览器打开青龙面板，进入「系统设置 → 应用设置」")
-                        helpStep("2", "点击「添加应用」，填写名称，并勾选需要管理的模块权限")
-                        helpStep("3", "保存后列表里会出现 Client ID 与 Client Secret，复制过来即可")
-                        helpStep("4", "若提示权限不足，回到面板为该应用补勾对应模块的权限")
+                        helpStep("1", "使用青龙面板网页端同一套账号密码，无需创建 OpenAPI 应用")
+                        helpStep("2", "填 IP 地址时会自动补全 http:// 与默认端口 5700")
+                        helpStep("3", "登录失败时检查密码是否修改过、账号是否被禁用")
+                        helpStep("4", "开启了两步验证的账号，需要额外输入验证器里的 6 位动态码")
                     }
                     .padding(.top, 2)
 
-                    Text("注意：令牌默认 30 天有效；在面板上重置应用密钥会让已发出的令牌立即失效，届时重新登录一次即可。")
+                    Text("令牌失效后客户端会用保存的账号密码自动续期；在面板上修改密码后需要重新登录一次。")
                         .font(.system(size: 11))
                         .foregroundColor(Theme.secondaryText)
                         .padding(.top, 2)
@@ -224,7 +244,7 @@ struct LoginView: View {
     private func restoreLastAddress() {
         guard address.isEmpty, let saved = store.connection else { return }
         address = saved.rawAddress
-        clientID = saved.clientID
+        username = saved.username
     }
 
     private func testConnection() {

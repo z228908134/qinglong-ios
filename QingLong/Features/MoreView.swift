@@ -47,6 +47,13 @@ struct MoreView: View {
                         tint: Theme.accent,
                         destination: ScriptBrowserView()
                     )
+                    MenuRow(
+                        icon: "key.fill",
+                        title: "环境变量",
+                        subtitle: "查看与编辑任务运行所需的变量",
+                        tint: Theme.info,
+                        destination: EnvListContent(inlineTitle: true)
+                    )
                 }
 
                 Section(header: Text("连接")) {

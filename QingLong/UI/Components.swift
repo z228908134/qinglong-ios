@@ -331,7 +331,9 @@ struct LogTextView: View {
     var isPlaceholder: Bool = false
 
     var body: some View {
-        ScrollView([.vertical, .horizontal]) {
+        // 只保留纵向滚动：横向滚动会给 Text 无限宽度，长行不换行，
+        // 在手机上表现为日志被屏幕右缘截断（「边框不自适应」的根因）。
+        ScrollView(.vertical) {
             Text(text.isEmpty ? "（暂无内容）" : text)
                 .font(.system(size: 11.5, design: .monospaced))
                 .foregroundColor(isPlaceholder ? Theme.secondaryText : Theme.primaryText)

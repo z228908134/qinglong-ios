@@ -21,6 +21,7 @@ struct APIResponse<T: Decodable>: Decodable {
 struct AuthToken: Decodable {
     let token: String?
     let tokenType: String?
+    /// 秒级 Unix 时间戳；面板未返回时为 nil（上层按默认有效期估算）。
     let expiration: Int?
 
     enum CodingKeys: String, CodingKey {
@@ -28,15 +29,44 @@ struct AuthToken: Decodable {
         case tokenType = "token_type"
         case expiration
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        token = (try? c.decodeIfPresent(String.self, forKey: .token)) ?? nil
+        tokenType = (try? c.decodeIfPresent(String.self, forKey: .tokenType)) ?? nil
+        if let secs = try? c.decodeIfPresent(Int.self, forKey: .expiration) {
+            expiration = secs
+        } else if let ms = try? c.decodeIfPresent(Double.self, forKey: .expiration) {
+            expiration = Int(ms)
+        } else {
+            expiration = nil
+        }
+    }
 }
 
 /// 青龙面板网络客户端。
 ///
-/// 所有请求都以 `/open` 为前缀，使用 `Authorization: Bearer <token>` 认证。
-/// 认证方式为 OpenAPI 应用凭据（Client ID / Client Secret），而不是面板账号密码。
+/// 所有请求都以 `/api` 为前缀（与面板网页端同源同权），使用
+/// `Authorization: Bearer <token>` 认证。登录方式为面板账号密码
+/// （`POST /api/user/login`），拿到的用户令牌拥有全部模块权限，
+/// 不需要像 OpenAPI 应用那样逐项勾选 scopes。
+///
+/// 令牌失效（401）时会用保存的账号密码**自动重新登录并重试一次**，
+/// 对界面完全透明。
 final class APIClient {
 
     static let shared = APIClient()
+
+    /// 用于静默续期的账号凭据。
+    struct Credentials: Equatable {
+        var username: String
+        var password: String
+    }
+
+    /// 自动续期成功后回调（PanelStore 借此更新钥匙串里的会话）。
+    var onTokenRefreshed: ((String, String?, Double?) -> Void)?
+
+    private(set) var credentials: Credentials?
 
     private let session: URLSession
     private let decoder = JSONDecoder()
@@ -46,6 +76,7 @@ final class APIClient {
     private(set) var baseURL: URL?
     private(set) var token: String?
     private(set) var tokenType: String = "Bearer"
+    private var isRefreshingToken = false
 
     private init() {
         let configuration = URLSessionConfiguration.default
@@ -66,10 +97,16 @@ final class APIClient {
         }
     }
 
+    func setCredentials(username: String, password: String) {
+        credentials = Credentials(username: username, password: password)
+    }
+
     func clear() {
         baseURL = nil
         token = nil
         tokenType = "Bearer"
+        credentials = nil
+        onTokenRefreshed = nil
     }
 
     var isConfigured: Bool {
@@ -138,7 +175,7 @@ final class APIClient {
         if !prefix.isEmpty {
             fullPath += "/" + prefix
         }
-        fullPath += "/open/" + path
+        fullPath += "/api/" + path
         components.path = fullPath
 
         if !query.isEmpty {
@@ -218,6 +255,44 @@ final class APIClient {
 
     // MARK: - 通用请求
 
+    /// 「401 自动续期 + 重试一次」的统一包装。
+    ///
+    /// 面板的用户令牌默认 20 天有效；过期后所有接口返回 401。这里不再把
+    /// 用户踢回登录页，而是用保存的账号密码静默换一次新令牌并重放请求，
+    /// 对界面完全透明。续期失败（例如密码已修改）时原样抛出 401。
+    private func withAuthRetry<T>(_ operation: () async throws -> T) async throws -> T {
+        do {
+            return try await operation()
+        } catch APIError.sessionExpired {
+            guard try await reauthenticate() else {
+                throw APIError.sessionExpired
+            }
+            return try await operation()
+        }
+    }
+
+    /// 用保存的账号密码静默重新登录。返回是否成功换取了新令牌。
+    private func reauthenticate() async throws -> Bool {
+        guard let creds = credentials, let base = baseURL, !isRefreshingToken else {
+            return false
+        }
+        isRefreshingToken = true
+        defer { isRefreshingToken = false }
+        do {
+            let authToken = try await performLogin(
+                base: base, username: creds.username, password: creds.password, twoFactorCode: nil
+            )
+            guard let value = authToken.token, !value.isEmpty else { return false }
+            token = value
+            tokenType = (authToken.tokenType?.isEmpty == false) ? authToken.tokenType! : "Bearer"
+            onTokenRefreshed?(value, tokenType, authToken.expiration.map { Double($0) })
+            return true
+        } catch {
+            // 续期失败（密码已改、账号被禁等）：按会话失效处理
+            return false
+        }
+    }
+
     /// 发起请求并解析出指定类型的 `data`。
     func send<T: Decodable>(
         _ method: HTTPMethod,
@@ -226,12 +301,14 @@ final class APIClient {
         authorized: Bool = true,
         as type: T.Type
     ) async throws -> APIResponse<T> {
-        let request = try makeRequest(
-            method: method, path: path, query: query,
-            body: nil, contentType: nil, authorized: authorized
-        )
-        let (data, response) = try await perform(request)
-        return try decodeResponse(data: data, response: response, as: T.self)
+        try await withAuthRetry {
+            let request = try makeRequest(
+                method: method, path: path, query: query,
+                body: nil, contentType: nil, authorized: authorized
+            )
+            let (data, response) = try await perform(request)
+            return try decodeResponse(data: data, response: response, as: T.self)
+        }
     }
 
     /// 带 JSON 请求体的请求。请求体会按字段名自动省略 nil 的可选字段，
@@ -245,12 +322,14 @@ final class APIClient {
         as type: T.Type
     ) async throws -> APIResponse<T> {
         let payload = try encoder.encode(body)
-        let request = try makeRequest(
-            method: method, path: path, query: query,
-            body: payload, contentType: "application/json", authorized: authorized
-        )
-        let (data, response) = try await perform(request)
-        return try decodeResponse(data: data, response: response, as: T.self)
+        return try await withAuthRetry {
+            let request = try makeRequest(
+                method: method, path: path, query: query,
+                body: payload, contentType: "application/json", authorized: authorized
+            )
+            let (data, response) = try await perform(request)
+            return try decodeResponse(data: data, response: response, as: T.self)
+        }
     }
 
     /// 只关心成功与否的写操作（批量启停、置顶、删除等）。
@@ -289,34 +368,84 @@ final class APIClient {
 
     // MARK: - 认证
 
-    /// 使用应用凭据换取访问令牌。
+    /// 登录请求体：`POST /api/user/login`（Joi 只认 username / password 两个字段）。
+    private struct LoginPayload: Encodable {
+        let username: String
+        let password: String
+    }
+
+    /// 两步验证登录请求体：`PUT /api/user/two-factor/login`。
+    private struct TwoFactorLoginPayload: Encodable {
+        let code: String
+        let username: String
+        let password: String
+    }
+
+    /// 用账号密码换取用户令牌。`twoFactorCode` 非空时走两步验证接口。
     ///
-    /// `GET /open/auth/token?client_id=&client_secret=`，令牌有效期通常为 30 天。
+    /// 面板开启两步验证时登录接口返回 code 420，此时应让用户输入
+    /// 动态验证码后携带 `twoFactorCode` 重新调用。
     @discardableResult
-    func fetchToken(
+    func login(
         baseURL: URL,
-        clientID: String,
-        clientSecret: String
+        username: String,
+        password: String,
+        twoFactorCode: String? = nil
     ) async throws -> AuthToken {
-        self.baseURL = baseURL
-        self.token = nil
-
-        let response = try await send(
-            .get,
-            "auth/token",
-            query: [("client_id", clientID), ("client_secret", clientSecret)],
-            authorized: false,
-            as: AuthToken.self
+        try await performLogin(
+            base: baseURL,
+            username: username,
+            password: password,
+            twoFactorCode: twoFactorCode
         )
+    }
 
-        guard let payload = response.data, let value = payload.token, !value.isEmpty else {
-            throw APIError.decoding("认证接口未返回 token，请确认 Client ID / Secret 是否正确以及已授予权限")
+    /// 实际的登录请求。成功后把令牌写进当前会话；失败时恢复原会话，
+    /// 避免把已登录的令牌清掉。
+    private func performLogin(
+        base: URL,
+        username: String,
+        password: String,
+        twoFactorCode: String?
+    ) async throws -> AuthToken {
+        let savedBase = baseURL
+        let savedToken = token
+        baseURL = base
+        defer {
+            if token == nil {
+                baseURL = savedBase
+                token = savedToken
+            }
         }
 
-        self.token = value
-        self.tokenType = (payload.tokenType?.isEmpty == false) ? payload.tokenType! : "Bearer"
+        let response: APIResponse<AuthToken>
+        if let code = twoFactorCode?.trimmingCharacters(in: .whitespaces), !code.isEmpty {
+            response = try await send(
+                .put,
+                "user/two-factor/login",
+                body: TwoFactorLoginPayload(code: code, username: username, password: password),
+                authorized: false,
+                as: AuthToken.self
+            )
+        } else {
+            response = try await send(
+                .post,
+                "user/login",
+                body: LoginPayload(username: username, password: password),
+                authorized: false,
+                as: AuthToken.self
+            )
+        }
+
+        guard let payload = response.data, let value = payload.token, !value.isEmpty else {
+            throw APIError.decoding("登录接口未返回令牌，请确认账号与密码是否正确")
+        }
+        token = value
+        tokenType = (payload.tokenType?.isEmpty == false) ? payload.tokenType! : "Bearer"
         return payload
     }
+
+
 
     /// 连通性探测：不依赖令牌，用于在登录页快速验证地址是否可达。
     func probe(host: URL) async throws -> Bool {
@@ -325,7 +454,7 @@ final class APIClient {
         components.host = host.host
         components.port = host.port
         let prefix = host.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        components.path = (prefix.isEmpty ? "" : "/" + prefix) + "/open/health"
+        components.path = (prefix.isEmpty ? "" : "/" + prefix) + "/api/health"
         guard let url = components.url else { throw APIError.invalidBaseURL }
 
         var request = URLRequest(url: url)

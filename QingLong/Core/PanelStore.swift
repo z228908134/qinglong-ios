@@ -5,8 +5,9 @@ import SwiftUI
 struct PanelConnection: Codable, Equatable {
     var rawAddress: String
     var baseURLString: String
-    var clientID: String
-    var clientSecret: String
+    /// 面板登录账号。与令牌一起存进钥匙串，用于令牌失效后自动续期。
+    var username: String
+    var password: String
     var token: String?
     var tokenType: String?
     /// Unix 秒级时间戳，来自 `/open/auth/token` 的 expiration 字段
@@ -32,10 +33,8 @@ struct PanelConnection: Codable, Equatable {
         return "有效期还剩不到 1 天"
     }
 
-    var clientIDMasked: String {
-        guard clientID.count > 4 else { return String(repeating: "•", count: clientID.count) }
-        return clientID.prefix(4) + String(repeating: "•", count: max(4, clientID.count - 4))
-    }
+    /// 连接卡 / 设置页里展示的账号名。
+    var accountName: String { username }
 }
 
 struct AlertMessage: Identifiable {
@@ -113,6 +112,10 @@ final class PanelStore: ObservableObject {
         }
         connection = saved
         APIClient.shared.configure(baseURL: saved.baseURL, token: saved.token, tokenType: saved.tokenType)
+        APIClient.shared.setCredentials(username: saved.username, password: saved.password)
+        APIClient.shared.onTokenRefreshed = { [weak self] token, tokenType, expiration in
+            self?.handleTokenRefresh(token: token, tokenType: tokenType, expiration: expiration)
+        }
     }
 
     private func persist(_ value: PanelConnection) {
@@ -120,50 +123,135 @@ final class PanelStore: ObservableObject {
         KeychainStore.save(data, account: Self.accountKey)
     }
 
-    /// 使用应用凭据登录。地址会自动补全协议与默认端口 5700。
-    func signIn(address: String, clientID: String, clientSecret: String) async {
+    /// 登录结果：成功，或面板开启了两步验证需要补充动态码。
+    enum SignInOutcome {
+        case success
+        case needTwoFactor
+        case failure
+    }
+
+    /// 使用面板账号密码登录。地址会自动补全协议与默认端口 5700。
+    /// 面板开启两步验证时，首次调用返回 `.needTwoFactor`，
+    /// 用户输入动态验证码后携带 `twoFactorCode` 再次调用即可。
+    @discardableResult
+    func signIn(
+        address: String,
+        username: String,
+        password: String,
+        twoFactorCode: String? = nil
+    ) async -> SignInOutcome {
         let trimmedAddress = address.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedID = clientID.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedSecret = clientSecret.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard let url = APIClient.normalizeBaseURL(trimmedAddress) else {
             alert = AlertMessage(
                 title: "地址无法解析",
                 message: "请填写形如 192.168.1.8:5700、ql.example.com 或 https://ql.example.com 的地址。"
             )
-            return
+            return .failure
         }
-        guard !trimmedID.isEmpty, !trimmedSecret.isEmpty else {
+        guard !trimmedUsername.isEmpty, !trimmedPassword.isEmpty else {
             alert = AlertMessage(
-                title: "缺少应用密钥",
-                message: "Client ID 与 Client Secret 都需要填写。可在面板「系统设置 → 应用设置 → 添加应用」中创建，并勾选需要管理的模块权限。"
+                title: "请填写账号密码",
+                message: "使用青龙面板网页端同一套账号密码登录即可，无需再创建 OpenAPI 应用。"
             )
-            return
+            return .failure
         }
 
         isAuthenticating = true
         defer { isAuthenticating = false }
 
         do {
-            let token = try await APIClient.shared.fetchToken(
+            let authToken = try await APIClient.shared.login(
                 baseURL: url,
-                clientID: trimmedID,
-                clientSecret: trimmedSecret
+                username: trimmedUsername,
+                password: trimmedPassword,
+                twoFactorCode: twoFactorCode
             )
-            let saved = PanelConnection(
+            applyAuth(
+                url: url,
                 rawAddress: trimmedAddress,
-                baseURLString: url.absoluteString,
-                clientID: trimmedID,
-                clientSecret: trimmedSecret,
-                token: token.token,
-                tokenType: token.tokenType,
-                expiration: token.expiration.map { Double($0) }
+                username: trimmedUsername,
+                password: trimmedPassword,
+                authToken: authToken
             )
-            persist(saved)
-            connection = saved
             await refreshAll()
+            return .success
+        } catch APIError.business(let code, _) where code == 420 {
+            // 面板开启了两步验证：界面显示动态码输入框后重试
+            return .needTwoFactor
         } catch {
             APIClient.shared.clear()
+            present(error)
+            return .failure
+        }
+    }
+
+    /// 用登录结果建立会话：写钥匙串、配置客户端（含自动续期凭据）。
+    private func applyAuth(
+        url: URL,
+        rawAddress: String,
+        username: String,
+        password: String,
+        authToken: AuthToken
+    ) {
+        // 面板用户令牌默认 20 天有效；响应若带毫秒时间戳则归一化为秒
+        let expiration: Double?
+        if let value = authToken.expiration {
+            expiration = value > 1_000_000_000_000 ? Double(value) / 1000 : Double(value)
+        } else {
+            // 登录接口不返回有效期，按用户令牌默认 20 天估算
+            expiration = Date().timeIntervalSince1970 + 20 * 86400
+        }
+        let saved = PanelConnection(
+            rawAddress: rawAddress,
+            baseURLString: url.absoluteString,
+            username: username,
+            password: password,
+            token: authToken.token,
+            tokenType: authToken.tokenType,
+            expiration: expiration
+        )
+        persist(saved)
+        connection = saved
+        APIClient.shared.configure(baseURL: url, token: saved.token, tokenType: saved.tokenType)
+        APIClient.shared.setCredentials(username: username, password: password)
+        APIClient.shared.onTokenRefreshed = { [weak self] token, tokenType, expiration in
+            self?.handleTokenRefresh(token: token, tokenType: tokenType, expiration: expiration)
+        }
+    }
+
+    /// 静默续期成功后更新本地会话，用户无感知。
+    private func handleTokenRefresh(token: String, tokenType: String?, expiration: Double?) {
+        guard var saved = connection else { return }
+        saved.token = token
+        saved.tokenType = tokenType ?? saved.tokenType
+        saved.expiration = expiration ?? saved.expiration
+        connection = saved
+        persist(saved)
+    }
+
+    /// 手动触发一次静默续期并全量刷新（设置页「重新登录并刷新令牌」）。
+    func reSignInAndRefresh() async {
+        guard let saved = connection, let url = saved.baseURL else { return }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        do {
+            let authToken = try await APIClient.shared.login(
+                baseURL: url,
+                username: saved.username,
+                password: saved.password
+            )
+            applyAuth(
+                url: url,
+                rawAddress: saved.rawAddress,
+                username: saved.username,
+                password: saved.password,
+                authToken: authToken
+            )
+            await refreshAll()
+        } catch {
             present(error)
         }
     }

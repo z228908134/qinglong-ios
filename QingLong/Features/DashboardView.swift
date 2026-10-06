@@ -90,7 +90,7 @@ struct DashboardView: View {
                 Divider()
 
                 HStack(spacing: 18) {
-                    labeledValue("应用 ID", store.connection?.clientIDMasked ?? "-")
+                    labeledValue("登录账号", store.connection?.accountName ?? "-")
                     labeledValue("令牌状态", store.connection?.expirationText ?? "-")
                 }
 
@@ -262,8 +262,16 @@ struct DashboardView: View {
         let now = Int(Date().timeIntervalSince1970)
         return store.crons
             .filter { !$0.isDisabledTask && $0.runStatus.isActive }
-            .map { cron in
-                RunningTask(cron: cron, elapsed: cron.lastRunningTime.map { max(0, now - $0) } ?? 0)
+            .map { cron -> RunningTask in
+                // last_running_time 为 0 / nil 时不能拿当前时间当起点，
+                // 否则会算出「已运行 49 万小时」这种荒唐数字
+                let elapsed: Int
+                if let stamp = cron.lastRunningTime, stamp > 0 {
+                    elapsed = max(0, now - stamp)
+                } else {
+                    elapsed = 0
+                }
+                return RunningTask(cron: cron, elapsed: elapsed)
             }
     }
 
@@ -273,6 +281,20 @@ struct DashboardView: View {
         if let pid = task.pid, pid > 0 { parts.append("PID \(pid)") }
         if task.elapsed > 0 { parts.append("已运行 \(task.elapsedText)") }
         return parts.isEmpty ? "运行中" : parts.joined(separator: " · ")
+    }
+
+    /// 概览「正在运行」行点击后进入对应的任务详情。
+    private func detailCron(for task: RunningTask) -> Cron {
+        if let match = store.crons.first(where: { $0.id == task.id }) {
+            return match
+        }
+        // 任务列表还没加载时兜底：只带 id / 名称 / PID，详情页会按 id 拉日志
+        var fallback = Cron()
+        fallback.id = task.id
+        fallback.name = task.name
+        fallback.pid = task.pid
+        fallback.logPath = task.logPath
+        return fallback
     }
 
     private var runningCard: some View {
@@ -302,27 +324,31 @@ struct DashboardView: View {
                     .padding(.vertical, 6)
                 } else {
                     ForEach(running) { task in
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(Theme.info)
-                                .frame(width: 7, height: 7)
+                        NavigationLink(destination: CronDetailView(cron: detailCron(for: task))) {
+                            HStack(spacing: 10) {
+                                Circle()
+                                    .fill(Theme.info)
+                                    .frame(width: 7, height: 7)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(task.name)
-                                    .font(.system(size: 13.5, weight: .medium))
-                                    .foregroundColor(Theme.primaryText)
-                                    .lineLimit(1)
-                                Text(runningSubtitle(task))
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Theme.tertiaryText)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(task.name)
+                                        .font(.system(size: 13.5, weight: .medium))
+                                        .foregroundColor(Theme.primaryText)
+                                        .lineLimit(1)
+                                    Text(runningSubtitle(task))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(Theme.tertiaryText)
+                                }
+
+                                Spacer(minLength: 6)
+
+                                InlineActionButton(title: "停止", icon: "stop.fill", tint: Theme.danger) {
+                                    Task { await store.stopCrons([task.id]) }
+                                }
                             }
-
-                            Spacer(minLength: 6)
-
-                            InlineActionButton(title: "停止", icon: "stop.fill", tint: Theme.danger) {
-                                Task { await store.stopCrons([task.id]) }
-                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
             }

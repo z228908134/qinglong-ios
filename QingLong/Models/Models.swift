@@ -73,9 +73,10 @@ struct Cron: Codable, Identifiable {
     var workDir: String?
     var extraSchedules: [ExtraSchedule]?
 
+    /// 旧版面板返回数字 `id` 键时的兜底键集（与 CodingKeys 分离，避免干扰 Encodable 合成）。
+    private enum AltKeys: String, CodingKey { case id = "id" }
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case idAlias = "id"
         case name, command, schedule, timestamp, status, pid, labels
         case isSystem, isDisabled, isPinned
         case logPath = "log_path"
@@ -92,7 +93,10 @@ struct Cron: Codable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
+        id = c.flexString(.id) ?? ""
+        if id.isEmpty, let alt = try? decoder.container(keyedBy: AltKeys.self) {
+            id = alt.flexString(.id) ?? ""
+        }
         name = c.flexString(.name)
         command = c.flexString(.command) ?? ""
         schedule = c.flexString(.schedule)
@@ -227,16 +231,20 @@ struct QLEnv: Codable, Identifiable {
     var labels: [String] = []
     var timestamp: String?
 
+    /// 旧版面板返回数字 `id` 键时的兜底键集（与 CodingKeys 分离，避免干扰 Encodable 合成）。
+    private enum AltKeys: String, CodingKey { case id = "id" }
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case idAlias = "id"
         case name, value, remarks, status, position, labels, timestamp
         case isPinned
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
+        id = c.flexString(.id) ?? ""
+        if id.isEmpty, let alt = try? decoder.container(keyedBy: AltKeys.self) {
+            id = alt.flexString(.id) ?? ""
+        }
         name = c.flexString(.name) ?? ""
         value = c.flexString(.value) ?? ""
         remarks = c.flexString(.remarks) ?? ""
@@ -308,9 +316,10 @@ struct QLSubscription: Codable, Identifiable {
     var autoAddCron: Int?
     var autoDelCron: Int?
 
+    /// 旧版面板返回数字 `id` 键时的兜底键集（与 CodingKeys 分离，避免干扰 Encodable 合成）。
+    private enum AltKeys: String, CodingKey { case id = "id" }
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case idAlias = "id"
         case name, alias, type, schedule, url, whitelist, blacklist,
              dependences, branch, status, pid, command
         case scheduleType = "schedule_type"
@@ -322,7 +331,10 @@ struct QLSubscription: Codable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
+        id = c.flexString(.id) ?? ""
+        if id.isEmpty, let alt = try? decoder.container(keyedBy: AltKeys.self) {
+            id = alt.flexString(.id) ?? ""
+        }
         name = c.flexString(.name)
         alias = c.flexString(.alias) ?? c.flexString(.name) ?? ""
         type = c.flexString(.type)
@@ -451,15 +463,19 @@ struct QLDependence: Codable, Identifiable {
     var log: [String] = []
     var timestamp: String?
 
+    /// 旧版面板返回数字 `id` 键时的兜底键集（与 CodingKeys 分离，避免干扰 Encodable 合成）。
+    private enum AltKeys: String, CodingKey { case id = "id" }
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case idAlias = "id"
         case name, type, status, remark, log, timestamp
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
+        id = c.flexString(.id) ?? ""
+        if id.isEmpty, let alt = try? decoder.container(keyedBy: AltKeys.self) {
+            id = alt.flexString(.id) ?? ""
+        }
         name = c.flexString(.name) ?? ""
         type = c.flexInt(.type)
         status = c.flexInt(.status)
@@ -637,17 +653,21 @@ struct RunningTask: Codable, Identifiable {
     var elapsed: Int = 0
     var logPath: String?
 
+    /// 旧版面板返回数字 `id` 键时的兜底键集（与 CodingKeys 分离，避免干扰 Encodable 合成）。
+    private enum AltKeys: String, CodingKey { case id = "id" }
     enum CodingKeys: String, CodingKey {
         case instanceId
         case id = "_id"
-        case idAlias = "id"
         case name, pid, elapsed, logPath
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         instanceId = c.flexInt(.instanceId) ?? 0
-        id = c.flexString(.id) ?? c.flexString(.idAlias) ?? ""
+        id = c.flexString(.id) ?? ""
+        if id.isEmpty, let alt = try? decoder.container(keyedBy: AltKeys.self) {
+            id = alt.flexString(.id) ?? ""
+        }
         name = c.flexString(.name) ?? ""
         pid = c.flexInt(.pid)
         elapsed = c.flexInt(.elapsed) ?? 0

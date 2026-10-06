@@ -571,6 +571,7 @@ final class PanelStore: ObservableObject {
     /// 任务日志历史文件名（`GET /api/crons/:id/logs`，最新在前）。
     /// 与上面的 `cronLogFiles(id:) -> [FileNode]` 区分命名，避免同名同参重定义。
     func cronLogFileNames(id: Int) async -> [String] {
+        // 第一路：新版面板专用接口，直接返回文件名数组（最新在前）
         do {
             let response = try await APIClient.shared.send(
                 .get, "crons/\(id)/logs", as: JSONValue.self
@@ -581,10 +582,38 @@ final class PanelStore: ObservableObject {
             } else if let s = response.data?.stringValue {
                 files = [s]
             }
+            if !files.isEmpty { return files }
+        } catch {}
+
+        // 第二路：老版本面板没有 crons/:id/logs 路由（404），改走日志目录树。
+        // 面板把每个任务的历史日志放在 log/<任务id>/ 目录下，
+        // 文件名是运行时间戳，字典序即时间序，倒序 = 最新在前。
+        do {
+            let response = try await APIClient.shared.send(.get, "logs", as: JSONValue.self)
+            let roots = FileNode.parseList(response.data)
+            let idText = String(id)
+
+            var target: FileNode?
+            for root in roots where root.isDirectory {
+                if root.title == idText || root.path == idText || root.path == "log/\(idText)" {
+                    target = root
+                    break
+                }
+                if root.title == "log" || root.path == "log" || root.path.hasSuffix("/log") {
+                    if let dir = root.children?.first(where: { $0.isDirectory && $0.title == idText }) {
+                        target = dir
+                        break
+                    }
+                }
+            }
+
+            let files = (target?.children ?? [])
+                .filter { !$0.isDirectory }
+                .map { $0.title }
+                .sorted { $0 > $1 }
             return files
-        } catch {
-            return []
-        }
+        } catch {}
+        return []
     }
 
     func createEnv(name: String, value: String, remarks: String) async -> Bool {

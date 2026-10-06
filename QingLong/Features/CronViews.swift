@@ -679,7 +679,7 @@ struct CronDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     historyRow(
                         title: "最新日志",
-                        value: logFiles.first ?? "跟随任务",
+                        value: logFiles.first ?? "实时输出",
                         destination: AnyView(CronLogView(cron: live))
                     )
                     Divider()

@@ -32,7 +32,7 @@ struct CronLogHistoryView: View {
                             destination: CronLogFileView(
                                 cron: cron,
                                 fileName: name,
-                                logPath: cron.logPath ?? ""
+                                logPath: cron.logPath ?? "log/\(cron.id)"
                             )
                         ) {
                             HStack(spacing: 10) {

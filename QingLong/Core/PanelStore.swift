@@ -600,7 +600,7 @@ final class PanelStore: ObservableObject {
                     break
                 }
                 if root.title == "log" || root.path == "log" || root.path.hasSuffix("/log") {
-                    if let dir = root.children?.first(where: { $0.isDirectory && $0.title == idText }) {
+                    if let dir = (root.children ?? []).first(where: { $0.isDirectory && $0.title == idText }) {
                         target = dir
                         break
                     }

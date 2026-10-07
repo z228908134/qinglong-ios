@@ -273,7 +273,9 @@ struct InfoRow: View {
                 .foregroundColor(Theme.secondaryText)
                 .frame(width: 76, alignment: .leading)
             Text(value)
-                .font(monospaced ? .system(size: 12.5, design: .monospaced) : .system(size: 13))
+                .font(monospaced
+                      ? .system(size: Theme.font(12.5), design: .monospaced)
+                      : .system(size: Theme.font(13)))
                 .foregroundColor(valueColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

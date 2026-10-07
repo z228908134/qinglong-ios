@@ -620,7 +620,13 @@ struct CronDetailView: View {
 
     private func loadLogFiles() async {
         logFilesLoading = true
-        logFiles = await store.cronLogFileNames(id: cron.id)
+        // 日志目录树可能很大（单任务 800+ 文件），放到后台线程解析，
+        // 否则进详情页会卡住主线程几秒。
+        let id = cron.id
+        let names = await Task.detached(priority: .utility) { [weak self] in
+            await self?.store.cronLogFileNames(id: id) ?? []
+        }.value
+        logFiles = names
         logFilesLoading = false
     }
 
@@ -667,23 +673,25 @@ struct CronDetailView: View {
 
     private var logHistoryCard: some View {
         SectionCard("日志") {
-            if logFilesLoading && logFiles.isEmpty {
-                HStack(spacing: 8) {
-                    ProgressView().scaleEffect(0.8)
-                    Text("正在读取日志历史…")
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.secondaryText)
-                }
-                .padding(.vertical, 6)
-            } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    historyRow(
-                        title: "最新日志",
-                        value: logFiles.first ?? "实时输出",
-                        destination: AnyView(CronLogView(cron: live))
-                    )
-                    Divider()
-                        .background(Theme.separator)
+            VStack(alignment: .leading, spacing: 0) {
+                historyRow(
+                    title: "最新日志",
+                    // 直接用 cron 自带的 log_path，进详情页立即可见，不等任何请求
+                    value: live.latestLogName ?? "暂无日志",
+                    destination: AnyView(CronLogView(cron: live))
+                )
+                Divider()
+                    .background(Theme.separator)
+                if logFilesLoading {
+                    HStack(spacing: 8) {
+                        ProgressView().scaleEffect(0.7)
+                        Text("正在统计历史日志…")
+                            .font(.system(size: 12.5))
+                            .foregroundColor(Theme.secondaryText)
+                        Spacer()
+                    }
+                    .padding(.vertical, 11)
+                } else {
                     historyRow(
                         title: "日志历史",
                         value: logFiles.isEmpty ? "—" : "\(logFiles.count) 个文件",

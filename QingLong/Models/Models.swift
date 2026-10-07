@@ -136,6 +136,23 @@ struct Cron: Codable, Identifiable {
 
     var isPinnedTask: Bool { (isPinned ?? 0) == 1 }
 
+    /// 最新日志文件名（来自 cron 自带的 `log_path` 字段，无需额外请求）。
+    ///
+    /// 面板返回形如 `log/<任务id>/2026-10-07-10-30-00-705.log`，
+    /// 取最后一段即可；`log_path` 可能为空（任务从未运行过）。
+    var latestLogName: String? {
+        guard let path = logPath, !path.isEmpty else { return nil }
+        let name = (path as NSString).lastPathComponent
+        return name.isEmpty ? nil : name
+    }
+
+    /// 最新日志所在目录（`log_path` 的父目录），读取历史日志时作为 `path` 参数。
+    var latestLogDir: String? {
+        guard let path = logPath, !path.isEmpty else { return nil }
+        let dir = (path as NSString).deletingLastPathComponent
+        return dir.isEmpty ? nil : dir
+    }
+
     var isDisabledTask: Bool { (isDisabled ?? 0) == 1 }
 
     var isSubscribed: Bool { !(subId ?? "").isEmpty }

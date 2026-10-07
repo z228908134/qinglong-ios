@@ -568,45 +568,37 @@ final class PanelStore: ObservableObject {
         }
     }
 
-    /// 任务日志历史文件名（`GET /api/crons/:id/logs`，最新在前）。
-    /// 与上面的 `cronLogFiles(id:) -> [FileNode]` 区分命名，避免同名同参重定义。
+    /// 任务日志历史文件名（最新在前）。
+    ///
+    /// 面板 `GET /api/logs` 返回的是整个 log 目录的**完整递归树**
+    /// （`readDirs(config.logPath, config.logPath)`），节点 `key` 是**相对
+    /// log 根目录**的路径——顶层任务目录的 key 就是 `<任务id>`，不含 `log/` 前缀。
+    /// 之前按 `log/<任务id>` 匹配自然永远落空，这里两种形态都兼容。
+    ///
+    /// 注意：这棵树可能很大（单任务 800+ 文件、全量上万节点），解析需要时间，
+    /// 所以调用方不要阻塞首屏渲染。
     func cronLogFileNames(id: String) async -> [String] {
-        // 第一路：新版面板专用接口，直接返回文件名数组（最新在前）
-        do {
-            let response = try await APIClient.shared.send(
-                .get, "crons/\(id)/logs", as: JSONValue.self
-            )
-            var files: [String] = []
-            if let arr = response.data?.arrayValue {
-                files = arr.compactMap { $0.stringValue }
-            } else if let s = response.data?.stringValue {
-                files = [s]
-            }
-            if !files.isEmpty { return files }
-        } catch {}
-
-        // 第二路：老版本面板没有 crons/:id/logs 路由（404），改走日志目录树。
-        // 面板把每个任务的历史日志放在 log/<任务id>/ 目录下，
-        // 文件名是运行时间戳，字典序即时间序，倒序 = 最新在前。
         do {
             let response = try await APIClient.shared.send(.get, "logs", as: JSONValue.self)
             let roots = FileNode.parseList(response.data)
             let idText = id
 
-            var target: FileNode?
-            for root in roots where root.isDirectory {
-                if root.title == idText || root.path == idText || root.path == "log/\(idText)" {
-                    target = root
-                    break
-                }
-                if root.title == "log" || root.path == "log" || root.path.hasSuffix("/log") {
-                    if let dir = (root.children ?? []).first(where: { $0.isDirectory && $0.title == idText }) {
-                        target = dir
-                        break
+            // 递归找任务目录：顶层 key/title 可能是 `<id>` 或 `log/<id>`，
+            // 也可能出现在更深层（面板调整过目录层级时）。
+            func findDir(_ nodes: [FileNode]) -> FileNode? {
+                for node in nodes where node.isDirectory {
+                    if node.title == idText
+                        || node.path == idText
+                        || node.path == "log/\(idText)"
+                        || node.path.hasSuffix("/\(idText)") {
+                        return node
                     }
+                    if let hit = findDir(node.children) { return hit }
                 }
+                return nil
             }
 
+            let target = findDir(roots)
             let files = (target?.children ?? [])
                 .filter { !$0.isDirectory }
                 .map { $0.title }

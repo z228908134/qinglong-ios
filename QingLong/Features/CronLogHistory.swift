@@ -32,7 +32,9 @@ struct CronLogHistoryView: View {
                             destination: CronLogFileView(
                                 cron: cron,
                                 fileName: name,
-                                logPath: cron.logPath ?? "log/\(cron.id)"
+                                // logs/detail 的 path 参数要的是**目录**，
+                                // 而 cron.log_path 是含文件名的完整路径
+                                logPath: cron.latestLogDir ?? "log/\(cron.id)"
                             )
                         ) {
                             HStack(spacing: 10) {

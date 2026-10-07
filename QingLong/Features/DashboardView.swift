@@ -57,7 +57,7 @@ struct DashboardView: View {
             Button("退出登录", action: store.signOut)
         } label: {
             Image(systemName: "person.crop.circle")
-                .font(.system(size: 17))
+                .font(.system(size: Theme.font(17)))
         }
     }
 
@@ -76,10 +76,10 @@ struct DashboardView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("已连接面板")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: Theme.font(15), weight: .semibold))
                             .foregroundColor(Theme.primaryText)
                         Text(store.connection?.baseURLString ?? "-")
-                            .font(.system(size: 11.5, design: .monospaced))
+                            .font(.system(size: Theme.font(11.5), design: .monospaced))
                             .foregroundColor(Theme.secondaryText)
                             .lineLimit(1)
                     }
@@ -97,9 +97,9 @@ struct DashboardView: View {
                 if let system = store.systemStat, !system.platform.isEmpty {
                     HStack(spacing: 5) {
                         Image(systemName: "server.rack")
-                            .font(.system(size: 10))
+                            .font(.system(size: Theme.font(10)))
                         Text("面板运行于 \(system.platform) · 已运行 \(system.uptimeText)")
-                            .font(.system(size: 11.5))
+                            .font(.system(size: Theme.font(11.5)))
                     }
                     .foregroundColor(Theme.tertiaryText)
                 }
@@ -110,10 +110,10 @@ struct DashboardView: View {
     private func labeledValue(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title)
-                .font(.system(size: 11))
+                .font(.system(size: Theme.font(11)))
                 .foregroundColor(Theme.tertiaryText)
             Text(value)
-                .font(.system(size: 12.5, weight: .medium))
+                .font(.system(size: Theme.font(12.5), weight: .medium))
                 .foregroundColor(Theme.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -133,24 +133,24 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13))
+                        .font(.system(size: Theme.font(13)))
                         .foregroundColor(Theme.warning)
                     Text(store.dashboardScopeDenied ? "当前应用缺少「面板概览」权限" : "部分概览数据未能加载")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: Theme.font(13), weight: .semibold))
                         .foregroundColor(Theme.primaryText)
                     Spacer(minLength: 0)
                 }
 
                 if store.dashboardScopeDenied {
                     Text("概览统计、执行趋势、运行实例属于独立的 dashboard 权限，与任务列表的权限是分开授予的。请到面板「系统设置 → 应用设置」编辑当前应用，勾上「面板概览 / dashboard」并保存，然后回到本页刷新即可。")
-                        .font(.system(size: 12))
+                        .font(.system(size: Theme.font(12)))
                         .foregroundColor(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 ForEach(store.dashboardIssues, id: \.self) { issue in
                     Text("· \(issue)")
-                        .font(.system(size: 11.5))
+                        .font(.system(size: Theme.font(11.5)))
                         .foregroundColor(Theme.tertiaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -185,10 +185,10 @@ struct DashboardView: View {
                 }
                 VStack(spacing: 1) {
                     Text(rateText.map { "\($0)%" } ?? "—")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: Theme.font(17), weight: .bold))
                         .foregroundColor(.white)
                     Text("成功率")
-                        .font(.system(size: 10))
+                        .font(.system(size: Theme.font(10)))
                         .foregroundColor(.white.opacity(0.85))
                 }
             }
@@ -196,17 +196,17 @@ struct DashboardView: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("今日执行")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: Theme.font(12), weight: .medium))
                     .foregroundColor(.white.opacity(0.85))
                 Text(hasStats ? "\(store.overview?.todayRuns ?? 0)" : "—")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: Theme.font(32), weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Text(hasStats
                         ? "成功 \(store.overview?.todaySuccess ?? 0) · 失败 \(store.overview?.todayFail ?? 0)"
                         : "面板未返回统计数据")
-                    .font(.system(size: 11.5))
+                    .font(.system(size: Theme.font(11.5)))
                     .foregroundColor(.white.opacity(0.85))
                     .lineLimit(1)
             }
@@ -304,21 +304,21 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("正在运行")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: Theme.font(12), weight: .semibold))
                         .foregroundColor(Theme.secondaryText)
                     Spacer()
                     Text("\(running.count) 个任务")
-                        .font(.system(size: 11.5))
+                        .font(.system(size: Theme.font(11.5)))
                         .foregroundColor(Theme.tertiaryText)
                 }
 
                 if running.isEmpty {
                     HStack(spacing: 8) {
                         Image(systemName: "moon.zzz")
-                            .font(.system(size: 14))
+                            .font(.system(size: Theme.font(14)))
                             .foregroundColor(Theme.tertiaryText)
                         Text("当前没有正在运行的任务")
-                            .font(.system(size: 12.5))
+                            .font(.system(size: Theme.font(12.5)))
                             .foregroundColor(Theme.secondaryText)
                     }
                     .padding(.vertical, 6)
@@ -332,11 +332,11 @@ struct DashboardView: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(task.name)
-                                        .font(.system(size: 13.5, weight: .medium))
+                                        .font(.system(size: Theme.font(13.5), weight: .medium))
                                         .foregroundColor(Theme.primaryText)
                                         .lineLimit(1)
                                     Text(runningSubtitle(task))
-                                        .font(.system(size: 11))
+                                        .font(.system(size: Theme.font(11)))
                                         .foregroundColor(Theme.tertiaryText)
                                 }
 
@@ -364,11 +364,11 @@ struct DashboardView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text("内存占用")
-                                .font(.system(size: 12.5))
+                                .font(.system(size: Theme.font(12.5)))
                                 .foregroundColor(Theme.secondaryText)
                             Spacer()
                             Text(String(format: "%.1f / %.1f GB", system.memUsedGB, system.memTotalGB))
-                                .font(.system(size: 12.5, weight: .medium))
+                                .font(.system(size: Theme.font(12.5), weight: .medium))
                                 .foregroundColor(Theme.primaryText)
                         }
                         ThinProgressBar(progress: (Double(system.memUsagePercent) ?? 0) / 100)
@@ -385,7 +385,7 @@ struct DashboardView: View {
                 }
             } else {
                 Text("面板未返回运行环境数据，可稍后下拉重试。")
-                    .font(.system(size: 12.5))
+                    .font(.system(size: Theme.font(12.5)))
                     .foregroundColor(Theme.secondaryText)
             }
         }
@@ -394,12 +394,12 @@ struct DashboardView: View {
     private func statColumn(_ title: String, _ value: String) -> some View {
         VStack(spacing: 3) {
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: Theme.font(13), weight: .medium))
                 .foregroundColor(Theme.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(title)
-                .font(.system(size: 10.5))
+                .font(.system(size: Theme.font(10.5)))
                 .foregroundColor(Theme.tertiaryText)
         }
         .frame(maxWidth: .infinity)
@@ -420,10 +420,10 @@ struct TrendChartCard: View {
             if points.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "chart.bar")
-                        .font(.system(size: 14))
+                        .font(.system(size: Theme.font(14)))
                         .foregroundColor(Theme.tertiaryText)
                     Text("暂无统计数据，面板需要累积执行记录后才会展示")
-                        .font(.system(size: 12))
+                        .font(.system(size: Theme.font(12)))
                         .foregroundColor(Theme.secondaryText)
                 }
                 .padding(.vertical, 6)
@@ -457,7 +457,7 @@ struct TrendChartCard: View {
 
         return VStack(spacing: 5) {
             Text(point.total > 0 ? "\(point.total)" : "")
-                .font(.system(size: 9.5, weight: .medium))
+                .font(.system(size: Theme.font(9.5), weight: .medium))
                 .foregroundColor(Theme.tertiaryText)
 
             ZStack(alignment: .bottom) {
@@ -482,7 +482,7 @@ struct TrendChartCard: View {
             }
 
             Text(point.date)
-                .font(.system(size: 9))
+                .font(.system(size: Theme.font(9)))
                 .foregroundColor(Theme.tertiaryText)
                 .lineLimit(1)
         }
@@ -495,7 +495,7 @@ struct TrendChartCard: View {
                 .fill(color)
                 .frame(width: 9, height: 9)
             Text(text)
-                .font(.system(size: 11))
+                .font(.system(size: Theme.font(11)))
                 .foregroundColor(Theme.tertiaryText)
         }
     }

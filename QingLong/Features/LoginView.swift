@@ -55,16 +55,16 @@ struct LoginView: View {
                 .frame(width: 76, height: 76)
                 .overlay(
                     Text("QL")
-                        .font(.system(size: 27, weight: .heavy))
+                        .font(.system(size: Theme.font(27), weight: .heavy))
                         .foregroundColor(.white)
                 )
 
             Text("青龙面板")
-                .font(.system(size: 21, weight: .semibold))
+                .font(.system(size: Theme.font(21), weight: .semibold))
                 .foregroundColor(Theme.primaryText)
 
             Text("在 iPhone 上原生管理定时任务、环境变量与订阅")
-                .font(.system(size: 12.5))
+                .font(.system(size: Theme.font(12.5)))
                 .foregroundColor(Theme.secondaryText)
                 .multilineTextAlignment(.center)
         }
@@ -87,9 +87,9 @@ struct LoginView: View {
                    !address.trimmingCharacters(in: .whitespaces).isEmpty {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.turn.down.right")
-                            .font(.system(size: 10))
+                            .font(.system(size: Theme.font(10)))
                         Text("将使用 \(normalized)")
-                            .font(.system(size: 11.5))
+                            .font(.system(size: Theme.font(11.5)))
                             .lineLimit(1)
                     }
                     .foregroundColor(Theme.tertiaryText)
@@ -102,10 +102,10 @@ struct LoginView: View {
                                 ProgressView().scaleEffect(0.7)
                             } else {
                                 Image(systemName: "wifi")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: Theme.font(12)))
                             }
                             Text("测试连接")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: Theme.font(13), weight: .medium))
                         }
                         .foregroundColor(Theme.info)
                     }
@@ -114,11 +114,11 @@ struct LoginView: View {
                     switch probeState {
                     case .reachable(let text):
                         Label(text, systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: Theme.font(12)))
                             .foregroundColor(Theme.success)
                     case .failed(let text):
                         Label(text, systemImage: "exclamationmark.triangle.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: Theme.font(12)))
                             .foregroundColor(Theme.danger)
                             .lineLimit(2)
                     default:
@@ -145,7 +145,7 @@ struct LoginView: View {
                 }
 
                 Text("账号密码保存在系统钥匙串中，仅用于令牌失效后自动续期，不会上传到任何第三方服务器。")
-                    .font(.system(size: 11))
+                    .font(.system(size: Theme.font(11)))
                     .foregroundColor(Theme.tertiaryText)
             }
         }
@@ -157,7 +157,7 @@ struct LoginView: View {
         VStack(spacing: 10) {
             if needTwoFactor {
                 Text("已开启两步验证，输入动态码后再点登录")
-                    .font(.system(size: 11.5))
+                    .font(.system(size: Theme.font(11.5)))
                     .foregroundColor(Theme.warning)
             }
 
@@ -183,7 +183,7 @@ struct LoginView: View {
 
             if let connection = store.connection, !store.isAuthenticated {
                 Text(connection.expirationText)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: Theme.font(11.5)))
                     .foregroundColor(Theme.warning)
             }
         }
@@ -197,12 +197,12 @@ struct LoginView: View {
                 Button(action: { showHelp.toggle() }) {
                     HStack {
                         Image(systemName: "questionmark.circle")
-                            .font(.system(size: 13))
+                            .font(.system(size: Theme.font(13)))
                         Text("登录遇到问题？")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: Theme.font(13), weight: .medium))
                         Spacer()
                         Image(systemName: showHelp ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 11))
+                            .font(.system(size: Theme.font(11)))
                     }
                     .foregroundColor(Theme.accent)
                 }
@@ -217,7 +217,7 @@ struct LoginView: View {
                     .padding(.top, 2)
 
                     Text("令牌失效后客户端会用保存的账号密码自动续期；在面板上修改密码后需要重新登录一次。")
-                        .font(.system(size: 11))
+                        .font(.system(size: Theme.font(11)))
                         .foregroundColor(Theme.secondaryText)
                         .padding(.top, 2)
                 }
@@ -228,12 +228,12 @@ struct LoginView: View {
     private func helpStep(_ index: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Text(index)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: Theme.font(10), weight: .bold))
                 .foregroundColor(.white)
                 .frame(width: 16, height: 16)
                 .background(Circle().fill(Theme.accent))
             Text(text)
-                .font(.system(size: 12))
+                .font(.system(size: Theme.font(12)))
                 .foregroundColor(Theme.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -277,7 +277,7 @@ struct LabeledField: View {
         VStack(alignment: .leading, spacing: 6) {
             if !title.isEmpty {
                 Text(title)
-                    .font(.system(size: 12))
+                    .font(.system(size: Theme.font(12)))
                     .foregroundColor(Theme.secondaryText)
             }
 
@@ -289,7 +289,7 @@ struct LabeledField: View {
                 }
             }
             .textFieldStyle(PlainTextFieldStyle())
-            .font(.system(size: 14))
+            .font(.system(size: Theme.font(14)))
             .foregroundColor(Theme.primaryText)
             .autocapitalization(.none)
             .disableAutocorrection(true)

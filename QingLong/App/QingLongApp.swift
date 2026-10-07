@@ -10,9 +10,17 @@ struct QingLongApp: App {
     /// 与设置页共用同一个 `@AppStorage` 键，改动后立即生效，不需要重启。
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
 
+    /// 文字缩放档位。
+    ///
+    /// 各处字号写成 `Theme.font(基准值)`，实际值 = 基准值 × 该缩放。
+    /// 这里读同一个键并写进窗口的 `id`，缩放一变就重建视图树，
+    /// 用户在设置页拖动滑杆能立刻看到全 App 字号变化。
+    @AppStorage(FontScale.storageKey) private var fontScaleRaw = FontScale.default
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .id(fontScaleRaw)
                 .environmentObject(store)
                 .accentColor(Theme.accent)
                 .preferredColorScheme(AppearanceMode(rawValue: appearanceRaw)?.colorScheme)

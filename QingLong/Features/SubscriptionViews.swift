@@ -74,7 +74,7 @@ struct SubscriptionListView: View {
                 },
                 trailing: Button(action: { showCreate = true }) {
                     Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(.system(size: Theme.font(17), weight: .medium))
                 }
             )
         }
@@ -147,13 +147,13 @@ struct SubscriptionRowView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.displayName)
-                    .font(.system(size: 13.5, weight: .medium))
+                    .font(.system(size: Theme.font(13.5), weight: .medium))
                     .foregroundColor(isDisabled ? Theme.secondaryText : Theme.primaryText)
                     .lineLimit(1)
 
                 if let url = item.url, !url.isEmpty {
                     Text(url)
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: Theme.font(11), design: .monospaced))
                         .foregroundColor(Theme.tertiaryText)
                         .lineLimit(1)
                 }
@@ -163,7 +163,7 @@ struct SubscriptionRowView: View {
                     Text("·")
                     Text(item.scheduleDescription)
                 }
-                .font(.system(size: 11))
+                .font(.system(size: Theme.font(11)))
                 .foregroundColor(Theme.tertiaryText)
             }
 
@@ -190,9 +190,9 @@ struct SubscriptionRowView: View {
                     }) {
                         HStack(spacing: 3) {
                             Image(systemName: item.runStatus.isActive ? "stop.fill" : "play.fill")
-                                .font(.system(size: 9))
+                                .font(.system(size: Theme.font(9)))
                             Text(item.runStatus.isActive ? "停止" : "拉取")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: Theme.font(11), weight: .medium))
                         }
                         .foregroundColor(item.runStatus.isActive ? Theme.danger : Theme.accent)
                         .padding(.horizontal, 9)
@@ -207,7 +207,7 @@ struct SubscriptionRowView: View {
 
                     NavigationLink(destination: SubscriptionLogView(subscription: item)) {
                         Text("日志")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: Theme.font(11), weight: .medium))
                             .foregroundColor(Theme.info)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 4)
@@ -302,7 +302,7 @@ struct SubscriptionCreateView: View {
                     TextField("仓库地址，例如 https://github.com/user/repo.git", text: $url)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.system(size: Theme.font(13), design: .monospaced))
                     TextField("别名，例如 jd_scripts", text: $alias)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
@@ -315,7 +315,7 @@ struct SubscriptionCreateView: View {
                     TextField("定时规则", text: $schedule)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                        .font(.system(size: 15, design: .monospaced))
+                        .font(.system(size: Theme.font(15), design: .monospaced))
                     TextField("白名单文件名（可留空，逗号分隔）", text: $whitelist)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)

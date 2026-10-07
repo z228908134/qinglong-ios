@@ -13,10 +13,10 @@ struct FilterChip: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: Theme.font(12.5), weight: isSelected ? .semibold : .regular))
                 if let count = count {
                     Text("\(count)")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: Theme.font(11), weight: .medium))
                         .opacity(0.75)
                 }
             }
@@ -68,11 +68,11 @@ struct MenuRow<Destination: View>: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15))
+                        .font(.system(size: Theme.font(15)))
                         .foregroundColor(Theme.primaryText)
                     if let subtitle = subtitle {
                         Text(subtitle)
-                            .font(.system(size: 11.5))
+                            .font(.system(size: Theme.font(11.5)))
                             .foregroundColor(Theme.tertiaryText)
                             .lineLimit(1)
                     }
@@ -82,7 +82,7 @@ struct MenuRow<Destination: View>: View {
 
                 if let badge = badge {
                     Text(badge)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: Theme.font(12), weight: .medium))
                         .foregroundColor(Theme.secondaryText)
                 }
             }
@@ -127,10 +127,10 @@ struct InlineActionButton: View {
                     ProgressView().scaleEffect(0.6)
                 } else {
                     Image(systemName: icon)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: Theme.font(11), weight: .semibold))
                 }
                 Text(title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: Theme.font(12), weight: .medium))
             }
             .foregroundColor(tint)
             .padding(.horizontal, 10)
@@ -167,7 +167,7 @@ struct TextDetailView: View {
                 if let subtitle = subtitle {
                     HStack {
                         Text(subtitle)
-                            .font(.system(size: 11.5, design: .monospaced))
+                            .font(.system(size: Theme.font(11.5), design: .monospaced))
                             .foregroundColor(Theme.tertiaryText)
                             .lineLimit(1)
                         Spacer()
@@ -181,7 +181,7 @@ struct TextDetailView: View {
                     Spacer()
                 } else if isEditing {
                     TextEditor(text: $editableText)
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: Theme.font(12), design: .monospaced))
                         .foregroundColor(Theme.primaryText)
                         .padding(8)
                         .background(Theme.cardBackground)
@@ -205,7 +205,7 @@ struct TextDetailView: View {
         HStack(spacing: 16) {
             Button(action: copyToPasteboard) {
                 Image(systemName: "doc.on.doc")
-                    .font(.system(size: 15))
+                    .font(.system(size: Theme.font(15)))
             }
 
             // 刷新与编辑现在可以并存：原先是 else-if，只要有保存回调就把刷新挤掉了；
@@ -213,7 +213,7 @@ struct TextDetailView: View {
             if !isEditing, let onRefresh = onRefresh {
                 Button(action: onRefresh) {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15))
+                        .font(.system(size: Theme.font(15)))
                 }
             }
 
@@ -221,10 +221,10 @@ struct TextDetailView: View {
                 Button(action: toggleEditing) {
                     if let editLabel = editLabel {
                         Text(isEditing ? "保存" : editLabel)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: Theme.font(14), weight: .medium))
                     } else {
                         Image(systemName: isEditing ? "checkmark.circle.fill" : "square.and.pencil")
-                            .font(.system(size: 15))
+                            .font(.system(size: Theme.font(15)))
                     }
                 }
             }

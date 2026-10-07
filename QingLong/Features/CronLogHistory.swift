@@ -15,13 +15,13 @@ struct CronLogHistoryView: View {
             if files.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 32))
+                        .font(.system(size: Theme.font(32)))
                         .foregroundColor(Theme.tertiaryText)
                     Text("没有历史日志")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: Theme.font(14), weight: .medium))
                         .foregroundColor(Theme.primaryText)
                     Text("任务每次执行都会在面板上留下一份日志文件。")
-                        .font(.system(size: 12))
+                        .font(.system(size: Theme.font(12)))
                         .foregroundColor(Theme.secondaryText)
                 }
                 .padding(.horizontal, 32)
@@ -39,10 +39,10 @@ struct CronLogHistoryView: View {
                         ) {
                             HStack(spacing: 10) {
                                 Image(systemName: "doc.text")
-                                    .font(.system(size: 15))
+                                    .font(.system(size: Theme.font(15)))
                                     .foregroundColor(Theme.info)
                                 Text(name)
-                                    .font(.system(size: 14, design: .monospaced))
+                                    .font(.system(size: Theme.font(14), design: .monospaced))
                                     .foregroundColor(Theme.primaryText)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.75)
@@ -83,16 +83,16 @@ struct CronLogFileView: View {
                 VStack(spacing: 8) {
                     ProgressView()
                     Text("正在读取日志…")
-                        .font(.system(size: 12.5))
+                        .font(.system(size: Theme.font(12.5)))
                         .foregroundColor(Theme.secondaryText)
                 }
             } else if !errorText.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 26))
+                        .font(.system(size: Theme.font(26)))
                         .foregroundColor(Theme.warning)
                     Text(errorText)
-                        .font(.system(size: 12.5))
+                        .font(.system(size: Theme.font(12.5)))
                         .foregroundColor(Theme.secondaryText)
                         .multilineTextAlignment(.center)
                 }
@@ -100,7 +100,7 @@ struct CronLogFileView: View {
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
                     Text(text.isEmpty ? "（日志为空）" : text)
-                        .font(.system(size: 11.5, design: .monospaced))
+                        .font(.system(size: Theme.font(11.5), design: .monospaced))
                         .foregroundColor(Theme.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)

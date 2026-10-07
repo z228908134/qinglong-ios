@@ -57,14 +57,14 @@ struct PanelSettingsView: View {
                     SectionCard("关于") {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("青龙面板 · 原生 iOS 客户端")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: Theme.font(13), weight: .medium))
                                 .foregroundColor(Theme.primaryText)
                             Text("这是社区实现的原生客户端，需要你已经在服务器 / NAS / Docker 上部署好青龙面板。它使用面板账号密码登录（与网页端同一套凭据），令牌失效时会自动续期。凭据只保存在本机钥匙串，不会上传到任何第三方服务器。")
-                                .font(.system(size: 11.5))
+                                .font(.system(size: Theme.font(11.5)))
                                 .foregroundColor(Theme.secondaryText)
                                 .lineSpacing(3)
                             Text("凭据与令牌存放在系统钥匙串中。退出登录会同时清除本地保存的凭据。")
-                                .font(.system(size: 11.5))
+                                .font(.system(size: Theme.font(11.5)))
                                 .foregroundColor(Theme.tertiaryText)
                                 .lineSpacing(3)
                         }
@@ -89,11 +89,11 @@ struct PanelSettingsView: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 14))
+                    .font(.system(size: Theme.font(14)))
                     .foregroundColor(tint)
                     .frame(width: 22)
                 Text(title)
-                    .font(.system(size: 14))
+                    .font(.system(size: Theme.font(14)))
                     .foregroundColor(Theme.primaryText)
                 Spacer()
             }
@@ -124,16 +124,16 @@ struct SystemInfoView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
                                     Text("已用 \(String(format: "%.1f", system.memUsedGB)) GB")
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.system(size: Theme.font(13), weight: .medium))
                                         .foregroundColor(Theme.primaryText)
                                     Spacer()
                                     Text("共 \(String(format: "%.1f", system.memTotalGB)) GB")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: Theme.font(12)))
                                         .foregroundColor(Theme.secondaryText)
                                 }
                                 ThinProgressBar(progress: (Double(system.memUsagePercent) ?? 0) / 100)
                                 Text("占用率 \(system.memUsagePercent)%")
-                                    .font(.system(size: 11))
+                                    .font(.system(size: Theme.font(11)))
                                     .foregroundColor(Theme.tertiaryText)
                             }
                         }

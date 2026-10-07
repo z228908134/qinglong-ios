@@ -77,12 +77,12 @@ struct LogBrowserView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(node.title)
-                    .font(.system(size: 13.5))
+                    .font(.system(size: Theme.font(13.5)))
                     .foregroundColor(Theme.primaryText)
                     .lineLimit(1)
                 if node.isDirectory {
                     Text("\(node.children.count) 项")
-                        .font(.system(size: 11))
+                        .font(.system(size: Theme.font(11)))
                         .foregroundColor(Theme.tertiaryText)
                 }
             }
@@ -91,7 +91,7 @@ struct LogBrowserView: View {
 
             if node.isDirectory {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12))
+                    .font(.system(size: Theme.font(12)))
                     .foregroundColor(Theme.tertiaryText)
             }
         }

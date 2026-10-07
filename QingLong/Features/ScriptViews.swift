@@ -138,12 +138,12 @@ struct ScriptBrowserView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(node.title)
-                    .font(.system(size: 13.5))
+                    .font(.system(size: Theme.font(13.5)))
                     .foregroundColor(Theme.primaryText)
                     .lineLimit(1)
 
                 Text(showPath ? fullPath(node) : (node.isDirectory ? "目录" : node.fileExtension.uppercased()))
-                    .font(.system(size: 11))
+                    .font(.system(size: Theme.font(11)))
                     .foregroundColor(Theme.tertiaryText)
                     .lineLimit(1)
             }
@@ -152,7 +152,7 @@ struct ScriptBrowserView: View {
 
             if node.isDirectory {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12))
+                    .font(.system(size: Theme.font(12)))
                     .foregroundColor(Theme.tertiaryText)
             }
         }

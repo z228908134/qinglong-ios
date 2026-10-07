@@ -9,6 +9,9 @@ struct MoreView: View {
     /// 与 App 入口共用同一个键，改动即时生效
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
 
+    /// 文字大小，同样与设置页共用键
+    @AppStorage(FontScale.storageKey) private var fontScaleRaw = FontScale.default
+
     var body: some View {
         NavigationView {
             List {
@@ -22,6 +25,23 @@ struct MoreView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+
+                    NavigationLink(destination: FontSizeSettingsView()) {
+                        HStack(spacing: 12) {
+                            IconTile(icon: "textformat.size", tint: Theme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("文字大小")
+                                    .font(.system(size: Theme.font(15)))
+                                    .foregroundColor(Theme.primaryText)
+                                Text("当前：\(FontScale.title(for: fontScaleRaw))")
+                                    .font(.system(size: Theme.font(11.5)))
+                                    .foregroundColor(Theme.secondaryText)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
 
                 Section(header: Text("面板管理")) {
@@ -85,7 +105,7 @@ struct MoreView: View {
                         HStack(spacing: 12) {
                             IconTile(icon: "arrow.clockwise", tint: Theme.accent)
                             Text("刷新全部数据")
-                                .font(.system(size: 15))
+                                .font(.system(size: Theme.font(15)))
                                 .foregroundColor(Theme.primaryText)
                             Spacer()
                             if store.isLoading("dashboard") || store.isLoading("crons") {
@@ -178,7 +198,7 @@ struct DependenceListView: View {
         .navigationBarItems(
             trailing: Button(action: { showCreate = true }) {
                 Image(systemName: "plus")
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.system(size: Theme.font(17), weight: .medium))
             }
         )
         .sheet(isPresented: $showCreate) {
@@ -234,13 +254,13 @@ struct DependenceRowView: View {
             IconTile(icon: "cube.box.fill", tint: tint, size: 28)
                 .overlay(
                     Text(item.kind.shortTitle)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: Theme.font(9), weight: .semibold))
                         .foregroundColor(tint)
                 )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name)
-                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .font(.system(size: Theme.font(13), weight: .medium, design: .monospaced))
                     .foregroundColor(Theme.primaryText)
                     .lineLimit(1)
 
@@ -251,7 +271,7 @@ struct DependenceRowView: View {
                         Text(item.remark).lineLimit(1)
                     }
                 }
-                .font(.system(size: 11))
+                .font(.system(size: Theme.font(11)))
                 .foregroundColor(Theme.tertiaryText)
             }
 
@@ -262,7 +282,7 @@ struct DependenceRowView: View {
 
                 NavigationLink(destination: DependenceLogView(dependence: item)) {
                     Text("日志")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: Theme.font(11), weight: .medium))
                         .foregroundColor(Theme.info)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
@@ -346,7 +366,7 @@ struct DependenceCreateView: View {
                     TextField("包名，例如 axios 或 requests", text: $name)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                        .font(.system(size: 15, design: .monospaced))
+                        .font(.system(size: Theme.font(15), design: .monospaced))
                     TextField("备注（可留空）", text: $remark)
                 }
 

@@ -84,7 +84,7 @@ struct CronListView: View {
                 },
                 trailing: Button(action: { showCreate = true }) {
                     Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(.system(size: Theme.font(17), weight: .medium))
                 }
             )
         }
@@ -194,7 +194,7 @@ struct CronRowView: View {
                 .frame(width: 32, height: 32)
                 .overlay(
                     Text(badge.text)
-                        .font(.system(size: 10.5, weight: .bold))
+                        .font(.system(size: Theme.font(10.5), weight: .bold))
                         .foregroundColor(badge.color)
                 )
 
@@ -202,17 +202,17 @@ struct CronRowView: View {
                 HStack(spacing: 4) {
                     if cron.isPinnedTask {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 9))
+                            .font(.system(size: Theme.font(9)))
                             .foregroundColor(Theme.warning)
                     }
                     Text(cron.displayName)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: Theme.font(14), weight: .medium))
                         .foregroundColor(cron.isDisabledTask ? Theme.secondaryText : Theme.primaryText)
                         .lineLimit(1)
                 }
 
                 Text(cron.command)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: Theme.font(11), design: .monospaced))
                     .foregroundColor(Theme.tertiaryText)
                     .lineLimit(1)
 
@@ -222,7 +222,7 @@ struct CronRowView: View {
                     Text(cron.schedule ?? "未设置")
                         .lineLimit(1)
                 }
-                .font(.system(size: 11))
+                .font(.system(size: Theme.font(11)))
                 .foregroundColor(Theme.tertiaryText)
             }
 
@@ -370,7 +370,7 @@ struct CronDetailView: View {
                 HStack(spacing: 12) {
                     Toggle(isOn: $logAutoRefresh) {
                         Text("自动刷新")
-                            .font(.system(size: 12.5))
+                            .font(.system(size: Theme.font(12.5)))
                             .foregroundColor(Theme.secondaryText)
                     }
                     .toggleStyle(SwitchToggleStyle(tint: Theme.accent))
@@ -381,14 +381,14 @@ struct CronDetailView: View {
                         withAnimation(.easeInOut(duration: 0.2)) { logExpanded.toggle() }
                     }) {
                         Text(logExpanded ? "收起" : "展开")
-                            .font(.system(size: 12))
+                            .font(.system(size: Theme.font(12)))
                             .foregroundColor(Theme.accent)
                     }
                     .buttonStyle(PlainButtonStyle())
 
                     Button(action: { Task { await reloadLog() } }) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12))
+                            .font(.system(size: Theme.font(12)))
                             .foregroundColor(Theme.accent)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -398,7 +398,7 @@ struct CronDetailView: View {
 
                 HStack(spacing: 0) {
                     Text(logSummary)
-                        .font(.system(size: 11))
+                        .font(.system(size: Theme.font(11)))
                         .foregroundColor(Theme.tertiaryText)
 
                     Spacer(minLength: 0)
@@ -406,9 +406,9 @@ struct CronDetailView: View {
                     NavigationLink(destination: CronLogView(cron: live)) {
                         HStack(spacing: 4) {
                             Text("完整日志")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: Theme.font(12), weight: .medium))
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 10))
+                                .font(.system(size: Theme.font(10)))
                         }
                         .foregroundColor(Theme.accent)
                     }
@@ -423,7 +423,7 @@ struct CronDetailView: View {
             HStack(spacing: 8) {
                 ProgressView().scaleEffect(0.75)
                 Text("正在读取日志…")
-                    .font(.system(size: 12))
+                    .font(.system(size: Theme.font(12)))
                     .foregroundColor(Theme.secondaryText)
             }
             .frame(maxWidth: .infinity)
@@ -431,13 +431,13 @@ struct CronDetailView: View {
         } else if logText.isEmpty {
             VStack(spacing: 6) {
                 Image(systemName: "doc.text")
-                    .font(.system(size: 16))
+                    .font(.system(size: Theme.font(16)))
                     .foregroundColor(Theme.tertiaryText)
                 Text("暂无日志输出")
-                    .font(.system(size: 12))
+                    .font(.system(size: Theme.font(12)))
                     .foregroundColor(Theme.secondaryText)
                 Text("任务执行后会自动显示在这里")
-                    .font(.system(size: 11))
+                    .font(.system(size: Theme.font(11)))
                     .foregroundColor(Theme.tertiaryText)
             }
             .frame(maxWidth: .infinity)
@@ -445,7 +445,7 @@ struct CronDetailView: View {
         } else {
             ScrollView(.vertical, showsIndicators: true) {
                 Text(displayedLogText)
-                    .font(.system(size: 10.5, design: .monospaced))
+                    .font(.system(size: Theme.font(10.5), design: .monospaced))
                     .foregroundColor(Theme.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -524,11 +524,11 @@ struct CronDetailView: View {
                 }
 
                 Text(live.displayName)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: Theme.font(17), weight: .semibold))
                     .foregroundColor(Theme.primaryText)
 
                 Text(live.command)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.system(size: Theme.font(12), design: .monospaced))
                     .foregroundColor(Theme.secondaryText)
                     .padding(9)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -574,12 +574,12 @@ struct CronDetailView: View {
                 NavigationLink(destination: CronLogView(cron: live)) {
                     HStack {
                         Image(systemName: "doc.plaintext")
-                            .font(.system(size: 13))
+                            .font(.system(size: Theme.font(13)))
                         Text("查看运行日志")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: Theme.font(14), weight: .medium))
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
+                            .font(.system(size: Theme.font(12)))
                     }
                     .foregroundColor(Theme.accent)
                     .padding(.vertical, 11)
@@ -594,9 +594,9 @@ struct CronDetailView: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: Theme.font(12), weight: .semibold))
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: Theme.font(13), weight: .medium))
             }
             .foregroundColor(tint)
             .frame(maxWidth: .infinity)
@@ -650,17 +650,17 @@ struct CronDetailView: View {
                     NavigationLink(destination: ScriptEditorView(path: dir, node: node)) {
                         HStack(spacing: 10) {
                             Image(systemName: "doc.text.fill")
-                                .font(.system(size: 16))
+                                .font(.system(size: Theme.font(16)))
                                 .foregroundColor(Theme.accent)
                             Text(path)
-                                .font(.system(size: 14, design: .monospaced))
+                                .font(.system(size: Theme.font(14), design: .monospaced))
                                 .foregroundColor(Theme.info)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: Theme.font(12), weight: .semibold))
                                 .foregroundColor(Theme.tertiaryText)
                         }
                         .padding(.vertical, 4)
@@ -669,7 +669,7 @@ struct CronDetailView: View {
                     .buttonStyle(PlainButtonStyle())
             } else {
                 Text("该任务的命令不包含脚本文件（如 task xxx.js），无法直接跳转编辑。")
-                    .font(.system(size: 12.5))
+                    .font(.system(size: Theme.font(12.5)))
                     .foregroundColor(Theme.secondaryText)
             }
         }
@@ -690,7 +690,7 @@ struct CronDetailView: View {
                     HStack(spacing: 8) {
                         ProgressView().scaleEffect(0.7)
                         Text("正在统计历史日志…")
-                            .font(.system(size: 12.5))
+                            .font(.system(size: Theme.font(12.5)))
                             .foregroundColor(Theme.secondaryText)
                         Spacer()
                     }
@@ -710,17 +710,17 @@ struct CronDetailView: View {
         NavigationLink(destination: destination) {
             HStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: Theme.font(15), weight: .medium))
                     .foregroundColor(Theme.primaryText)
                 Spacer(minLength: 8)
                 Text(value)
-                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                    .font(.system(size: Theme.font(15), weight: .medium, design: .monospaced))
                     .foregroundColor(Theme.info)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .truncationMode(.middle)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: Theme.font(12), weight: .semibold))
                     .foregroundColor(Theme.tertiaryText)
             }
             .padding(.vertical, 12)
@@ -766,10 +766,10 @@ struct CronDetailView: View {
                 IconTile(icon: "arrow.triangle.2.circlepath", tint: Theme.info, size: 28)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("该任务由订阅自动创建")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: Theme.font(13), weight: .medium))
                         .foregroundColor(Theme.primaryText)
                     Text("在面板上删除订阅时，此任务可能会一并移除")
-                        .font(.system(size: 11))
+                        .font(.system(size: Theme.font(11)))
                         .foregroundColor(Theme.tertiaryText)
                 }
                 Spacer(minLength: 0)
@@ -798,7 +798,7 @@ struct CronLogView: View {
                 HStack {
                     Toggle(isOn: $autoRefresh) {
                         Text("每 5 秒自动刷新")
-                            .font(.system(size: 13))
+                            .font(.system(size: Theme.font(13)))
                             .foregroundColor(Theme.secondaryText)
                     }
                     .toggleStyle(SwitchToggleStyle(tint: Theme.accent))
@@ -889,7 +889,7 @@ struct CronEditView: View {
                     TextField("定时规则，例如 0 0 8 * * *", text: $schedule)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                        .font(.system(size: 15, design: .monospaced))
+                        .font(.system(size: Theme.font(15), design: .monospaced))
                 }
 
                 Section(header: Text("常用定时规则"), footer: Text("支持 5 段或 6 段 cron 表达式，也支持 @once、@boot 等写法。")) {
@@ -900,7 +900,7 @@ struct CronEditView: View {
                                     .foregroundColor(Theme.primaryText)
                                 Spacer()
                                 Text(preset.value)
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(.system(size: Theme.font(12), design: .monospaced))
                                     .foregroundColor(Theme.tertiaryText)
                             }
                         }

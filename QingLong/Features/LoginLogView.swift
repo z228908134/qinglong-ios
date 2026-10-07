@@ -72,18 +72,18 @@ struct LoginLogView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.dateText)
-                    .font(.system(size: 13.5, weight: .medium))
+                    .font(.system(size: Theme.font(13.5), weight: .medium))
                     .foregroundColor(Theme.primaryText)
 
                 Text("\(entry.ip) · \(entry.address.isEmpty ? "未知归属地" : entry.address)")
-                    .font(.system(size: 11.5, design: .monospaced))
+                    .font(.system(size: Theme.font(11.5), design: .monospaced))
                     .foregroundColor(Theme.secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
 
                 if !entry.platform.isEmpty {
                     Text(entry.platform)
-                        .font(.system(size: 11))
+                        .font(.system(size: Theme.font(11)))
                         .foregroundColor(Theme.tertiaryText)
                         .lineLimit(1)
                 }
@@ -98,7 +98,7 @@ struct LoginLogView: View {
 
     private func statusBadge(_ success: Bool) -> some View {
         Text(success ? "成功" : "失败")
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: Theme.font(11), weight: .semibold))
             .foregroundColor(success ? Theme.success : Theme.danger)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)

@@ -119,7 +119,7 @@ struct EnvListContent: View {
                 },
                 trailing: Button(action: { sheet = .create }) {
                     Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(.system(size: Theme.font(17), weight: .medium))
                 }
             )
         .sheet(item: $sheet) { target in
@@ -218,18 +218,18 @@ struct EnvRowView: View {
                 HStack(spacing: 4) {
                     if item.isPinnedEnv {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 9))
+                            .font(.system(size: Theme.font(9)))
                             .foregroundColor(Theme.warning)
                     }
                     Text(item.name)
-                        .font(.system(size: 13, weight: .medium, design: .monospaced))
+                        .font(.system(size: Theme.font(13), weight: .medium, design: .monospaced))
                         .foregroundColor(item.isDisabledEnv ? Theme.secondaryText : Theme.primaryText)
                         .lineLimit(1)
                 }
 
                 Button(action: onToggleReveal) {
                     Text(isRevealed ? item.value : maskedValue)
-                        .font(.system(size: 11.5, design: .monospaced))
+                        .font(.system(size: Theme.font(11.5), design: .monospaced))
                         .foregroundColor(Theme.secondaryText)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,7 +237,7 @@ struct EnvRowView: View {
 
                 if !item.remarks.isEmpty {
                     Text(item.remarks)
-                        .font(.system(size: 11))
+                        .font(.system(size: Theme.font(11)))
                         .foregroundColor(Theme.tertiaryText)
                         .lineLimit(1)
                 }
@@ -315,13 +315,13 @@ struct EnvEditView: View {
                     TextField("变量名，例如 JD_COOKIE", text: $name)
                         .autocapitalization(.allCharacters)
                         .disableAutocorrection(true)
-                        .font(.system(size: 15, design: .monospaced))
+                        .font(.system(size: Theme.font(15), design: .monospaced))
                     TextField("备注（可留空）", text: $remarks)
                 }
 
                 Section(header: Text("值"), footer: Text("变量名只能包含字母、数字与下划线，且不能以数字开头。")) {
                     TextEditor(text: $value)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.system(size: Theme.font(13), design: .monospaced))
                         .frame(minHeight: 110)
                 }
             }

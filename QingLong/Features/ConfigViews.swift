@@ -33,19 +33,19 @@ struct ConfigListView: View {
                 VStack(spacing: 8) {
                     ProgressView()
                     Text("正在读取配置文件…")
-                        .font(.system(size: 12.5))
+                        .font(.system(size: Theme.font(12.5)))
                         .foregroundColor(Theme.secondaryText)
                 }
             } else if files.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 32))
+                        .font(.system(size: Theme.font(32)))
                         .foregroundColor(Theme.tertiaryText)
                     Text("没有读取到配置文件")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: Theme.font(14), weight: .medium))
                         .foregroundColor(Theme.primaryText)
                     Text("面板版本较低或权限不足时，可能无法使用该功能。")
-                        .font(.system(size: 12))
+                        .font(.system(size: Theme.font(12)))
                         .foregroundColor(Theme.secondaryText)
                         .multilineTextAlignment(.center)
                 }
@@ -58,10 +58,10 @@ struct ConfigListView: View {
                         ) {
                             HStack(spacing: 12) {
                                 Image(systemName: "doc.plaintext")
-                                    .font(.system(size: 15))
+                                    .font(.system(size: Theme.font(15)))
                                     .foregroundColor(Theme.info)
                                 Text(file.title)
-                                    .font(.system(size: 14))
+                                    .font(.system(size: Theme.font(14)))
                                     .foregroundColor(Theme.primaryText)
                                 Spacer(minLength: 0)
                             }
@@ -115,20 +115,20 @@ struct ConfigEditorView: View {
                 VStack(spacing: 8) {
                     ProgressView()
                     Text("正在读取文件内容…")
-                        .font(.system(size: 12.5))
+                        .font(.system(size: Theme.font(12.5)))
                         .foregroundColor(Theme.secondaryText)
                 }
             } else {
                 VStack(spacing: 0) {
                     if !errorText.isEmpty {
                         Text(errorText)
-                            .font(.system(size: 12))
+                            .font(.system(size: Theme.font(12)))
                             .foregroundColor(Theme.danger)
                             .padding(.horizontal, 14)
                             .padding(.top, 10)
                     }
                     TextEditor(text: $content)
-                        .font(.system(size: 12.5, design: .monospaced))
+                        .font(.system(size: Theme.font(12.5), design: .monospaced))
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .padding(.horizontal, 12)
@@ -139,7 +139,7 @@ struct ConfigEditorView: View {
                                     VStack {
                                         Spacer()
                                         Text("已保存")
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(.system(size: Theme.font(12), weight: .medium))
                                             .foregroundColor(.white)
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 7)

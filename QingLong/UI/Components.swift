@@ -101,7 +101,7 @@ struct StatusPill: View {
 
     var body: some View {
         Text(title)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: Theme.font(11), weight: .semibold))
             .foregroundColor(Theme.tone(tone))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -121,14 +121,14 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 34, weight: .light))
+                .font(.system(size: Theme.font(34), weight: .light))
                 .foregroundColor(Theme.tertiaryText)
             Text(title)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: Theme.font(15), weight: .medium))
                 .foregroundColor(Theme.primaryText)
             if let message = message {
                 Text(message)
-                    .font(.system(size: 12.5))
+                    .font(.system(size: Theme.font(12.5)))
                     .foregroundColor(Theme.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -136,7 +136,7 @@ struct EmptyStateView: View {
             if let actionTitle = actionTitle, let action = action {
                 Button(action: action) {
                     Text(actionTitle)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: Theme.font(13), weight: .medium))
                         .foregroundColor(Theme.accent)
                 }
                 .padding(.top, 2)
@@ -156,12 +156,12 @@ struct SearchField: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 13))
+                .font(.system(size: Theme.font(13)))
                 .foregroundColor(Theme.tertiaryText)
 
             TextField(placeholder, text: $text)
                 .textFieldStyle(PlainTextFieldStyle())
-                .font(.system(size: 14))
+                .font(.system(size: Theme.font(14)))
                 .foregroundColor(Theme.primaryText)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
@@ -169,7 +169,7 @@ struct SearchField: View {
             if !text.isEmpty {
                 Button(action: { text = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
+                        .font(.system(size: Theme.font(14)))
                         .foregroundColor(Theme.tertiaryText)
                 }
             }
@@ -195,7 +195,7 @@ struct SectionCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             if let title = title {
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: Theme.font(12), weight: .semibold))
                     .foregroundColor(Theme.secondaryText)
             }
             content
@@ -230,17 +230,17 @@ struct MetricTile: View {
                     .fill(tint)
                     .frame(width: 6, height: 6)
                 Text(title)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: Theme.font(11.5)))
                     .foregroundColor(Theme.secondaryText)
             }
             Text(value)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: Theme.font(22), weight: .bold))
                 .foregroundColor(Theme.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             if let caption = caption {
                 Text(caption)
-                    .font(.system(size: 11))
+                    .font(.system(size: Theme.font(11)))
                     .foregroundColor(Theme.tertiaryText)
                     .lineLimit(1)
             }
@@ -269,7 +269,7 @@ struct InfoRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text(label)
-                .font(.system(size: 13))
+                .font(.system(size: Theme.font(13)))
                 .foregroundColor(Theme.secondaryText)
                 .frame(width: 76, alignment: .leading)
             Text(value)
@@ -297,10 +297,10 @@ struct PrimaryButton: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: Theme.font(14), weight: .semibold))
                 }
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: Theme.font(15), weight: .semibold))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -335,7 +335,7 @@ struct LogTextView: View {
         // 在手机上表现为日志被屏幕右缘截断（「边框不自适应」的根因）。
         ScrollView(.vertical) {
             Text(text.isEmpty ? "（暂无内容）" : text)
-                .font(.system(size: 11.5, design: .monospaced))
+                .font(.system(size: Theme.font(11.5), design: .monospaced))
                 .foregroundColor(isPlaceholder ? Theme.secondaryText : Theme.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
@@ -353,7 +353,7 @@ struct LoadingOverlay: View {
         HStack(spacing: 10) {
             ProgressView()
             Text(title)
-                .font(.system(size: 13))
+                .font(.system(size: Theme.font(13)))
                 .foregroundColor(Theme.secondaryText)
         }
         .padding(.vertical, 24)
@@ -371,7 +371,7 @@ struct ToolbarIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: Theme.font(16)))
         }
         .disabled(!isEnabled)
     }
@@ -386,10 +386,10 @@ struct BannerView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "info.circle.fill")
-                .font(.system(size: 13))
+                .font(.system(size: Theme.font(13)))
                 .foregroundColor(Theme.tone(tone))
             Text(text)
-                .font(.system(size: 12))
+                .font(.system(size: Theme.font(12)))
                 .foregroundColor(Theme.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

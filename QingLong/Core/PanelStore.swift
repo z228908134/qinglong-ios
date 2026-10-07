@@ -571,40 +571,71 @@ final class PanelStore: ObservableObject {
     /// 任务日志历史文件名（最新在前）。
     ///
     /// 面板 `GET /api/logs` 返回的是整个 log 目录的**完整递归树**
-    /// （`readDirs(config.logPath, config.logPath)`），节点 `key` 是**相对
-    /// log 根目录**的路径——顶层任务目录的 key 就是 `<任务id>`，不含 `log/` 前缀。
-    /// 之前按 `log/<任务id>` 匹配自然永远落空，这里两种形态都兼容。
+    /// （`readDirs(config.logPath, config.logPath)`）——单任务 800+ 文件、全量上万节点，
+    /// JSON 体积很大。之前用 `FileNode.parseList` 先把整棵树建成对象再找目录，
+    /// 既慢又在深层嵌套下匹配不到。
     ///
-    /// 注意：这棵树可能很大（单任务 800+ 文件、全量上万节点），解析需要时间，
-    /// 所以调用方不要阻塞首屏渲染。
-    func cronLogFileNames(id: String) async -> [String] {
+    /// 现在改为**直接在原始 JSONValue 上搜索**：用任务 `log_path` 的目录名
+    /// （面板自己写的，绝对准确）定位父节点，取其 children 的 title。
+    /// 全程不构造 FileNode，对大树友好得多。
+    ///
+    /// - Parameters:
+    ///   - id: 任务 ObjectId，用于目录名兜底匹配
+    ///   - logDir: `log_path` 的父目录（如 `log/<任务id>`），优先用它提取目录名
+    func cronLogFileNames(id: String, logDir: String? = nil) async -> [String] {
+        // 候选目录名：log_path 的目录名最准，其次任务 id 本身
+        var candidates: [String] = []
+        if let dir = logDir, !dir.isEmpty {
+            let name = (dir as NSString).lastPathComponent
+            if !name.isEmpty { candidates.append(name) }
+        }
+        if !id.isEmpty { candidates.append(id) }
+        if candidates.isEmpty { return [] }
+
         do {
             let response = try await APIClient.shared.send(.get, "logs", as: JSONValue.self)
-            let roots = FileNode.parseList(response.data)
-            let idText = id
+            guard let array = response.data?.arrayValue else { return [] }
+            return Self.logFileTitles(in: array, candidates: Set(candidates))
+        } catch {
+            return []
+        }
+    }
 
-            // 递归找任务目录：顶层 key/title 可能是 `<id>` 或 `log/<id>`，
-            // 也可能出现在更深层（面板调整过目录层级时）。
-            func findDir(_ nodes: [FileNode]) -> FileNode? {
-                for node in nodes where node.isDirectory {
-                    if node.title == idText
-                        || node.path == idText
-                        || node.path == "log/\(idText)"
-                        || node.path.hasSuffix("/\(idText)") {
-                        return node
+    /// 在原始日志树 JSON 中递归定位任务目录，返回其下文件标题（倒序 = 最新在前）。
+    ///
+    /// 不走 FileNode：这棵树节点数以万计，逐个构造 Swift 对象开销极大，
+    /// 而这里只需要按 title/key 匹配目录、读一层 children。
+    private static func logFileTitles(in nodes: [JSONValue], candidates: Set<String>) -> [String] {
+        for node in nodes {
+            guard let obj = node.objectValue else { continue }
+
+            let title = obj["title"]?.stringValue ?? ""
+            let key = obj["key"]?.stringValue ?? obj["path"]?.stringValue ?? ""
+            let keyName = (key as NSString).lastPathComponent
+
+            // 命中任务目录：title / key 末段 / key 全路径 任一匹配
+            let hit = candidates.contains(title)
+                || candidates.contains(keyName)
+                || candidates.contains(key)
+                || key.hasSuffix("/" + (title.isEmpty ? keyName : title))
+            if hit {
+                let titles = (obj["children"]?.arrayValue ?? [])
+                    .compactMap { child -> String? in
+                        guard let c = child.objectValue else { return nil }
+                        // 目录不计入日志文件
+                        if (c["type"]?.stringValue ?? "file") == "directory" { return nil }
+                        return c["title"]?.stringValue ?? c["name"]?.stringValue
                     }
-                    if let hit = findDir(node.children) { return hit }
-                }
-                return nil
+                    .filter { !$0.isEmpty }
+                return titles.sorted { $0 > $1 }
             }
 
-            let target = findDir(roots)
-            let files = (target?.children ?? [])
-                .filter { !$0.isDirectory }
-                .map { $0.title }
-                .sorted { $0 > $1 }
-            return files
-        } catch {}
+            // 未命中则下探一层
+            if let children = obj["children"]?.arrayValue, !children.isEmpty {
+                let found = logFileTitles(in: children, candidates: candidates)
+                if !found.isEmpty { return found }
+            }
+        }
         return []
     }
 

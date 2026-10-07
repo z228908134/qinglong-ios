@@ -39,16 +39,16 @@ struct CronLogHistoryView: View {
                         ) {
                             HStack(spacing: 10) {
                                 Image(systemName: "doc.text")
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 15))
                                     .foregroundColor(Theme.info)
                                 Text(name)
-                                    .font(.system(size: 12.5, design: .monospaced))
+                                    .font(.system(size: 14, design: .monospaced))
                                     .foregroundColor(Theme.primaryText)
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.6)
+                                    .minimumScaleFactor(0.75)
                                 Spacer(minLength: 0)
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 5)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(PlainButtonStyle())

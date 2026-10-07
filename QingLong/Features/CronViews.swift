@@ -621,11 +621,12 @@ struct CronDetailView: View {
     private func loadLogFiles() async {
         logFilesLoading = true
         // 日志目录树可能很大（单任务 800+ 文件），放到后台线程解析，
-        // 否则进详情页会卡住主线程几秒。
+        // 否则进详情页会卡住主线程几秒。目录名直接取自 log_path，面板自己写的最准。
         let id = cron.id
+        let dir = live.latestLogDir
         let store = self.store
         let names = await Task.detached(priority: .utility) {
-            await store.cronLogFileNames(id: id)
+            await store.cronLogFileNames(id: id, logDir: dir)
         }.value
         logFiles = names
         logFilesLoading = false
@@ -646,24 +647,26 @@ struct CronDetailView: View {
                     isDirectory: false,
                     children: []
                 )
-                NavigationLink(destination: ScriptEditorView(path: dir, node: node)) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "doc.text.fill")
-                            .font(.system(size: 15))
-                            .foregroundColor(Theme.accent)
-                        Text(path)
-                            .font(.system(size: 12.5, design: .monospaced))
-                            .foregroundColor(Theme.info)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.55)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11.5))
-                            .foregroundColor(Theme.tertiaryText)
+                    NavigationLink(destination: ScriptEditorView(path: dir, node: node)) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(Theme.accent)
+                            Text(path)
+                                .font(.system(size: 14, design: .monospaced))
+                                .foregroundColor(Theme.info)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Theme.tertiaryText)
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
                     }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(PlainButtonStyle())
             } else {
                 Text("该任务的命令不包含脚本文件（如 task xxx.js），无法直接跳转编辑。")
                     .font(.system(size: 12.5))
@@ -705,21 +708,22 @@ struct CronDetailView: View {
 
     private func historyRow(title: String, value: String, destination: AnyView) -> some View {
         NavigationLink(destination: destination) {
-            HStack {
+            HStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 13.5))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(Theme.primaryText)
                 Spacer(minLength: 8)
                 Text(value)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.system(size: 15, weight: .medium, design: .monospaced))
                     .foregroundColor(Theme.info)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.7)
+                    .truncationMode(.middle)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Theme.tertiaryText)
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())

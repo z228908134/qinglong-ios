@@ -623,8 +623,9 @@ struct CronDetailView: View {
         // 日志目录树可能很大（单任务 800+ 文件），放到后台线程解析，
         // 否则进详情页会卡住主线程几秒。
         let id = cron.id
-        let names = await Task.detached(priority: .utility) { [weak self] in
-            await self?.store.cronLogFileNames(id: id) ?? []
+        let store = self.store
+        let names = await Task.detached(priority: .utility) {
+            await store.cronLogFileNames(id: id)
         }.value
         logFiles = names
         logFilesLoading = false

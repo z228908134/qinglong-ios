@@ -2,16 +2,13 @@ import SwiftUI
 
 /// 全局文字大小缩放档位。
 ///
-/// App 里所有字号都是写死的 `.font(.system(size: 12.5))`，共 180 余处，
-/// 逐个改成动态值不现实。SwiftUI 在 iOS 14 没有全局字体环境值，
-/// 但可以用 `.environment(\.dynamicTypeSize, ...)` 之外的办法——
-/// 这里采用**自绘字体**方案：给 `View` 加一个 `qlFont` 修饰符，
-/// 读 `@AppStorage` 里的缩放系数后乘到基准字号上。
+/// App 里所有字号原本都是写死的 `.font(.system(size: 12.5))`，共 180 余处。
+/// 这里不引入新的字体环境值（iOS 14 没有全局字体缩放），而是把每一处字号的
+/// **基准值**抽出来：统一写成 `Theme.font(12.5)`，实际字号 = 基准值 × 缩放系数。
 ///
-/// 用法：把 `.font(.system(size: 13))` 换成 `.qlFont(size: 13)`，
-/// 字号即随全局缩放联动。为了不改动 180 多处调用点，
-/// 缩放通过 `Theme.fontScale` 提供，各页面读取 `Theme.fontScale` 自行计算——
-/// 因此真正的落点在设置页 + App 入口的 `environment`。
+/// 缩放系数存在 `@AppStorage(FontScale.storageKey)`，由设置页写入；
+/// App 入口读同一个键并挂 `.id(fontScaleRaw)`，值一变就重建视图树，
+/// 因此拖动滑杆时全 App 字号立即联动，无需重启。
 enum FontScale {
 
     /// `@AppStorage` 键名，设置页与读取方共用。
@@ -69,29 +66,5 @@ extension Theme {
     /// 按全局缩放计算实际字号：`Theme.font(13)`。
     static func font(_ base: CGFloat) -> CGFloat {
         CGFloat(base * fontScale)
-    }
-}
-
-// MARK: - 便捷修饰符
-
-extension View {
-    /// 随全局缩放联动的等宽字体。
-    ///
-    /// `Text(...).qlFont(size: 12.5, design: .monospaced)`
-    func qlFont(
-        size: CGFloat,
-        weight: Font.Weight = .regular,
-        design: Font.Design? = nil
-    ) -> some View {
-        font(.system(size: Theme.font(size), weight: weight, design: design))
-    }
-
-    /// 随全局缩放联动的系统字体。
-    func qlSystemFont(
-        _ style: Font.TextStyle,
-        weight: Font.Weight = .regular,
-        design: Font.Design? = nil
-    ) -> some View {
-        font(.system(style, design: design).weight(weight))
     }
 }

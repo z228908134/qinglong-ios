@@ -167,58 +167,94 @@ struct DashboardView: View {
     /// 实际上只是没有数据。所以这种情况统一显示为未知。
     private var hasStats: Bool { store.overview != nil }
 
-    /// 主视觉卡：品牌绿渐变底 + 成功率圆环 + 今日执行大数字。
+    /// 主指标卡：成功率大数字领头 + 进度条 + 三格细分指标。
+    ///
+    /// 早先这里是「品牌绿渐变 + 白字圆环」，深色模式下渐变底容易发脏，
+    /// 且圆环 + 大数字并列导致视觉重心分散。改为卡片底色 + 大数字 + 细进度条，
+    /// 深浅色下都干净，成功率/失败/运行中三色也能直接对比。
     private var heroCard: some View {
         let rateText = hasStats ? (store.overview?.successRate ?? "0") : nil
         let rate = rateText.flatMap { Double($0) }.map { max(0, min(1, $0 / 100)) }
+        let success = store.overview?.todaySuccess ?? 0
+        let fail = store.overview?.todayFail ?? 0
+        let running = store.running.count
 
-        return HStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.28), lineWidth: 8)
-                if let rate = rate {
-                    Circle()
-                        .trim(from: 0, to: CGFloat(rate))
-                        .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeOut(duration: 0.6), value: rate)
-                }
-                VStack(spacing: 1) {
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("今日成功率")
+                        .font(.system(size: Theme.font(11.5)))
+                        .foregroundColor(Theme.secondaryText)
                     Text(rateText.map { "\($0)%" } ?? "—")
-                        .font(.system(size: Theme.font(17), weight: .bold))
-                        .foregroundColor(.white)
-                    Text("成功率")
-                        .font(.system(size: Theme.font(10)))
-                        .foregroundColor(.white.opacity(0.85))
+                        .font(.system(size: Theme.font(26), weight: .semibold))
+                        .foregroundColor(rate != nil && (rate ?? 0) < 0.6 ? Theme.danger : Theme.success)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("平均耗时")
+                        .font(.system(size: Theme.font(11.5)))
+                        .foregroundColor(Theme.secondaryText)
+                    Text(hasStats ? durationText(store.overview?.avgTime ?? 0) : "—")
+                        .font(.system(size: Theme.font(15), weight: .medium))
+                        .foregroundColor(Theme.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             }
-            .frame(width: 76, height: 76)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text("今日执行")
-                    .font(.system(size: Theme.font(12), weight: .medium))
-                    .foregroundColor(.white.opacity(0.85))
-                Text(hasStats ? "\(store.overview?.todayRuns ?? 0)" : "—")
-                    .font(.system(size: Theme.font(32), weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Text(hasStats
-                        ? "成功 \(store.overview?.todaySuccess ?? 0) · 失败 \(store.overview?.todayFail ?? 0)"
-                        : "面板未返回统计数据")
-                    .font(.system(size: Theme.font(11.5)))
-                    .foregroundColor(.white.opacity(0.85))
-                    .lineLimit(1)
+            // 成功率进度条：底槽用 fieldBackground，填充段随健康度变色
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.fieldBackground)
+                    Capsule()
+                        .fill((rate != nil && (rate ?? 0) < 0.6) ? Theme.danger : Theme.success)
+                        .frame(width: max(0, geo.size.width * CGFloat(rate ?? 0)))
+                }
             }
+            .frame(height: 5)
 
-            Spacer(minLength: 0)
+            HStack(spacing: 8) {
+                miniStat("成功", "\(success)", Theme.success)
+                miniStat("失败", "\(fail)", fail > 0 ? Theme.danger : Theme.secondaryText)
+                miniStat("运行中", "\(running)", running > 0 ? Theme.warning : Theme.secondaryText)
+            }
         }
-        .padding(18)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Theme.heroGradient)
-                .shadow(color: Theme.heroBottom.opacity(0.35), radius: 12, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Theme.cardBorder, lineWidth: 1)
+                )
+                .shadow(color: Theme.cardShadow, radius: 10, x: 0, y: 4)
+        )
+    }
+
+    /// 主指标卡底部的三格细分数字。
+    private func miniStat(_ title: String, _ value: String, _ tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: Theme.font(10.5)))
+                .foregroundColor(Theme.tertiaryText)
+            Text(value)
+                .font(.system(size: Theme.font(15), weight: .medium))
+                .foregroundColor(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Theme.fieldBackground)
         )
     }
 
@@ -326,9 +362,10 @@ struct DashboardView: View {
                     ForEach(running) { task in
                         NavigationLink(destination: CronDetailView(cron: detailCron(for: task))) {
                             HStack(spacing: 10) {
-                                Circle()
-                                    .fill(Theme.info)
-                                    .frame(width: 7, height: 7)
+                                // 左侧琥珀色竖条：纵向扫列表时，位置感比小圆点强得多
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Theme.warning)
+                                    .frame(width: 3, height: 28)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(task.name)
@@ -345,6 +382,10 @@ struct DashboardView: View {
                                 InlineActionButton(title: "停止", icon: "stop.fill", tint: Theme.danger) {
                                     Task { await store.stopCrons([task.id]) }
                                 }
+
+                                Circle()
+                                    .fill(Theme.warning)
+                                    .frame(width: 6, height: 6)
                             }
                             .contentShape(Rectangle())
                         }
@@ -415,8 +456,25 @@ struct TrendChartCard: View {
         max(points.map { $0.total }.max() ?? 1, 1)
     }
 
+    private var totalRuns: Int {
+        points.reduce(0) { $0 + $1.total }
+    }
+
     var body: some View {
-        SectionCard("近 7 日执行趋势") {
+        SectionCard {
+            // 标题行：左侧名称，右侧补一个总数，避免只有「趋势」而没有量级概念
+            HStack(alignment: .firstTextBaseline) {
+                Text("近 7 日执行趋势")
+                    .font(.system(size: Theme.font(12), weight: .semibold))
+                    .foregroundColor(Theme.secondaryText)
+                Spacer(minLength: 8)
+                if !points.isEmpty {
+                    Text("共 \(totalRuns) 次")
+                        .font(.system(size: Theme.font(11.5)))
+                        .foregroundColor(Theme.tertiaryText)
+                }
+            }
+            .padding(.bottom, 2)
             if points.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "chart.bar")
@@ -437,7 +495,7 @@ struct TrendChartCard: View {
                     .frame(height: 96)
 
                     HStack(spacing: 14) {
-                        legend(color: Theme.accent, text: "成功")
+                        legend(color: Theme.success, text: "成功")
                         legend(color: Theme.danger, text: "失败")
                     }
                 }

@@ -185,8 +185,20 @@ struct CronRowView: View {
         return ("--", Theme.neutral)
     }
 
+    /// 行左侧状态色条：运行中=琥珀、已禁用=灰、其余按运行结果取绿/红。
+    /// 列表一屏十几行时，色条比小圆点更容易在纵向扫读中定位。
+    private var statusBarColor: Color {
+        if cron.pid != nil && (cron.pid ?? 0) > 0 { return Theme.warning }
+        if cron.isDisabledTask { return Theme.neutral }
+        return Theme.accent.opacity(0.55)
+    }
+
     var body: some View {
         HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(statusBarColor)
+                .frame(width: 3, height: 32)
+
             // 语言角标块：只显示 PY/JS/TS/SH 字样。
             // 原先在 terminal 图标上再叠文字，两个字形会互相压住，观感脏。
             RoundedRectangle(cornerRadius: 9)

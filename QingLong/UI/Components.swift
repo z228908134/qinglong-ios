@@ -59,6 +59,12 @@ enum Theme {
         light: UIColor(white: 0, alpha: 0.06),
         dark: UIColor(white: 1, alpha: 0.07)
     )
+    /// 主指标卡的投影色。深色模式下用纯黑（不透明黑在深底上会显脏），
+    /// 浅色模式下用低透明黑，仅够把卡片从页面上「抬」起来。
+    static let cardShadow = adaptive(
+        light: UIColor(white: 0, alpha: 0.10),
+        dark: UIColor(white: 0, alpha: 0.45)
+    )
     static let fieldBackground = Color(UIColor.tertiarySystemFill)
 
     /// 主视觉渐变（品牌绿 → 深翠绿），用于概览主卡与主按钮。
@@ -185,9 +191,20 @@ struct SearchField: View {
 struct SectionCard<Content: View>: View {
     private let title: String?
     private let content: Content
+    /// 卡片层级：`true` = 主卡（描边 + 投影，用于概览指标这类重点信息），
+    /// `false` = 次级卡（只留底色，不描边不投影）。
+    ///
+    /// 之前所有卡片都带同样的描边与投影，一屏里权重完全一致、没有视觉重心；
+    /// 分出主次后眼睛才知道该看哪一块。
+    private let elevated: Bool
 
-    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+    init(
+        _ title: String? = nil,
+        elevated: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
+        self.elevated = elevated
         self.content = content()
     }
 
@@ -206,12 +223,21 @@ struct SectionCard<Content: View>: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Theme.cardBackground)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Theme.cardBorder, lineWidth: 1)
+                    Group {
+                        if elevated {
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Theme.cardBorder, lineWidth: 1)
+                        }
+                    }
                 )
         )
         .compositingGroup()
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 3)
+        .shadow(
+            color: elevated ? Theme.cardShadow : Color.clear,
+            radius: elevated ? 10 : 0,
+            x: 0,
+            y: elevated ? 4 : 0
+        )
     }
 }
 

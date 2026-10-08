@@ -177,7 +177,7 @@ struct DashboardView: View {
         let rate = rateText.flatMap { Double($0) }.map { max(0, min(1, $0 / 100)) }
         let success = store.overview?.todaySuccess ?? 0
         let fail = store.overview?.todayFail ?? 0
-        let running = store.running.count
+        let running = runningTasks.count
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
